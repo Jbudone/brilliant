@@ -3,24 +3,72 @@ const fs = require('fs'),
     jQuery = require('jquery');
 
 const JSDOM = jsdom.JSDOM;
-//const dom = new jsdom.JSDOM('');
-//const $ = jQuery(dom.window);
 
-fs.readFile('../problems/10000000-accounts-puzzle-and-maybe-1000-followers/10000000-accounts-puzzle-and-maybe-1000-followers.html', 'utf8', (err, data) => {
+const rawproblems = fs.readFileSync('../rawproblems', 'utf8'),
+    rawproblemsList = rawproblems.split('\n');
 
-    if (err) throw err;
+// Handle in batches to allow GC to clear DOM
+const BATCH_HANDLE = 100,
+    BATCH_TIMER = 2000;
 
-    const dom = new JSDOM(data);
-    const $ = jQuery(dom.window);
 
-    //console.log(data);
+const parseProblemsBatch = (i) => {
 
-    const categoryAndLevel = $('.topic-level-info').text(),
-        match = categoryAndLevel.match(/^\s*(Algebra|Geometry|Number Theory|Calculus|Probability|Basic Mathematics|Logic|Classical Mechanics|Electricity and Magnetism|Computer Science|Quantitative Finance|Chemistry)\s*Level\s*(\d*)/);
+    for (let j = 0; j < BATCH_HANDLE; ++j) {
 
-    //console.log( $('.topic-level-info').text() );
+        if ((i+j) >= rawproblemsList.length) return;
+        const problem = rawproblemsList[i + j];
+        if (problem.length === 0) return; // Last line
 
-    console.log("Category: " + match[1]);
-    console.log("Level: " + match[2]);
+        const match = problem.match(/^([^\s]+) (.*)$/),
+            problemName = match[2],
+            problemFile = match[1];
+
+
+        const filepath = '../' + problemFile + '.html';
+        //console.log(filepath);
+        const data = fs.readFileSync(filepath, 'utf8');
+        const dom = new JSDOM(data);
+        const $ = jQuery(dom.window);
+
+        //console.log(data);
+
+        const categoryAndLevel = $('.topic-level-info').text();
+
+        let categoryName, categoryLevel;
+        if(categoryAndLevel.replaceAll('\n','').replaceAll(' ','') === "Levelpending") {
+            // FIXME: level unset
+            categoryName = 'uncategorized';
+            categoryLevel = 0;
+        } else {
+            let matchCat = categoryAndLevel.match(/^\s*(Algebra|Biology|Geometry|Number Theory|Calculus|Probability|Basic Mathematics|Logic|Classical Mechanics|Electricity and Magnetism|Computer Science|Quantitative Finance|Chemistry|Number Theory and Algebra|SAT® Math)\s*Level\s*(\d*)/);
+
+            if (!matchCat) {
+                matchCat = categoryAndLevel.match(/^\s*Level\s*(\d*)/);
+                if (!matchCat) {
+                    console.log(categoryAndLevel);
+                    throw "Unexpected level/category";
+                }
+
+                categoryName = 'uncategorized';
+                categoryLevel = matchCat[1];
+            } else {
+                categoryName = matchCat[1];
+                categoryLevel = matchCat[2];
+            }
+
+
+
+            //console.log( $('.topic-level-info').text() );
+        }
+        console.log(categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
+
+        delete $;
+        delete dom;
+        delete data;
+    }
     
-});
+    setTimeout(() => { parseProblemsBatch(i + BATCH_HANDLE); }, BATCH_TIMER);
+};
+
+parseProblemsBatch(0);
