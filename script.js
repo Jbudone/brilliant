@@ -32,8 +32,115 @@ $(document).ready(() => {
                 const tParent = $( tEl.parent()[0] );
                 tParent.removeClass('open');
             });
-
         });
+
+
+        const pagePrev = $('#paginate_previous'),
+            pageNext = $('#paginate_next'),
+            pageList = $('.pagination'),
+            pageEllipses = $('#paginate_ellipses');
+        
+        let paginate = () => {},
+            pageNumEls = [],
+            curPage = 0,
+            loadableMaxPages = 10,
+            knowMaxPage = false,
+            pageLoad = null;
+
+        const setPage = (pageIdx) => {
+
+            if (pageIdx === 0) {
+                pagePrev.addClass('disabled');
+            } else {
+                pagePrev.removeClass('disabled');
+            }
+
+            if (pageIdx === loadableMaxPages) {
+                const curPageNumEl = pageNumEls.findIndex((el) => el.data('page') === curPage);
+                pageNumEls[curPageNumEl].removeClass('active');
+                pageNext.addClass('disabled');
+                if (!knowMaxPage) {
+                    // FIXME: Show loading indicator while we load full problem set
+
+                    curPage = pageIdx;
+                    clearProblems();
+                    pageLoad = $('<div/>').addClass('loader').appendTo(problemsList);
+
+                    return false;
+                }
+
+            } else {
+                pageNext.removeClass('disabled');
+            }
+
+
+            pageNumEls.forEach((el) => el.remove());
+            pageNumEls = [];
+            let lastEl = pagePrev,
+                minPage = Math.max(0, Math.min(5, pageIdx - 2)),
+                maxPage = Math.min(loadableMaxPages, Math.max(5, pageIdx + 3));
+            for (let i = minPage; i < maxPage; ++i) {
+                //<li class='paginate_button page-item'>
+                //    <a href='#' class='page-link'>4</a>
+                //</li>
+                const pageItemEl = $('<li/>')
+                    .addClass('pageinate_button')
+                    .addClass('page-item')
+                    .data('page', i)
+                    .append( $('<a/>')
+                        .attr('href', '#')
+                        .addClass('page-link')
+                        .text(i + 1)
+                        .click(() => {
+                            console.log("Load page: " + i);
+                            setPage(i);
+                            return false;
+                        })
+                    )
+                    .insertAfter(lastEl);
+
+                lastEl = pageItemEl;
+                pageNumEls.push(pageItemEl);
+            }
+
+            curPage = pageIdx;
+            const curPageNumEl = pageNumEls.findIndex((el) => el.data('page') === curPage);
+            pageNumEls[curPageNumEl].addClass('active');
+            paginate();
+        };
+
+        const resetPages = (pageIdx, maxPages, knowMax) => {
+            curPage = 0;
+            loadableMaxPages = maxPages;
+            knowMaxPage = knowMax;
+
+            pagePrev.addClass('disabled');
+            if (maxPages === 1) pageNext.addClass('disabled');
+            
+            if (knowMax) {
+                pageEllipses.removeClass('hidden');
+            } else {
+                pageEllipses.addClass('hidden');
+            }
+
+            setPage(0);
+        };
+
+        pagePrev.click(() => {
+            if (curPage === 0) return;
+            setPage(curPage - 1);
+            return false;
+        });
+
+        pageNext.click(() => {
+
+            if (curPage === loadableMaxPages) return; // Already at max
+
+            setPage(curPage + 1);
+
+            return false;
+        });
+
 
         const problemsList = $('#problemsList');
 
@@ -135,52 +242,86 @@ $(document).ready(() => {
         };
 
         const clearProblems = () => {
+            if (pageLoad) pageLoad = null;
             problemsList.children().remove()
         };
 
-        const searchProblems = () => {
-            problemsTableSettings.indexOffset = 0;
-            clearProblems();
+        const fetchProblemsByFilter = (category, difficulty, offset, count) => {
 
-            let j = 0; // Fill 15
+            let problems = [];
             let i;
-            for (i = problemsTableSettings.indexOffset; i < problemSet.length; ++i) {
+            for (i = offset; i < problemSet.length; ++i) {
                 const problem = problemSet[i];
                 const catIdx = problemCategoryIndex[ problem.c ];
                 if
                 (
                     (
-                        (problemsTableSettings.category === 0) ||
-                        (catIdx === problemsTableSettings.category)
+                        (category === 0) ||
+                        (catIdx === category)
                     )
                     &&
                     (
-                        (problemsTableSettings.difficulty === 0) ||
-                        (problemsTableSettings.difficulty === 1 && problem.l <= 1) ||
-                        (problemsTableSettings.difficulty === 2 && problem.l <= 3 && problem.l >= 2) ||
-                        (problemsTableSettings.difficulty === 3 && problem.l <= 5 && problem.l >= 4)
+                        (difficulty === 0) ||
+                        (difficulty === 1 && problem.l <= 1) ||
+                        (difficulty === 2 && problem.l <= 3 && problem.l >= 2) ||
+                        (difficulty === 3 && problem.l <= 5 && problem.l >= 4)
                     )
                 )
                 {
-                    addProblem(problem);
-                    if(++j >= 15) break;
+                    problems.push(problem);
+                    if(--count === 0) break;
                 }
             }
 
-            problemsTableSettings.indexOffset = i; // pageination
+            return { problems, indexOffset: i };
+        };
+
+        /*
+        // Fetch initial problem set
+        const initialProblemSet = [];
+        const initialProblemMap = {};
+        const INITIAL_PROBLEM_SET_SIZE = 15 * 10; // 5 pages worth for each filter
+        for (let catKey in problemCategoryIndex) {
+            let catIdx = problemCategoryIndex[catKey];
+            for (let difficulty = 0; difficulty < 3; ++difficulty) {
+                let { problems, indexOffset } = fetchProblemsByFilter(catIdx, difficulty, 0, INITIAL_PROBLEM_SET_SIZE);
+                
+                // strip out already added problems
+                problems = problems.filter((e) => !(e.p in initialProblemMap));
+                problems.forEach((e) => { initialProblemMap[e.p] = 1; initialProblemSet.push(e); });
+            }
+        }
+        window['initialProblemSet'] = initialProblemSet;
+        */
+
+
+        paginate = () => {
+            problemsTableSettings.indexOffset = 0;
+            clearProblems();
+
+            const count = (curPage + 1) * 15;
+            const { problems, indexOffset } = fetchProblemsByFilter(problemsTableSettings.category, problemsTableSettings.difficulty, 0, count);
+
+            for (let i = (count - 15); i < count; ++i) {
+                if (i >= problems.length) break;
+                addProblem(problems[i]);
+            }
+
+            problemsTableSettings.indexOffset = indexOffset; // pageination
         };
 
 
         // Initial problems
-        clearProblems();
-        for (let i = 0; i < 15; ++i) {
-            addProblem(problemSet[i]);
-        }
+        resetPages(0, 10, false);
+        paginate();
     };
 
     let problemSet = null;
     $.getJSON('sortedproblems.json', {}, (data) => {
         problemSet = data;
-        initializePage();
     });
+
+    // speed up startup by loading initial problem set (subset of entire problemset)
+    problemSet = initialProblems;
+    initializePage();
 });
