@@ -43,11 +43,24 @@ $(document).ready(() => {
         let paginate = () => {},
             pageNumEls = [],
             curPage = 0,
-            loadableMaxPages = 10,
+            loadableMaxPages = 9,
             knowMaxPage = false,
-            pageLoad = null;
+            pageLoad = null,
+            checkForProblems = null;
 
-        const setPage = (pageIdx) => {
+        const setPage = (pageIdx, isUpdate) => {
+
+            if (isUpdate && problemSet === initialProblems) {
+                // Still loading problem set..
+                checkForProblems = setTimeout(() => { setPage(pageIdx, true) ; }, 100);
+                return;
+            }
+
+            if (checkForProblems) {
+                // Cancel previous load
+                clearTimeout(checkForProblems);
+                checkForProblems = null;
+            }
 
             if (pageIdx === 0) {
                 pagePrev.addClass('disabled');
@@ -55,18 +68,50 @@ $(document).ready(() => {
                 pagePrev.removeClass('disabled');
             }
 
+            let searched = false;
             if (pageIdx === loadableMaxPages) {
+
                 const curPageNumEl = pageNumEls.findIndex((el) => el.data('page') === curPage);
                 pageNumEls[curPageNumEl].removeClass('active');
-                pageNext.addClass('disabled');
+
+                curPage = pageIdx;
                 if (!knowMaxPage) {
-                    // FIXME: Show loading indicator while we load full problem set
 
-                    curPage = pageIdx;
-                    clearProblems();
-                    pageLoad = $('<div/>').addClass('loader').appendTo(problemsList);
+                    if (problemSet === initialProblems) {
+                        // Show loading indicator while we load full problem set
 
-                    return false;
+                        curPage = pageIdx;
+                        clearProblems();
+                        pageLoad = $('<div/>').addClass('loader').appendTo(problemsList);
+
+                        pageNext.addClass('disabled');
+
+                        checkForProblems = setTimeout(() => { setPage(pageIdx, true); }, 100);
+
+                        return false;
+                    }
+
+                    // Otherwise, we may or may not have enough results to load another page
+                    searched = true;
+                    const { reachedEnd, count } = paginate();
+                    console.log((reachedEnd ? "Reached end" : "more..") + " fetched " + count);
+                    if (reachedEnd) {
+                        pageNext.addClass('disabled');
+                        if (count === 0) { // nothing else, our last page is the current last page
+                            pageIdx = loadableMaxPages - 1;
+                        } else {
+                            //loadableMaxPages++;
+                            pageIdx = loadableMaxPages;
+                        }
+
+                        knowMaxPage = true;
+                    } else {
+                        curPage = pageIdx;
+                        loadableMaxPages++;
+                        pageNext.removeClass('disabled');
+                    }
+                } else {
+                    pageNext.addClass('disabled');
                 }
 
             } else {
@@ -77,9 +122,10 @@ $(document).ready(() => {
             pageNumEls.forEach((el) => el.remove());
             pageNumEls = [];
             let lastEl = pagePrev,
-                minPage = Math.max(0, Math.min(5, pageIdx - 2)),
-                maxPage = Math.min(loadableMaxPages, Math.max(5, pageIdx + 3));
-            for (let i = minPage; i < maxPage; ++i) {
+                minPage = Math.max(0, pageIdx - 2),
+                maxPage = Math.min(loadableMaxPages, Math.max(4, pageIdx + 2));
+            if ((maxPage - minPage) < 4) minPage = Math.max(0, pageIdx - 2);
+            for (let i = minPage; i <= maxPage; ++i) {
                 //<li class='paginate_button page-item'>
                 //    <a href='#' class='page-link'>4</a>
                 //</li>
@@ -106,7 +152,8 @@ $(document).ready(() => {
             curPage = pageIdx;
             const curPageNumEl = pageNumEls.findIndex((el) => el.data('page') === curPage);
             pageNumEls[curPageNumEl].addClass('active');
-            paginate();
+
+            if(!searched) paginate();
         };
 
         const resetPages = (pageIdx, maxPages, knowMax) => {
@@ -294,20 +341,33 @@ $(document).ready(() => {
         window['initialProblemSet'] = initialProblemSet;
         */
 
+        const searchProblems = () => {
+            resetPages(0, 10, false);
+            paginate();
+        };
 
         paginate = () => {
             problemsTableSettings.indexOffset = 0;
             clearProblems();
 
-            const count = (curPage + 1) * 15;
+            console.log(`Fetching problems for page ${curPage}`);
+            const count = (curPage + 1) * 15,
+                startFrom = curPage * 15;
             const { problems, indexOffset } = fetchProblemsByFilter(problemsTableSettings.category, problemsTableSettings.difficulty, 0, count);
 
-            for (let i = (count - 15); i < count; ++i) {
+            let fetched = 0;
+            for (let i = startFrom; i < count; ++i) {
                 if (i >= problems.length) break;
                 addProblem(problems[i]);
+                ++fetched;
             }
 
             problemsTableSettings.indexOffset = indexOffset; // pageination
+            let reachedEnd = (indexOffset >= problemSet.length);
+
+            if (!reachedEnd && fetched < 15) debugger;
+            
+            return { reachedEnd, count: fetched };
         };
 
 
