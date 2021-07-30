@@ -12,6 +12,18 @@ const BATCH_HANDLE = 100,
     BATCH_TIMER = 2000;
 
 
+// FIXME:
+//  Parse
+//   - Date from first post (otherwise preset beginning?)
+//   - Category, level, title
+//   - Question content
+//   - Solutions
+//   - Author
+//   - Relevant wiki
+//   - Discussion
+//      - Solutions (top posts?)
+
+
 const parseProblemsBatch = (i) => {
 
     for (let j = 0; j < BATCH_HANDLE; ++j) {
