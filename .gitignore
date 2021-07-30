@@ -48,3 +48,7 @@ Homestead.json
 .env.example
 .gitattributes
 .styleci.yml
+
+README.md.laravel
+brilliantexport/
+tempold/
