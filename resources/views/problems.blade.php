@@ -70,7 +70,7 @@
                             <td class="prblmsnp-title"><a v-bind:href='problem.p'>@{{ problem.n }}</a></td>
                             <td class="prblmsnp-category">@{{ problem.c }}</td>
                             <td class="prblmsnp-popularity">Popular</td>
-                            <td class="prblmsnp-difficulty">@{{ problem.l }}</td>
+                            <td class="prblmsnp-difficulty">Level @{{ problem.l }}</td>
                         </tr>
                     </template>
                 </tbody>

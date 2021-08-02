@@ -338,6 +338,7 @@ header {
 
 .prblmsnp-title {
     max-width: 200px; /* FIXME: Unsure how to fix this */
+    padding-left: 20px !important;
 }
 
 .prblmsnp-title a {
