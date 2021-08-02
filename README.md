@@ -1,4 +1,15 @@
 TODO
+ - Priority
+   - Problem answering component
+   - Email verification
+   - Text component / Markdown
+   - Materialize -> Tailwind
+   - Problem parser
+   - Discussion parser
+   - Sort problems by hot/new, unsolved, discussions
+
+
+
  - Restructure
    - Template page + Vue/Materialize for problem + discussion; KaTex
         - Tiptap text component (full + stripped for comment vs. problem ; preview)
@@ -7,15 +18,12 @@ TODO
         - Genrete html from template:  blockquote ``` , bold ** , italics __ , images, etc.
         - Get raw input (for form submission)
    - Cleanup
-        - Vue comments/discussion + replies component
         - Text component (full for problem, inline/small for short replies)
         - Preview/Markdown/KaTex viewer (problem, comments, preview for problem)
-        - Problem, Problems, Comments  object (referenced by Vue component)
+
         - Emoji react component
         - Upvote component
         - Report component
-        - Dropdown component
-        - Solution component
         - Answer question component
         - Mix setup: watch, hotload, faster compile, cache busting, etc.
    - Questions
@@ -33,9 +41,11 @@ TODO
     - Parser
         - Extract body, discussion in raw html of entire section -> raw.json
         - Follow-up parser to run through raw.json and parse html
-    - README + License
+    - README
 
-        # Install
+        == Install ==
+
+        # Setup Composer
         php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
         php -r "if (hash_file('sha384', 'composer-setup.php') === '756890a4488ce9024fc62c56153228907f1545c228516cbf63f885e036d37e9a59d27d63f46af1d4d07ee0f76181c7d3') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
         php composer-setup.php
@@ -71,8 +81,16 @@ TODO
 
 
 
+        == Update ==
+        git pull
+        npm install
+        # FIXME: migrate/seed but w/out deleting current docs
+        npm run dev
 
 
+
+
+   - Email verification, emailing
    - Look into Vuex or data store model for cross-component communication
    - Solution: non-multiple choice, images, latex
    - Fix "[Vue warn]: Invalid VNode type: Symbol(Fragment) (symbol)"  warning -- Vue loaded twice, temp solved by exporting Vue from app.js
