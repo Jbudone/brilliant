@@ -66,11 +66,11 @@ $(document).ready(() => {
             this.users = this.jsonData.users;
             console.log(this.solutions);
 
-            const solutionStart = this.jsonData.body.indexOf('{') - 1,
+            const solutionStart = this.jsonData.body.indexOf('{'),
                 solutionLen = parseInt(this.jsonData.body.substr(0, solutionStart)),
                 solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
                 solutionJson = JSON.parse(solutionString);
-            this.solutions = solutionJson;
+            this.solutions = solutionJson.solutions;
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
 
             // Build discussions from flattened comments

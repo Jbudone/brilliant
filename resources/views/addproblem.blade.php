@@ -93,7 +93,7 @@
                         </div>
 
                         <span class="prblm-edit-header">Question Body</span>
-                        <tip-tap-form :haspreview="true" :value="this.question"></tip-tap-form>
+                        <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="this.question"></tip-tap-form>
                         @error('body')
                         <div class="alert alert-danger">{{ $message }}</div>
                         @enderror

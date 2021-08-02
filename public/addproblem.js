@@ -49,11 +49,11 @@ $(document).ready(() => {
                 this.level = this.jsonData.level;
                 //this.author = this.jsonData.author_id;
 
-                const solutionStart = this.jsonData.body.indexOf('{') - 1,
+                const solutionStart = this.jsonData.body.indexOf('{'),
                     solutionLen = parseInt(this.jsonData.body.substr(0, solutionStart)),
                     solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
                     solutionJson = JSON.parse(solutionString);
-                this.solutions = solutionJson;
+                this.solutions = solutionJson.solutions;
                 this.question = this.jsonData.body.substr(solutionLen + solutionStart);
 
                 for (let i = this.solutions.length; i < 4; ++i) {
@@ -91,7 +91,7 @@ $(document).ready(() => {
             var _this = this;
             $('.prblm-edit-save').click(() => {
 
-                let body = mountedEditor.getHTML();
+                let body = window['mountedEditor-editor'].getHTML();
                 let solutions = [];
                 for (let i = 0; i < this.solutions.length; ++i) {
                     // FIXME: Look into Vuetex or data store
@@ -104,7 +104,7 @@ $(document).ready(() => {
                     solution.text = text
                     solutions.push(solution);
                 }
-                let solutionsStr = JSON.stringify(solutions);
+                let solutionsStr = JSON.stringify({solutions: solutions});
                 body = solutionsStr.length + solutionsStr + body;
                 $('#hiddenBody').val(body);
 
