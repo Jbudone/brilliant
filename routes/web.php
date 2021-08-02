@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Models\Problem;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\CommentController;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,7 +19,7 @@ use App\Http\Controllers\CommentController;
 */
 
 Route::get('/', function () {
-    return view('home');
+    return view('problems');
 });
 
 Route::get('/initialproblems', function () {
@@ -38,7 +39,7 @@ Route::get('/newproblems', function () {
     foreach ($p as $problem) {
         $problems[] = [
             'n' => $problem->title,
-            'p' => "problems/" . 1,
+            'p' => "problem/" . $problem->id,
             'c' => $problem->topic->name,
             'l' => $problem->level,
         ];
@@ -47,8 +48,18 @@ Route::get('/newproblems', function () {
     return json_encode($problems);
 });
 
-Route::get('/problems/{problem}', function ($problemId) {
-    $p = Problem::where('id', (int)$problemId)->with(['topic', 'author', 'comments.author:id,name,created_at'])->get()[0];
+Route::get('/problems', function() {
+    return view('problems');
+})->name('problems');
+
+Route::get('/problem/{problem}', function ($problemId) {
+    $p = Problem::where('id', (int)$problemId)->with(['topic', 'author', 'comments.author:id,name,created_at'])->first();
+
+    if (!$p) {
+        throw new ModelNotFoundException();
+    }
+
+    //$p = $p[0];
     $users[$p->author->id] = ['name' => $p->author->name];
     $comments = [];
     foreach ($p->comments as $comment) {
@@ -86,12 +97,12 @@ Route::get('/problems/{problem}', function ($problemId) {
 })->whereNumber('problem');
 
 
-Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['auth']);
+Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['auth'])->name('addproblem');
 //    return view('addproblem');
 //})->middleware(['auth']);
 
 Route::post('/addproblem', [ProblemController::class, 'store'])->middleware(['auth']);
-Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem');
+Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
 Route::post('/edit', [ProblemController::class, 'change'])->middleware(['auth']);
 Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth']);
 Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);

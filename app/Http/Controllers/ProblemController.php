@@ -12,7 +12,7 @@ class ProblemController extends Controller
 
     public function create()
     {
-        return view('addproblem');
+        return view('addproblem', ['addProblem' => 1]);
     }
 
     public function store(Request $request)
@@ -20,19 +20,20 @@ class ProblemController extends Controller
         $attributes = $request->validate([
             'title' => 'required|unique:problems|max:255',
             'category_id' => 'required',
-            'level' => 'required',
+            'level_id' => 'required',
             'body' => 'required'
         ]);
 
         //$attributes->author_id = Auth::id();
-        $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => '>'], ['text' => '<'], ['text' => '=']]]);
-        $body = strlen($solutions) . $solutions . $request->input('body');
+        //$solutions = json_encode(['solutions' => [['correct' => 1, 'text' => '>'], ['text' => '<'], ['text' => '=']]]);
+        //$body = strlen($solutions) . $solutions . $request->input('body');
+        $body = $request->input('body'); // FIXME: Confirm solutions exist and proper JSON   OR  Discussion
 
         //Problem::create($attributes);
-        Problem::create([
+        $problem = Problem::create([
             'title' =>       $request->input('title'),
             'category_id' => $request->input('category_id'),
-            'level' =>       $request->input('level'),
+            'level' =>       $request->input('level_id'),
             'body' =>        $body,
             'author_id' =>   Auth::id()//request()->user->id
         ]);
@@ -41,6 +42,8 @@ class ProblemController extends Controller
         //return back()->withErrors([
         //    'email' => 'The provided credentials do not match our records.',
         //]);
+
+        return redirect('/problems');
     }
 
     public function edit(Request $request, $problemId)
@@ -49,7 +52,7 @@ class ProblemController extends Controller
 
         if ($p->author_id !== Auth::id())
         {
-            return redirect('/problems/' . $problemId);
+            return redirect('/problem/' . $problemId);
         }
 
         $json = ['problem' => [
@@ -61,9 +64,9 @@ class ProblemController extends Controller
             'author' => $p->author_id,
         ], 'user' => [
             'id' => Auth::id()
-        ]];
+        ], 'editProblem' => 1];
 
-        return view('editproblem', $json);
+        return view('addproblem', $json);
     }
 
     public function change(Request $request)
@@ -71,33 +74,35 @@ class ProblemController extends Controller
         $attributes = $request->validate([
             'title' => 'required|max:255|min:3',
             'category_id' => 'required',
-            'level' => 'required',
+            'level_id' => 'required',
             'body' => 'required|min:16'
         ]);
 
+
         $problemId = $request->input('id');
 
-        $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => '>'], ['text' => '<'], ['text' => '=']]]);
-        $body = strlen($solutions) . $solutions . $request->input('body');
+        //$solutions = json_encode(['solutions' => [['correct' => 1, 'text' => '>'], ['text' => '<'], ['text' => '=']]]);
+        //$body = strlen($solutions) . $solutions . $request->input('body');
+        $body = $request->input('body'); // FIXME: Confirm solutions exist and proper JSON   OR  Discussion
 
         $problem = Problem::where('id', (int)$problemId)->get()[0];
 
         if ($problem->author_id !== Auth::id())
         {
-            return redirect('/problems/' . $problemId);
+            return redirect('/problem/' . $problemId);
         }
 
 
         //$problem->author_id = Auth::id();
         $problem->title = $request->input('title');
         $problem->category_id = $request->input('category_id');
-        $problem->level = $request->input('level');
+        $problem->level = $request->input('level_id');
         $problem->body = $body;
         $problem->save();
 
         if ($problem->wasChanged())
         {
-            return redirect('/problems/' . $problemId);
+            return redirect('/problem/' . $problemId);
         }
         else
         {

@@ -11,6 +11,7 @@
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.2.1",
+        "@vue/compiler-sfc": "^3.1.5",
         "alpinejs": "^2.7.3",
         "autoprefixer": "^10.1.0",
         "axios": "^0.21",
@@ -18,10 +19,15 @@
         "lodash": "^4.17.19",
         "postcss": "^8.2.1",
         "postcss-import": "^12.0.1",
-        "tailwindcss": "^2.0.2"
+        "tailwindcss": "^2.0.2",
+        "vue-loader": "^16.4.0",
+        "vue-template-compiler": "^2.6.14"
     },
     "dependencies": {
         "@tiptap/starter-kit": "^2.0.0-beta.88",
-        "@tiptap/vue-3": "^2.0.0-beta.48"
+        "@tiptap/vue-3": "^2.0.0-beta.48",
+        "sass": "^1.37.0",
+        "sass-loader": "^12.1.0",
+        "vue-simple-search-dropdown": "^1.0.1"
     }
 }

@@ -1,46 +1,19 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<x-app-layout>
 
-        <title>Brilliant Community</title>
+    @push('scripts')
+        <script type="text/javascript" src="{{ asset('problems.js') }}"></script>
+    @endpush
 
-        <!-- Fonts -->
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ __('Problems') }}
+        </h2>
+    </x-slot>
 
-        <!-- Styles -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" integrity="sha512-NhSC1YmyruXifcj/KFRWoC561YpHpc5Jtzgvbuzx5VozKpWvQ+4nXhPdFgmx8xqexRcpAglTj9sIBWINXa8x5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-        <link rel="stylesheet" href="/app.css" />
-
-        <!-- Scripts -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-        <script src="https://unpkg.com/vue@next"></script>
-        <script src="/problems.js"></script>
-    </head>
-    <body class="antialiased">
-
-        <!-- Header -->
-        <header class="row hdr-main">
-            <div class="col s12 container">
-                <div class="col s4 push-s5 hdr-links">
-                    <span class="hdr-link"><a href='#'>Today</a></span>
-                    <span class="hdr-link"><a href='#'>Courses</a></span>
-                    <span class="hdr-link"><a href='#'>Practice</a></span>
-                </div>
-                <div class="col s4 push-s6 hdr-btns">
-                    <span class="hdr-btn login-btn"><a href='#'>Log In</a></span>
-                    <span class="hdr-btn signup-btn"><a href='#'>Signup</a></span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Content -->
-        <div class="row ctnt-container">
-        <div id="problems" class="col s5 ctnt-main">
+    <!-- Content -->
+    <div class="row">
+    <div class="col s8 offset-s2 ctnt-container">
+        <div id="problems" class="ctnt-main">
             <div class="ctnt-sections row">
                 <span class="ctnt-btn active"><a href='#'>Problems</a></span>
                 <span class="ctnt-btn"><a href='#'>Needs Solution</a></span>
@@ -121,6 +94,6 @@
                 </li>
             </ul>
         </div>
-        </div>
-    </body>
-</html>
+    </div>
+    </div>
+</x-app-layout>

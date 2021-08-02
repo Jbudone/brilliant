@@ -1,7 +1,13 @@
+const { TipTapForm } = VueComponents;
+
 $(document).ready(() => {
-    const problem = Vue.createApp({
+    const ProblemApp = Vue.createApp({
+        components: {
+            TipTapForm
+        },
         data: function() {
             return {
+                globals: window.globals,
                 jsonData: [],
 
                 id: 0,
@@ -12,13 +18,39 @@ $(document).ready(() => {
                 question: "",
                 solutions: {},
                 discussion: [],
-                users: {}
+                users: {},
+
+                showingAddSolutionContainer: false
             };
         },
         methods: {
 
             questionOwner() { return (this.author.id === UserJson.id); },
             editQuestionUrl() { return ('/edit/' + this.id); },
+
+            save(el) {
+                if (el === 'replyto') {
+                    let body = window['mountedEditor-editorreplyto'].getHTML();
+                    $('#prblm-replyto-form [name="comment"]').val(body);
+                    $('#prblm-replyto-form').submit();
+
+                } else if (el === 'replyedit') {
+                    let body = window['mountedEditor-editorreplyedit'].getHTML();
+                    $('#prblm-replyedit-form [name="comment"]').val(body);
+                    $('#prblm-replyedit-form').submit();
+                } else if (el === 'addsolution') {
+                    let body = window['mountedEditor-editoraddsolution'].getHTML();
+                    $('#prblm-addsol-form [name="comment"]').val(body);
+                    $('#prblm-addsol-form').submit();
+                }
+            },
+
+            cancel() {
+                this.showingAddSolutionContainer = false;
+                $('#addSolutionContainer').hide();
+                $('#replyToContainer').hide();
+                $('#replyEditContainer').hide();
+            }
         },
         beforeMount: function() {
             this.jsonData = ProblemJson;
@@ -34,11 +66,11 @@ $(document).ready(() => {
             this.users = this.jsonData.users;
             console.log(this.solutions);
 
-            const solutionStart = this.jsonData.body.indexOf('{'),
+            const solutionStart = this.jsonData.body.indexOf('{') - 1,
                 solutionLen = parseInt(this.jsonData.body.substr(0, solutionStart)),
                 solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
                 solutionJson = JSON.parse(solutionString);
-            this.solutions = solutionJson.solutions;
+            this.solutions = solutionJson;
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
 
             // Build discussions from flattened comments
@@ -74,13 +106,16 @@ $(document).ready(() => {
 
             console.log(this.discussions);
             console.log(ProblemJson);
+        },
+        computed: {
+        },
+        mounted: function() {
 
-
-            let showingAddSolutionContainer = false;
+            this.showingAddSolutionContainer = false;
             $('#addSolutionContainer').hide();
             $('#addSolution').click(() => {
-                showingAddSolutionContainer = !showingAddSolutionContainer;
-                if (showingAddSolutionContainer) {
+                this.showingAddSolutionContainer = !this.showingAddSolutionContainer;
+                if (this.showingAddSolutionContainer) {
                     $('#addSolutionContainer').show();
                 } else {
                     $('#addSolutionContainer').hide();
@@ -88,10 +123,8 @@ $(document).ready(() => {
 
                 return false;
             });
-        },
-        computed: {
-        },
-        mounted: function() {
+
+
             $('.reply-to-link').click((el) => {
 
                 const cont = $('#replyToContainer');
@@ -123,7 +156,7 @@ $(document).ready(() => {
         },
     });
 
-    problem.component('reply', {
+    ProblemApp.component('reply', {
         props: {
             reply: Object
         },
@@ -159,8 +192,14 @@ $(document).ready(() => {
             </template>
         </div>
         `
-
     });
 
-    const mountedProblem = problem.mount('#app');
+    ProblemApp.component('replyTo', {
+
+        template: `
+        
+        `
+    });
+
+    const mountedProblem = ProblemApp.mount('#app');
 });

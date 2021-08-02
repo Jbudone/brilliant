@@ -1,80 +1,132 @@
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<x-app-layout>
 
-        <title>Brilliant Community</title>
+    @push('scripts')
+        @if(Route::is('addproblem'))
+        <script>window['addedit'] = 'add';</script>
+        <script type="module" src="{{ asset('addproblem.js') }}"></script>
+        @else
+        <script>window['addedit'] = 'edit';</script>
+        <script type="module" src="{{ asset('addproblem.js') }}"></script>
+        <script>
+            var ProblemJson = @json($problem, JSON_PRETTY_PRINT);
+            var UserJson = @json($user, JSON_PRETTY_PRINT);
+            var PrevEdit = {
+                title: "{{ old('title') }}",
+                category_id: "{{ old('category_id') }}",
+                level: "{{ old('level') }}",
+                body: "{{ old('body') }}",
+            };
+        </script>
+        @endif
+    @endpush
 
-        <!-- Fonts -->
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            @if(Route::is('addproblem'))
+            {{ __('Add Problem') }}
+            @else
+            {{ __('Edit Problem') }}
+            @endif
+        </h2>
+    </x-slot>
 
-        <!-- Styles -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" integrity="sha512-NhSC1YmyruXifcj/KFRWoC561YpHpc5Jtzgvbuzx5VozKpWvQ+4nXhPdFgmx8xqexRcpAglTj9sIBWINXa8x5w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-        <link rel="stylesheet" href="/app.css" />
 
-        <!-- Scripts -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-        <script src="https://unpkg.com/vue@next"></script>
-        <script type="module" src="/addproblem.js"></script>
-    </head>
-    <body class="antialiased">
-
-        <!-- Header -->
-        <header class="row hdr-main">
-            <div class="col s12 container">
-                <div class="col s4 push-s5 hdr-links">
-                    <span class="hdr-link"><a href='#'>Today</a></span>
-                    <span class="hdr-link"><a href='#'>Courses</a></span>
-                    <span class="hdr-link"><a href='#'>Practice</a></span>
-                </div>
-                <div class="col s4 push-s6 hdr-btns">
-                    <span class="hdr-btn login-btn"><a href='#'>Log In</a></span>
-                    <span class="hdr-btn signup-btn"><a href='#'>Signup</a></span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Content -->
-        <div class="row ctnt-container">
+    <!-- Content -->
+    <div class="row ctnt-container">
         <div class="col s8 push-s2 ctnt-main prblm-container">
             <div class="ctnt-sections row">
-                <div class="prblm-header">
-                    <span class="prblm-title">Title</span>
-                    <div class="prblm-topiclevel">
-                        <span class="prblm-topic">Topic</span>
-                        <span class="prblm-level">Level 1</span>
-                    </div>
+                @if(Route::is('addproblem'))
+                <div id="app" :type="add">
+                @else
+                <div id="app" :type="edit">
+                @endif
+
+                    @if(Route::is('addproblem'))
+                    <form method="POST" action="/addproblem">
+                    @else
+                    <form method="POST" action="/edit">
+                        <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                    @endif
+
+                        <input type=text" name="body" id="hiddenBody" style="display: none;" v-bind:value="this.question" />
+                        <input type=text" name="category_id" id="hiddenCategory" style="display: none;" />
+                        <input type=text" name="level_id" id="hiddenLevel" style="display: none;" />
+
+                        @csrf
+
+                        <div class="row">
+                            <div class="col s7">
+
+                        <span class="prblm-edit-header">Title</span>
+                        <input class="prblm-edit-title form-edit-input" type="text" name="title" v-bind:value="this.title" placeholder="Title" autocomplete="off" />
+                        @error('title')
+                        <div class="alert alert-danger">{{ $message }}</div>
+                        @enderror
+
+
+                        <div class="prblm-edit-topiclevel">
+
+                            <Dropdown
+                                    :options="globals.ProblemCategories"
+                                    :initial="this.topic_id"
+                                    :disabled="false"
+                                    name="category"
+                                    placeholder="Problem Category"
+                            >
+                            </Dropdown>
+                            @error('category_id')
+                            <div class="alert alert-danger">{{ $message }}</div>
+                            @enderror
+
+
+                            <Dropdown
+                                    :options="globals.ProblemLevels"
+                                    :initial="this.level"
+                                    :disabled="false"
+                                    name="level"
+                                    placeholder="Difficulty Level"
+                            >
+                            </Dropdown>
+                            @error('level')
+                            <div class="alert alert-danger">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <span class="prblm-edit-header">Question Body</span>
+                        <tip-tap-form :haspreview="true" :value="this.question"></tip-tap-form>
+                        @error('body')
+                        <div class="alert alert-danger">{{ $message }}</div>
+                        @enderror
+
+
+
+                        <div class="prblm-edit-footer">
+                            <a href="#" class="prblm-edit-cancel">Cancel</a>
+                            <a href="#" class="prblm-edit-save">Save</a>
+                        </div>
+                            </div>
+                            <div class="col offset-s1 s4">
+                                <span class="prblm-edit-header">Solutions</span>
+                                <div class="prblm-edit-solutions">
+
+                                    <template v-for="(solution, idx) in solutions">
+                                    <p>
+                                    <label>
+                                        <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" />
+                                        <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-bind:value="solution.text" />
+                                    </label>
+                                    </p>
+                                    </template>
+                                </div>
+                            </div>
+
+                        </div>
+                    </form>
                 </div>
 
-<div id="app">
-
-<form method="POST" action="/addproblem">
-@csrf
-
-<input type="text" name="title" value="TITLE" />
-<input type="text" name="category_id" value="1" />
-<input type="text" name="level" value="1" />
-<input type="text" name="body" value="PROBLEM BODY" />
-
-<button>submit</button>
-</form>
-
-
-<div id="editor"></div>
-<div id="preview"></div>
-</div>
-
-<template>
-  <editor-content :editor="editor" />
-</template>
 
 
             </div>
         </div>
-        </div>
-    </body>
-</html>
+    </div>
+</x-app-layout>

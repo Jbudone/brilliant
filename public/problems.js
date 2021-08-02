@@ -1,6 +1,6 @@
 
 $(document).ready(() => {
-    const problems = Vue.createApp({
+    const ProblemsApp = Vue.createApp({
         data: function() {
             return {
                 jsonData: [],
@@ -10,8 +10,8 @@ $(document).ready(() => {
                 filter: {
                     difficulty: 0, // 0 all, 1 easy [1], 2 medium [2,3], 3 hard [4,5]
                     category: 0, // 0 all, 1 algebra, 2 geometry, 3 number theory, 4 calculus,
-                                // 5 discrete, 6 logic, 7 mechanics, 8 electricity, 9 compsci,
-                                // 10 finance, 11 chemistry
+                                 // 5 discrete, 6 logic, 7 mechanics, 8 electricity, 9 compsci,
+                                 // 10 finance, 11 chemistry
                 },
                 filteredProblems: null,
 
@@ -199,7 +199,7 @@ $(document).ready(() => {
         },
     });
 
-    const mountedProblems = problems.mount('#problems');
+    const mountedProblems = ProblemsApp.mount('#problems');
 
     $(window).click(() => {
         mountedProblems.dropdownFilter = '';

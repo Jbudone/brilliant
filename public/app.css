@@ -9,6 +9,10 @@ body {
   src: url(fonts/soleil/soleil-regular-webfont.woff2);
 }
 
+header {
+    display: none;
+}
+
 /* Header */
 .hdr-main {
     min-height: 60px;
@@ -805,4 +809,85 @@ div#wave .dot:nth-child(3) {
     border-radius: 16px;
     left: 6px;
     top: 17px;
+}
+
+
+
+.prblm-edit-title {
+    display: inline-block;
+    margin-bottom: 2px;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 1.4em;
+    border: none !important;
+}
+
+.prblm-edit-topic {
+
+}
+
+.prblm-edit-level {
+
+}
+
+.alert {
+    color: #F00;
+    font-weight: 600;
+}
+
+.prblm-edit-header {
+    font-weight: 700;
+    font-size: 22px;
+    font-family: 'Roboto', sans-serif;
+    display: block;
+    margin-top: 20px;
+}
+
+.form-edit-input {
+    border: 1px solid #e1e1e1 !important;
+    padding: 4px 12px !important;
+    height: 28px;
+}
+
+.prblm-edit-topiclevel {
+    display: flex;
+    width: fit-content;
+}
+
+.prblm-edit-footer {
+    margin-top: 40px;
+    text-align: right;
+}
+
+.prblm-edit-cancel {
+    color: #039be5;
+    margin: 24px;
+}
+
+.prblm-edit-save {
+    display: inline-block;
+    background: #2A2;
+    padding: 6px 20px;
+    color: #FFF;
+}
+
+.edit-solution-radio {
+    opacity: 1 !important;
+    margin-top: 13px;
+    pointer-events: auto !important;
+}
+
+.edit-solution-input {
+    border: 1px solid #e1e1e1 !important;
+    padding: 6px 8px 6px 30px !important;
+    height: 28px !important;
+    margin-left: -6px !important;
+    width: 90% !important;
+    color: #000;
+}
+
+#addSolution {
+    display: block;
+    color: #039be5;
+    font-weight: 600;
 }
