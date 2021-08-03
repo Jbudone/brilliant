@@ -170,6 +170,8 @@ $(document).ready(() => {
                 const commentId = $(el.target).attr('comment-id');
                 $('#replyEditContainer [name="id"]').val(commentId);
 
+                window['mountedEditor-editorreplyedit'].commands.setContent( $('.prblm-discussion-reply-content', $(el.target).parent().parent()).text() );
+
                 $('#replyToContainer').hide();
                 return false;
             });
