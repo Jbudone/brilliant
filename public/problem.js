@@ -160,6 +160,7 @@ $(document).ready(() => {
                 return false;
             });
 
+            // FIXME: use  @click.prevent="edit(...)"
             $('.reply-edit-link').click((el) => {
 
                 const cont = $('#replyEditContainer');
@@ -170,7 +171,12 @@ $(document).ready(() => {
                 const commentId = $(el.target).attr('comment-id');
                 $('#replyEditContainer [name="id"]').val(commentId);
 
-                window['mountedEditor-editorreplyedit'].commands.setContent( $('.prblm-discussion-reply-content', $(el.target).parent().parent()).text() );
+                let comment = $('.prblm-discussion-reply-content', $(el.target).parent().parent());
+                if (comment.length === 0) {
+                    comment = $('.prblm-discussion-content', $(el.target).parent().parent());
+                }
+
+                window['mountedEditor-editorreplyedit'].commands.setContent( comment.text() );
 
                 $('#replyToContainer').hide();
                 return false;
