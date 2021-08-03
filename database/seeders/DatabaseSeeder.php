@@ -46,6 +46,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $algebra->id,
             'level' => 1,
             'author_id' => 1,
+            'solution' => 0
         ]);
 
         $comment = Comment::create([
@@ -70,7 +71,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $algebra->id,
             'level' => 1,
             'author_id' => 1,
-
+            'solution' => 0
         ]);
 
         $comment = Comment::create([

@@ -25,4 +25,9 @@ class Problem extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    public function solves()
+    {
+        return $this->hasMany(Solves::class);
+    }
 }

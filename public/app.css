@@ -722,6 +722,11 @@ div#wave .dot:nth-child(3) {
     text-align: left;
 }
 
+.prblm-solution-btn:hover {
+    border: 2px solid #777;
+    cursor: pointer;
+}
+
 .prblm-solution-btn:before {
     content: "";
     position: absolute;

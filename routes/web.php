@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Models\Problem;
+use App\Models\Solve;
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\SolveController;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /*
@@ -77,8 +79,6 @@ Route::get('/problem/{problem}', function ($problemId) {
         ];
     }
 
-
-
     $json = ['problem' => [
         'id' => $p->id,
         'title' => $p->title,
@@ -91,6 +91,19 @@ Route::get('/problem/{problem}', function ($problemId) {
     ], 'user' => [
         'id' => Auth::id()
     ]];
+
+
+    if (Auth::id()) {
+        $solve = Solve::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->first();
+        if ($solve) {
+            $json['solve'] = [
+                'solution' => $solve->solution,
+                'correct' => $solve->correct,
+                'date' => $solve->created_at
+            ];
+        }
+    }
+
 
     return view('problem', $json);
     //return view('problem', ['problem' => Problem::find(1)->with(['topic', 'author', 'comments.author:name'])->get()]);
@@ -106,6 +119,7 @@ Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['
 Route::post('/edit', [ProblemController::class, 'change'])->middleware(['auth']);
 Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth']);
 Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);
+Route::post('/solve', [SolveController::class, 'store'])->middleware(['auth']);
 
 Route::get('/dashboard', function () {
     return view('dashboard');

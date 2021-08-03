@@ -5,6 +5,12 @@
         <script>
             var ProblemJson = @json($problem, JSON_PRETTY_PRINT);
             var UserJson = @json($user, JSON_PRETTY_PRINT);
+
+            @isset($solve)
+                var SolveJson = @json($solve, JSON_PRETTY_PRINT);
+            @else
+                var SolveJson = null;
+            @endisset
         </script>
     @endpush
 
@@ -32,14 +38,18 @@
                     </div>
 
                     <div class="prblm-question-solution col s3">
-
-                        <template v-for="solution in solutions">
-                            <span class="prblm-solution-btn disabled" v-bind:class="[{ active: solution.selected }, { correct: solution.correct }]">
+                        <form method="POST" action="/solve" id="prblm-form-solve">
+                        @csrf
+                        <input type="text" id="prblm-solve-selected" name="solution" style="display: none;" />
+                        <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                        <template v-for="(solution, idx) in solutions">
+                            <span class="prblm-solution-btn" v-bind:class="[{ active: solution.selected }, { correct: solution.correct }, { disabled: solved }]" @click.prevent="solve(idx)">
                                 <span class="prblm-solution-bg">@{{ solution.correct ? "✓" : "" }}</span>
                                 <span v-if="solution.selected" class="prblm-solution-picked"></span>
                                 <span class="prblm-solution-text">@{{ solution.text }}</span>
                             </span>
                         </template>
+                        </form>
                     </div>
                 </div>
 

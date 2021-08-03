@@ -19,7 +19,8 @@ $(document).ready(() => {
                 solutions: {},
                 discussion: [],
                 users: {},
-
+                
+                solved: false,
                 showingAddSolutionContainer: false
             };
         },
@@ -50,6 +51,11 @@ $(document).ready(() => {
                 $('#addSolutionContainer').hide();
                 $('#replyToContainer').hide();
                 $('#replyEditContainer').hide();
+            },
+
+            solve(idx) {
+                $('#prblm-solve-selected').val(idx);
+                $('#prblm-form-solve').submit();
             }
         },
         beforeMount: function() {
@@ -71,6 +77,16 @@ $(document).ready(() => {
                 solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
                 solutionJson = JSON.parse(solutionString);
             this.solutions = solutionJson.solutions;
+
+            // Hide correct until solved
+            if (!SolveJson) {
+                for (let i = 0; i < this.solutions.length; ++i) {
+                    if (this.solutions[i].correct) {
+                        delete this.solutions[i].correct;
+                    }
+                }
+            }
+
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
 
             // Build discussions from flattened comments
@@ -103,6 +119,10 @@ $(document).ready(() => {
                 }
             }
 
+            if (SolveJson) {
+                this.solutions[SolveJson.solution].selected = true;
+                this.solved = true;
+            }
 
             console.log(this.discussions);
             console.log(ProblemJson);

@@ -24,9 +24,6 @@ class ProblemController extends Controller
             'body' => 'required'
         ]);
 
-        //$attributes->author_id = Auth::id();
-        //$solutions = json_encode(['solutions' => [['correct' => 1, 'text' => '>'], ['text' => '<'], ['text' => '=']]]);
-        //$body = strlen($solutions) . $solutions . $request->input('body');
         $body = $request->input('body'); // FIXME: Confirm solutions exist and proper JSON   OR  Discussion
 
         //Problem::create($attributes);
@@ -35,7 +32,7 @@ class ProblemController extends Controller
             'category_id' => $request->input('category_id'),
             'level' =>       $request->input('level_id'),
             'body' =>        $body,
-            'author_id' =>   Auth::id()//request()->user->id
+            'author_id' =>   Auth::id()
         ]);
 
         // FIXME: Validation checking, successful?

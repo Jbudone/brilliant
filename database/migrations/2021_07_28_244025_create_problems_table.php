@@ -25,6 +25,7 @@ class CreateProblemsTable extends Migration
             $table->string('title', 64);
             $table->text('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
             $table->smallInteger('level');
+            $table->text('solution'); // index for multiple choice, text for input answer
 
             $table->timestamps();
         });
