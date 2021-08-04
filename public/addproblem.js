@@ -55,6 +55,7 @@ $(document).ready(() => {
                     solutionJson = JSON.parse(solutionString);
                 this.solutions = solutionJson.solutions;
                 this.question = this.jsonData.body.substr(solutionLen + solutionStart);
+                this.question = JSON_TO_HTML(this.question);
 
                 for (let i = this.solutions.length; i < 4; ++i) {
                     this.solutions.push({
@@ -91,7 +92,8 @@ $(document).ready(() => {
             var _this = this;
             $('.prblm-edit-save').click(() => {
 
-                let body = window['mountedEditor-editor'].getHTML();
+                let body = window['mountedEditor-editor'].getJSON();
+                body = JSON.stringify(body);
                 let solutions = [];
                 for (let i = 0; i < this.solutions.length; ++i) {
                     // FIXME: Look into Vuetex or data store
@@ -100,7 +102,10 @@ $(document).ready(() => {
                     if (!text) break;
                     
                     const solution = {};
-                    if (correct) solution.correct = 1;
+                    if (correct) {
+                        solution.correct = 1;
+                        $('#hiddenSolution').val(i);
+                    }
                     solution.text = text
                     solutions.push(solution);
                 }
@@ -127,6 +132,8 @@ $(document).ready(() => {
                     }
                 }
                 $('#hiddenLevel').val(levelId);
+
+
 
                 $('form').submit();
                 return false;

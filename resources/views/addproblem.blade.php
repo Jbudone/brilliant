@@ -48,6 +48,7 @@
                         <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
                     @endif
 
+                        <input type=text" name="solution" id="hiddenSolution" style="display: none;" v-bind:value="this.solutionIndex" />
                         <input type=text" name="body" id="hiddenBody" style="display: none;" v-bind:value="this.question" />
                         <input type=text" name="category_id" id="hiddenCategory" style="display: none;" />
                         <input type=text" name="level_id" id="hiddenLevel" style="display: none;" />

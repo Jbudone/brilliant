@@ -91,6 +91,7 @@ $(document).ready(() => {
             }
 
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
+            this.question = JSON_TO_HTML(this.question);
 
             // Build discussions from flattened comments
             this.discussions = [];

@@ -33,9 +33,7 @@
                 </div>
 
                 <div class="prblm-question">
-                    <div class="prblm-question-content col s9">
-                        @{{ this.question }}
-                    </div>
+                    <div class="prblm-question-content col s9" v-html="this.question"></div>
 
                     <div class="prblm-question-solution col s3">
                         <form method="POST" action="/solve" id="prblm-form-solve">

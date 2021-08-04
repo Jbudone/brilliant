@@ -21,6 +21,7 @@ class ProblemController extends Controller
             'title' => 'required|unique:problems|max:255',
             'category_id' => 'required',
             'level_id' => 'required',
+            'solution' => 'required',
             'body' => 'required'
         ]);
 
@@ -32,6 +33,7 @@ class ProblemController extends Controller
             'category_id' => $request->input('category_id'),
             'level' =>       $request->input('level_id'),
             'body' =>        $body,
+            'solution' =>    $request->input('solution'),
             'author_id' =>   Auth::id()
         ]);
 
@@ -72,6 +74,7 @@ class ProblemController extends Controller
             'title' => 'required|max:255|min:3',
             'category_id' => 'required',
             'level_id' => 'required',
+            'solution' => 'required',
             'body' => 'required|min:16'
         ]);
 
@@ -95,6 +98,7 @@ class ProblemController extends Controller
         $problem->category_id = $request->input('category_id');
         $problem->level = $request->input('level_id');
         $problem->body = $body;
+        $problem->solution = $request->input('solution');
         $problem->save();
 
         if ($problem->wasChanged())
