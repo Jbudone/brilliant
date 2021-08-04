@@ -36,6 +36,7 @@ window['VueHTMLExtensions'] = [
     Paragraph,
     Text,
     Bold,
+    Italics,
     HardBreak
 ];
 window['GenerateHTML'] = generateHTML;
