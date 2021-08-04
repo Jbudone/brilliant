@@ -31,16 +31,19 @@ $(document).ready(() => {
 
             save(el) {
                 if (el === 'replyto') {
-                    let body = window['mountedEditor-editorreplyto'].getHTML();
+                    let body = window['mountedEditor-editorreplyto'].getJSON();
+                    body = JSON.stringify(body);
                     $('#prblm-replyto-form [name="comment"]').val(body);
                     $('#prblm-replyto-form').submit();
 
                 } else if (el === 'replyedit') {
-                    let body = window['mountedEditor-editorreplyedit'].getHTML();
+                    let body = window['mountedEditor-editorreplyedit'].getJSON();
+                    body = JSON.stringify(body);
                     $('#prblm-replyedit-form [name="comment"]').val(body);
                     $('#prblm-replyedit-form').submit();
                 } else if (el === 'addsolution') {
-                    let body = window['mountedEditor-editoraddsolution'].getHTML();
+                    let body = window['mountedEditor-editoraddsolution'].getJSON();
+                    body = JSON.stringify(body);
                     $('#prblm-addsol-form [name="comment"]').val(body);
                     $('#prblm-addsol-form').submit();
                 }
@@ -96,9 +99,11 @@ $(document).ready(() => {
                 const comment = this.jsonData.comments[i],
                     author = this.users[comment.author];
 
+                console.log(comment.body);
                 const discussionComment = {
                     id: comment.id,
-                    content: comment.body,
+                    rawcontent: comment.body,
+                    content: JSON_TO_HTML(comment.body),
                     author: comment.author,
                     date: comment.date,
 
@@ -176,7 +181,14 @@ $(document).ready(() => {
                     comment = $('.prblm-discussion-content', $(el.target).parent().parent());
                 }
 
-                window['mountedEditor-editorreplyedit'].commands.setContent( comment.text() );
+                window['mountedEditor-editorreplyedit'].commands.clearContent();
+                let jsonStr = comment.attr('rawcontent');
+                if (jsonStr) {
+                    json = JSON.parse(jsonStr);
+                    window['mountedEditor-editorreplyedit'].commands.setContent( json );
+                }
+
+                //window['mountedEditor-editorreplyedit'].commands.setContent( comment.text() );
 
                 $('#replyToContainer').hide();
                 return false;
@@ -193,11 +205,13 @@ $(document).ready(() => {
                 id: 0,
                 text: "",
                 author: {},
+                textRaw: ""
             }
         },
         beforeMount: function() {
             this.id = this.id;
-            this.text = this.reply.content;
+            this.text = JSON_TO_HTML(this.reply.content);
+            this.rawcontent = this.reply.content;
             this.author = ProblemJson.users[this.reply.author];
             this.date = this.reply.date;
 
@@ -206,7 +220,7 @@ $(document).ready(() => {
         },
         template: `
         <div class="prblm-discussion-reply">
-            <div class="prblm-discussion-reply-content">{{ reply.content }}</div>
+            <div class="prblm-discussion-reply-content" v-html="reply.content" v-bind:rawcontent="reply.rawcontent"></div>
             <div class="reply-author">
                 <span class="reply-author-name">{{ author.name }}</span>
                 <span class="reply-author-date"> - {{ date }}</span>

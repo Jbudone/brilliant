@@ -1,6 +1,5 @@
 TODO
  - Priority
-   - Problem answering component - (answer question, hide solution until answered, show selected answer)
    - Email verification
    - Text component / Markdown
    - Materialize -> Tailwind
@@ -10,7 +9,6 @@ TODO
    - Profile page:  click user and see list of problems
    - BUG: "0 Solutions"
    - BUG: Can submit problem w/ no solutions; can leave 1st solution field empty
-   - BUG: Edit comment -- show initial value of existing comment
 
 
 

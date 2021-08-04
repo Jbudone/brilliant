@@ -21,3 +21,19 @@ window['globals'] = {
         { name: 'Level 5', id: 5 },
     ],
 };
+
+window['JSON_TO_HTML'] = (json) => {
+    // FIXME: Temp for switching to json
+    if (json instanceof Object) {
+        return GenerateHTML(json, VueHTMLExtensions);
+    } else {
+
+        try {
+            json = JSON.parse(json);
+        } catch(e) {
+            return json;
+        }
+
+        return GenerateHTML(json, VueHTMLExtensions);
+    }
+};

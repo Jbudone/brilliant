@@ -24,6 +24,11 @@
         "vue-template-compiler": "^2.6.14"
     },
     "dependencies": {
+        "@tiptap/extension-bold": "^2.0.0-beta.15",
+        "@tiptap/extension-document": "^2.0.0-beta.13",
+        "@tiptap/extension-paragraph": "^2.0.0-beta.16",
+        "@tiptap/extension-text": "^2.0.0-beta.13",
+        "@tiptap/html": "^2.0.0-beta.92",
         "@tiptap/starter-kit": "^2.0.0-beta.88",
         "@tiptap/vue-3": "^2.0.0-beta.48",
         "sass": "^1.37.0",

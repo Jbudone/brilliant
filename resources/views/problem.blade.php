@@ -156,7 +156,7 @@
                                 </div>
                             </div>
 
-                            <div class="prblm-discussion-content">@{{ discussion.content }}</div>
+                            <div class="prblm-discussion-content" v-html="discussion.content" v-bind:rawcontent="discussion.rawcontent"></div>
 
                             <div class="prblm-discussion-reactions">
                                 <span class="prblm-discussion-reaction reaction-helpful">@{{ discussion.reactions[0] }} Helpful</span>
