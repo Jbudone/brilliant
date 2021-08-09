@@ -10,6 +10,12 @@ require('alpinejs');
 //    components: { Dropdown }
 //});
 
+//import katex from 'https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.mjs';
+//const Katex = require('https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.js');
+const Katex = require('katex');
+
+
+
 const Vue = require('vue');
 //const Dropdown = require('./dropdown.vue');
 import Dropdown from './dropdown.vue';
@@ -24,6 +30,9 @@ import Bold from '@tiptap/extension-bold'
 import Italics from '@tiptap/extension-italic'
 import HardBreak from '@tiptap/extension-hard-break'
 
+import { Katex as ExtKatex } from './tiptap-katex.js'
+import { Mention as ExtMention } from './tiptap-mention.js'
+
 window['Vue'] = Vue;
 window['VueComponents'] = {
     Dropdown,
@@ -37,8 +46,12 @@ window['VueHTMLExtensions'] = [
     Text,
     Bold,
     Italics,
-    HardBreak
+    HardBreak,
+
+    ExtKatex,
+    ExtMention
 ];
 window['GenerateHTML'] = generateHTML;
+window['Katex'] = Katex;
 
 // FIXME: export default from app.js so we can  import { Dropdown } from '/js/app.js'  instead of window export

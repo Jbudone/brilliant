@@ -1,6 +1,11 @@
 {
   "dependencies": {
+    "@tiptap/extension-bold": "^2.0.0-beta.15",
+    "@tiptap/extension-paragraph": "^2.0.0-beta.16",
+    "@tiptap/extension-text": "^2.0.0-beta.13",
+    "@tiptap/html": "^2.0.0-beta.92",
     "jquery": "^3.6.0",
-    "jsdom": "^16.6.0"
+    "jsdom": "^16.6.0",
+    "tiptap": "^1.32.2"
   }
 }

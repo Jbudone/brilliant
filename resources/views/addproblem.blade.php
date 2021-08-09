@@ -42,16 +42,16 @@
                 @endif
 
                     @if(Route::is('addproblem'))
-                    <form method="POST" action="/addproblem">
+                    <form method="POST" action="/addproblem" ref="form">
                     @else
-                    <form method="POST" action="/edit">
+                    <form method="POST" action="/edit" ref="form">
                         <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
                     @endif
 
-                        <input type=text" name="solution" id="hiddenSolution" style="display: none;" v-bind:value="this.solutionIndex" />
-                        <input type=text" name="body" id="hiddenBody" style="display: none;" v-bind:value="this.question" />
-                        <input type=text" name="category_id" id="hiddenCategory" style="display: none;" />
-                        <input type=text" name="level_id" id="hiddenLevel" style="display: none;" />
+                        <input type=text" name="solution" id="hiddenSolution" style="display: none;" v-bind:value="this.solutionIndex()" />
+                        <input type=text" name="body" id="hiddenBody" style="display: none;" ref="formBody" />
+                        <input type=text" name="category_id" id="hiddenCategory" style="display: none;" v-bind:value="this.topic" />
+                        <input type=text" name="level_id" id="hiddenLevel" style="display: none;" v-bind:value="this.level" />
 
                         @csrf
 
@@ -69,10 +69,11 @@
 
                             <Dropdown
                                     :options="globals.ProblemCategories"
-                                    :initial="this.topic_id"
+                                    :initial="this.topic"
                                     :disabled="false"
                                     name="category"
                                     placeholder="Problem Category"
+                                    v-on:selected="selectCategory"
                             >
                             </Dropdown>
                             @error('category_id')
@@ -86,6 +87,7 @@
                                     :disabled="false"
                                     name="level"
                                     placeholder="Difficulty Level"
+                                    v-on:selected="selectLevel"
                             >
                             </Dropdown>
                             @error('level')
@@ -94,7 +96,7 @@
                         </div>
 
                         <span class="prblm-edit-header">Question Body</span>
-                        <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="this.question"></tip-tap-form>
+                        <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
                         @error('body')
                         <div class="alert alert-danger">{{ $message }}</div>
                         @enderror
@@ -102,8 +104,8 @@
 
 
                         <div class="prblm-edit-footer">
-                            <a href="#" class="prblm-edit-cancel">Cancel</a>
-                            <a href="#" class="prblm-edit-save">Save</a>
+                            <a href="#" class="prblm-edit-cancel" @click.prevent="cancel">Cancel</a>
+                            <a href="#" class="prblm-edit-save" @click.prevent="save">Save</a>
                         </div>
                             </div>
                             <div class="col offset-s1 s4">
@@ -113,8 +115,8 @@
                                     <template v-for="(solution, idx) in solutions">
                                     <p>
                                     <label>
-                                        <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" />
-                                        <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-bind:value="solution.text" />
+                                        <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" @change="setCorrectSolution(idx)" />
+                                        <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" />
                                     </label>
                                     </p>
                                     </template>

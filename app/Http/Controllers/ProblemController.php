@@ -47,7 +47,7 @@ class ProblemController extends Controller
 
     public function edit(Request $request, $problemId)
     {
-        $p = Problem::where('id', (int)$problemId)->with(['topic'])->get()[0];
+        $p = Problem::where('id', (int)$problemId)->get()[0];
 
         if ($p->author_id !== Auth::id())
         {
@@ -57,7 +57,7 @@ class ProblemController extends Controller
         $json = ['problem' => [
             'id' => $p->id,
             'title' => $p->title,
-            'topic' => $p->topic->name,
+            'topic' => $p->topic->id,
             'body' => $p->body,
             'level' => $p->level,
             'author' => $p->author_id,

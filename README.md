@@ -2,13 +2,24 @@ TODO
  - Priority
    - Email verification
    - Text component / Markdown
+        - Node/extension that auto integrates Katex (rather than jquery/manual conversion)
    - Materialize -> Tailwind
    - Problem parser
+        - transport brilliant.json -> local.json  (copy images, transform links, etc.)
+        - seed database from json file
+        - tiptap katex extension
+        - find a way to run problems in parts, multiple json files (batches), and seed from multiple jsons ;; script that runs scripts, halt on error
    - Discussion parser
    - Sort problems by hot/new, unsolved, discussions
    - Profile page:  click user and see list of problems
    - BUG: "0 Solutions"
    - BUG: Can submit problem w/ no solutions; can leave 1st solution field empty
+   - Vue cleanup: Add $ref to element to reference from inside Vue component; emit custom events from child -> caught by parent component + validation; provide/inject props from parent -> child component; v-bind:value vs. v-model
+   - BUG: Long question overflows into solutions
+   - Hide solutions/discussion until question answered
+   - BUG: Comment validation fail -- doesn't show validation fail from laravel (hidden element)   need to restore state
+   - BUG: Comment length is massive w/ JSON and max is 255
+   - Flag button: flag incorrectly formatted question ;; link to original problem (pre-generated html) for user to compare
 
 
 

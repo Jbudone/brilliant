@@ -93,5 +93,123 @@ class DatabaseSeeder extends Seeder
             'body' => "Thanks!",
             'parent_comment_id' => $comment->id
         ]);
+
+
+
+
+
+        // Seed from json file
+        $jsonStr = file_get_contents("./out.local");
+        $json = json_decode($jsonStr, true);
+
+        $users = [];
+
+        function addUser($user, &$users) {
+            echo "AddUser: '" . $user['profile'] . "'\n";
+
+
+            // {"profile":"https://brilliant.org/profile/anubhav-ztron7/","name":"Anubhav Jain","age":40,"location":"India"}
+            // {"avatar":"../../brioche/avatars-2/resized/45/0a1a51a5f35d416e94e432d77f28b0ae.68411d626d-i7YKfyq5cI.jpg?width=45","profile":"https://brilliant.org/profile/nihar-pd4fyq/","name":"Nihar Mahajan"}
+            $userProfile = $user['profile'];
+            if (array_key_exists($userProfile, $users)) {
+                $userId = $users[$userProfile]->id;
+                echo " id: $userId\n";
+                return $userId;
+            }
+
+            //$userDoc = \App\Models\User::factory()->make();
+            $userDoc = \App\Models\User::factory()->state([
+                'name' => $user['name'] // FIXME: validation, escape?
+            ])->create();
+            //$userDoc['name'] = $user['name'];
+            //'profile' => $user['profile']
+
+            /*
+            if (isset($user['age'])) {
+                $userDoc['age'] = intval($user['age']); // FIXME: validation
+            }
+
+            if (isset($user['location'])) {
+                $userDoc['location'] = $user['location']; // FIXME: validation
+            }
+*/
+
+            //ddd($userDoc);
+            //$userId = $userDoc->create();
+            $userId = $userDoc->id;
+            $users[$userProfile] = $userDoc;
+            echo " id: $userId\n";
+            return $userId;
+        }
+
+        function addComment($comment, $problemId, $authorId, $parentCommentId, &$users) {
+            echo "AddComment\n";
+            $body = $comment['body'];
+
+            $commentDoc = Comment::create([
+                'author_id' => $authorId,
+                'problem_id' => $problemId,
+                'body' => $body,
+                'parent_comment_id' => $parentCommentId
+            ]);
+
+            $replies = $comment['replies'];
+            foreach ($replies as $replyIdx => &$reply) {
+                $replyAuthor = $reply['author'];
+                $replyBody = $reply['body'];
+
+                $replyAuthorId = addUser($replyAuthor, $users);
+                addComment($reply, $problemId, $replyAuthorId, $commentDoc->id, $users);
+            }
+
+            return 1;
+        }
+
+
+        // Problems
+        foreach ($json as $key => &$val) {
+            $problem = $val;
+
+            $source = $problem['source'];
+            $category = $problem['category'];
+            $level = $problem['level'];
+            $title = $problem['title'];
+            $questionBody = $problem['body'];
+// $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => 'True'], ['text' => 'False']]]);
+            $solutions = json_encode(['solutions' => $problem['answers']]);
+            $body = strlen($solutions) . $solutions . $questionBody;
+            $author = $problem['author'];
+
+            $authorId = addUser($author, $users);
+
+            $problemDoc = Problem::create([
+                'title' => $title,
+                'body' => $body,
+                'category_id' => $category,
+                'level' => 1, // FIXME: Transport level -> levelId
+                'author_id' => $authorId,
+                'solution' => 0 // FIXME: Transport get solution idx
+            ]);
+
+
+            // Discussion
+            $discussions = $problem['discussion'];
+            foreach ($discussions as $discussionIdx => &$discussion) {
+                $discussionAuthor = $discussion['author'];
+                $discussionBody = $discussion['body'];
+                $discussionReactions = $discussion['reactions'];
+
+                $discussionAuthorId = addUser($discussionAuthor, $users);
+
+                $discussionComments = $discussion['comments'];
+                foreach ($discussionComments as $commentIdx => &$comment) {
+                    addComment($comment, $problemDoc->id, $authorId, null, $users);
+                }
+
+            }
+
+
+            echo "$source\n";
+        }
     }
 }

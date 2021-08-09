@@ -53,10 +53,10 @@
         note: 'Disable the dropdown'
       },
       initial: {
-        type: String,
+        type: Number,
         required: false,
-        default: '',
-        note: 'Initial value'
+        default: 0,
+        note: 'Initial id'
       }
     },
     data() {
@@ -67,13 +67,14 @@
      }
     },
     created() {
-      this.$emit('selected', this.selected);
+      //this.$emit('selected', this.selected);
 
       if (this.initial) {
         for (let i = 0; i < this.options.length; ++i) {
             if (this.options[i].id == this.initial) {
                 this.value = this.options[i].name;
                 this.selected = this.options[i];
+                this.$emit('selected', this.selected);
                 break;
             }
         }
@@ -86,6 +87,7 @@
         this.selected = option;
         this.optionsShown = false;
         this.$emit('selected', this.selected);
+        console.log('emitted selected');
 
         this.value = option.name;
       },
@@ -105,7 +107,7 @@
       keyMonitor: function(event) {
         if (event.key === "Enter" && this.filteredOptions[0])
           this.selectOption(this.filteredOptions[0]);
-      }
+      },
     },
     watch: {
     }

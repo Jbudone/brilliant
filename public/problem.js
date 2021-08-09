@@ -194,6 +194,10 @@ $(document).ready(() => {
                 $('#replyToContainer').hide();
                 return false;
             });
+
+            $('katex').each((idx, el) => {
+                el.innerHTML = Katex.renderToString(el.innerHTML, {});
+            });
         },
     });
 

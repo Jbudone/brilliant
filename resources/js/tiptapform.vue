@@ -8,8 +8,6 @@
 </template>
 
 <script>
-//import { Editor, EditorContent } from 'https://cdn.skypack.dev/@tiptap/vue-3?min';
-//import StarterKit from 'https://cdn.skypack.dev/@tiptap/starter-kit?min'
 import { Editor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 
@@ -17,6 +15,7 @@ export default {
     name: 'Textbox',
     template: 'Textbox',
     components: { Editor, EditorContent },
+    emits: [ 'update' ],
     props: {
         name: {
             type: String,
@@ -45,13 +44,19 @@ export default {
     methods: {
         updatePreview(editor) {
             this.preview.commands.setContent(editor.getHTML());
+        },
+
+        setInput(input) {
+            const inputHTML = JSON_TO_HTML(input);
+            this.editor.commands.setContent(inputHTML);
+
+            this.updatePreview(this.editor);
         }
     },
     mounted() {
 
         const _this = this;
         this.editor = new Editor({
-            //element: document.querySelector('#editor'), // FIXME: Only select within template
             content: this.value || '',
             extensions: [ StarterKit, ],
 
@@ -59,6 +64,7 @@ export default {
 
                 if (_this.haspreview) {
                     // The content has changed.
+                    _this.$emit('update', _this.editor.getJSON());
                     _this.updatePreview(editor);
                 }
             },
@@ -66,7 +72,6 @@ export default {
 
         if (this.haspreview) {
             this.preview = new Editor({
-                //element: document.querySelector('#preview'),
                 content: this.editor.getHTML(),
                 extensions: [ StarterKit, ],
                 editable: false

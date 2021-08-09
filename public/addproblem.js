@@ -15,7 +15,7 @@ $(document).ready(() => {
 
                 id: 0,
                 title: "",
-                topic: "",
+                topic: 0,
                 level: 0,
                 question: "",
                 solutions: [],
@@ -31,6 +31,66 @@ $(document).ready(() => {
                 }
 
                 return false;
+            },
+
+            selectCategory(selection) {
+                this.topic = selection.id;
+            },
+
+            selectLevel(selection) {
+                this.level = selection.id;
+            },
+
+            setCorrectSolution(idx) {
+                for (let i = 0; i < this.solutions.length; ++i) {
+                    delete this.solutions[i].correct;
+                }
+
+                this.solutions[idx].correct = true;
+            },
+
+            solutionIndex() {
+                for (let i = 0; i < this.solutions.length; ++i) {
+                    if (this.solutions[i].correct) {
+                        return i;
+                    }
+                }
+            },
+
+            cancel() {
+                if (isEdit) {
+                    window.location = '/problem/' + this.id;
+                } else {
+                    window.location = '/problems';
+                }
+            },
+
+            setQuestionBody(json) {
+                this.question = json;
+            },
+
+            getQuestionBody() {
+                return this.question;
+            },
+
+            save() {
+
+                let body = JSON.stringify(this.question);
+                let solutions = [];
+                for (let i = 0; i < this.solutions.length; ++i) {
+                    const solution = {};
+                    solution.text = this.solutions[i].text;
+                    if (this.solutions[i].correct) {
+                        $('#hiddenSolution').val(i);
+                        solution.correct = true;
+                    }
+                    solutions.push(solution);
+                }
+                let solutionsStr = JSON.stringify({solutions: solutions});
+                body = solutionsStr.length + solutionsStr + body;
+                this.$refs.formBody.value = body;
+
+                this.$refs.form.submit();
             }
         },
         computed: {
@@ -45,7 +105,6 @@ $(document).ready(() => {
                 this.id    = this.jsonData.id;
                 this.title = this.jsonData.title;
                 this.topic = this.jsonData.topic;
-                this.topic_id = 1; // FIXME
                 this.level = this.jsonData.level;
                 //this.author = this.jsonData.author_id;
 
@@ -55,7 +114,6 @@ $(document).ready(() => {
                     solutionJson = JSON.parse(solutionString);
                 this.solutions = solutionJson.solutions;
                 this.question = this.jsonData.body.substr(solutionLen + solutionStart);
-                this.question = JSON_TO_HTML(this.question);
 
                 for (let i = this.solutions.length; i < 4; ++i) {
                     this.solutions.push({
@@ -78,66 +136,7 @@ $(document).ready(() => {
             // FIXME: Apply Old here
         },
         mounted() {
-
-            $('.prblm-edit-cancel').click(() => {
-                if (isEdit) {
-                    window.location = '/problem/' + this.id;
-                } else {
-                    window.location = '/problems';
-                }
-
-                return false;
-            });
-
-            var _this = this;
-            $('.prblm-edit-save').click(() => {
-
-                let body = window['mountedEditor-editor'].getJSON();
-                body = JSON.stringify(body);
-                let solutions = [];
-                for (let i = 0; i < this.solutions.length; ++i) {
-                    // FIXME: Look into Vuetex or data store
-                    let text = $('[name="solution'+i+'"]').val(),
-                        correct = $('#solution'+i).prop('checked');
-                    if (!text) break;
-                    
-                    const solution = {};
-                    if (correct) {
-                        solution.correct = 1;
-                        $('#hiddenSolution').val(i);
-                    }
-                    solution.text = text
-                    solutions.push(solution);
-                }
-                let solutionsStr = JSON.stringify({solutions: solutions});
-                body = solutionsStr.length + solutionsStr + body;
-                $('#hiddenBody').val(body);
-
-                let topic = $('[name="category"]').val(); // FIXME: Look into Vuetex or data store
-                let categoryId = 0;
-                for (let i = 0; i < globals.ProblemCategories.length; ++i) {
-                    if (topic === globals.ProblemCategories[i].name) {
-                        categoryId = globals.ProblemCategories[i].id;
-                        break;
-                    }
-                }
-                $('#hiddenCategory').val(categoryId);
-
-                let level = $('[name="level"]').val(); // FIXME: Look into Vuetex or data store
-                let levelId = 0;
-                for (let i = 0; i < globals.ProblemLevels.length; ++i) {
-                    if (level === globals.ProblemLevels[i].name) {
-                        levelId = globals.ProblemLevels[i].id;
-                        break;
-                    }
-                }
-                $('#hiddenLevel').val(levelId);
-
-
-
-                $('form').submit();
-                return false;
-            });
+            this.$refs.editor.setInput(this.question);
         },
         beforeUnmount() {
         },
