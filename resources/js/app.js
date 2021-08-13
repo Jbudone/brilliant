@@ -10,8 +10,6 @@ require('alpinejs');
 //    components: { Dropdown }
 //});
 
-//import katex from 'https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.mjs';
-//const Katex = require('https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.js');
 const Katex = require('katex');
 
 
@@ -21,7 +19,7 @@ const Vue = require('vue');
 import Dropdown from './dropdown.vue';
 import EditableSolutions from './editablesolutions.vue';
 import TipTapForm from './tiptapform.vue';
-import { generateHTML } from '@tiptap/html'; 
+import { generateHTML, generateJSON } from '@tiptap/html'; 
 
 import Document from '@tiptap/extension-document'
 import Paragraph from '@tiptap/extension-paragraph'
@@ -29,9 +27,28 @@ import Text from '@tiptap/extension-text'
 import Bold from '@tiptap/extension-bold'
 import Italics from '@tiptap/extension-italic'
 import HardBreak from '@tiptap/extension-hard-break'
+import Blockquote from '@tiptap/extension-blockquote'
+import Image from '@tiptap/extension-image'
+import Heading from '@tiptap/extension-heading'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import HorizontalRule from '@tiptap/extension-horizontal-rule'
+import Link from '@tiptap/extension-link'
+import BulletList from '@tiptap/extension-bullet-list'
+import OrderedList from '@tiptap/extension-ordered-list'
+import ListItem from '@tiptap/extension-list-item'
+import Table from '@tiptap/extension-table'
+import TableRow from '@tiptap/extension-table-row'
+import TableCell from '@tiptap/extension-table-cell'
+import TableHeader from '@tiptap/extension-table-header'
+
 
 import { Katex as ExtKatex } from './tiptap-katex.js'
 import { Mention as ExtMention } from './tiptap-mention.js'
+import { Strong as ExtStrong } from './tiptap-strong.js'
+import { Italics as ExtEm } from './tiptap-em.js'
+import { H1 as ExtH1 } from './tiptap-h1.js'
+import { HR as ExtHR } from './tiptap-hr.js'
+import { Code as ExtCode } from './tiptap-code.js'
 
 window['Vue'] = Vue;
 window['VueComponents'] = {
@@ -47,11 +64,27 @@ window['VueHTMLExtensions'] = [
     Bold,
     Italics,
     HardBreak,
+    Blockquote,
+    Image,
+    Heading,
+    CodeBlockLowlight,
+    HorizontalRule,
+    Link,
+    BulletList,
+    OrderedList,
+    ListItem,
+    Table, TableRow, TableCell, TableHeader,
 
     ExtKatex,
-    ExtMention
+    ExtMention,
+    //ExtStrong, // FIXME: Why can't we get Node from Bold Mark?
+    //ExtEm,
+    //ExtH1,
+    //ExtCode,
+    //ExtHR
 ];
 window['GenerateHTML'] = generateHTML;
+window['GenerateJSON'] = generateJSON;
 window['Katex'] = Katex;
 
 // FIXME: export default from app.js so we can  import { Dropdown } from '/js/app.js'  instead of window export

@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
         Category::create([ 'name' => "SAT® Math" ]);
 
 
+        /*
         $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => 'True'], ['text' => 'False']]]);
         $problem = Problem::create([
             'title' => "0.9 = 1",
@@ -93,19 +94,12 @@ class DatabaseSeeder extends Seeder
             'body' => "Thanks!",
             'parent_comment_id' => $comment->id
         ]);
-
-
-
-
-
-        // Seed from json file
-        $jsonStr = file_get_contents("./out.local");
-        $json = json_decode($jsonStr, true);
+*/
 
         $users = [];
 
         function addUser($user, &$users) {
-            echo "AddUser: '" . $user['profile'] . "'\n";
+            echo "    AddUser: '" . $user['name'] . "'\n";
 
 
             // {"profile":"https://brilliant.org/profile/anubhav-ztron7/","name":"Anubhav Jain","age":40,"location":"India"}
@@ -113,7 +107,7 @@ class DatabaseSeeder extends Seeder
             $userProfile = $user['profile'];
             if (array_key_exists($userProfile, $users)) {
                 $userId = $users[$userProfile]->id;
-                echo " id: $userId\n";
+                echo "    existing id: $userId\n";
                 return $userId;
             }
 
@@ -132,19 +126,27 @@ class DatabaseSeeder extends Seeder
             if (isset($user['location'])) {
                 $userDoc['location'] = $user['location']; // FIXME: validation
             }
-*/
+            */
 
             //ddd($userDoc);
             //$userId = $userDoc->create();
             $userId = $userDoc->id;
             $users[$userProfile] = $userDoc;
-            echo " id: $userId\n";
+            echo "    id: $userId\n";
             return $userId;
         }
 
-        function addComment($comment, $problemId, $authorId, $parentCommentId, &$users) {
+        function addComment($comment, $problemId, $parentCommentId, &$users) {
             echo "AddComment\n";
             $body = $comment['body'];
+            $commentId = $comment['id'];
+            echo "  id: $commentId\n";
+
+            $author = $comment['author'];
+            $authorId = addUser($author, $users);
+
+
+
 
             $commentDoc = Comment::create([
                 'author_id' => $authorId,
@@ -153,63 +155,89 @@ class DatabaseSeeder extends Seeder
                 'parent_comment_id' => $parentCommentId
             ]);
 
+            echo "  Author: $authorId\n";
+
             $replies = $comment['replies'];
             foreach ($replies as $replyIdx => &$reply) {
-                $replyAuthor = $reply['author'];
-                $replyBody = $reply['body'];
+                //$replyAuthor = $reply['author'];
+                //$replyBody = $reply['body'];
 
-                $replyAuthorId = addUser($replyAuthor, $users);
-                addComment($reply, $problemId, $replyAuthorId, $commentDoc->id, $users);
+                //$replyAuthorId = addUser($replyAuthor, $users);
+                addComment($reply, $problemId, $commentDoc->id, $users);
             }
 
             return 1;
         }
 
 
-        // Problems
-        foreach ($json as $key => &$val) {
-            $problem = $val;
+        // Master list
+        $jsonMasterStr = file_get_contents("./brilliant.parsed/problems.json");
+        $jsonMaster = json_decode($jsonMasterStr);
 
-            $source = $problem['source'];
-            $category = $problem['category'];
-            $level = $problem['level'];
-            $title = $problem['title'];
-            $questionBody = $problem['body'];
-// $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => 'True'], ['text' => 'False']]]);
-            $solutions = json_encode(['solutions' => $problem['answers']]);
-            $body = strlen($solutions) . $solutions . $questionBody;
-            $author = $problem['author'];
+//{"versionParse":0,"versionTransport":0,"batchIdx":0,"parsedList":"./brilliant.parsed/brilliant.parsed-0.json","transportedList":"./brilliant.parsed/brilliant.local-0.json"}
+        $problemBatchList = $jsonMaster->processed;
+        foreach ($problemBatchList as $idx => &$problemBatch) {
+            $jsonFile = $problemBatch->transportedList;
+            echo "Loading batch: $jsonFile\n";
 
-            $authorId = addUser($author, $users);
-
-            $problemDoc = Problem::create([
-                'title' => $title,
-                'body' => $body,
-                'category_id' => $category,
-                'level' => 1, // FIXME: Transport level -> levelId
-                'author_id' => $authorId,
-                'solution' => 0 // FIXME: Transport get solution idx
-            ]);
+            // Seed from json file
+            $jsonStr = file_get_contents($jsonFile);
+            $json = json_decode($jsonStr, true);
 
 
-            // Discussion
-            $discussions = $problem['discussion'];
-            foreach ($discussions as $discussionIdx => &$discussion) {
-                $discussionAuthor = $discussion['author'];
-                $discussionBody = $discussion['body'];
-                $discussionReactions = $discussion['reactions'];
+            // Problems
+            foreach ($json as $key => &$val) {
+                $problem = $val;
 
-                $discussionAuthorId = addUser($discussionAuthor, $users);
+                $source = $problem['source'];
+                $category = $problem['category'];
+                $level = $problem['level'];
+                $title = $problem['title'];
+                $questionBody = $problem['body'];
+    // $solutions = json_encode(['solutions' => [['correct' => 1, 'text' => 'True'], ['text' => 'False']]]);
+                $solutions = json_encode(['solutions' => $problem['answers']]);
+                $body = strlen($solutions) . $solutions . $questionBody;
+                $author = $problem['author'];
 
-                $discussionComments = $discussion['comments'];
-                foreach ($discussionComments as $commentIdx => &$comment) {
-                    addComment($comment, $problemDoc->id, $authorId, null, $users);
+                $authorId = addUser($author, $users);
+
+                $problemDoc = Problem::create([
+                    'title' => $title,
+                    'body' => $body,
+                    'category_id' => $category,
+                    'level' => 1, // FIXME: Transport level -> levelId
+                    'author_id' => $authorId,
+                    'solution' => 0, // FIXME: Transport get solution idx
+                    'source' => $source
+                ]);
+
+
+                // Discussion
+                $discussions = $problem['discussion'];
+                foreach ($discussions as $discussionIdx => &$discussion) {
+                    $discussionAuthor = $discussion['author'];
+                    $discussionBody = $discussion['body'];
+                    $discussionReactions = $discussion['reactions'];
+
+                    $discussionAuthorId = addUser($discussionAuthor, $users);
+
+                    $discussionDoc = Comment::create([
+                        'author_id' => $discussionAuthorId,
+                        'problem_id' => $problemDoc->id,
+                        'body' => $discussionBody,
+                        'parent_comment_id' => null
+                    ]);
+
+                    $discussionComments = $discussion['comments'];
+                    foreach ($discussionComments as $commentIdx => &$comment) {
+                        addComment($comment, $problemDoc->id, $discussionDoc->id, $users);
+                    }
+
                 }
 
+
+                echo "$source\n";
             }
-
-
-            echo "$source\n";
         }
     }
 }

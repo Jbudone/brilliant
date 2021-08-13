@@ -1,5 +1,7 @@
 const core = require('@tiptap/core');
 
+
+const inputRegex = /!\[(.+|:?)]\((\S+)(?:(?:\s+)["'](\S+)["'])?\)/;
 const Katex = core.Node.create({
   name: 'katex',
 
@@ -19,7 +21,17 @@ const Katex = core.Node.create({
     ]
   },
 
+    addAttributes() {
+        return {
+            inline: {
+                default: null
+            }
+        };
+    },
+
   renderHTML({ HTMLAttributes }) {
+      console.log(this);
+      console.log(HTMLAttributes);
     return ['katex', core.mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   },
 
@@ -36,6 +48,7 @@ const Katex = core.Node.create({
       'Mod-Alt-0': () => this.editor.commands.setKatex(),
     }
   },
+
 });
 
 

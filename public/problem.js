@@ -90,6 +90,13 @@ $(document).ready(() => {
                 }
             }
 
+            // JSON -> HTML for solutions ONLY if its multiple choice, since you can't latex/img an input solution
+            if (this.solutions.length > 1) {
+                for (let i = 0; i < this.solutions.length; ++i) {
+                    this.solutions[i].html = JSON_TO_HTML(this.solutions[i].text);
+                }
+            }
+
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
             this.question = JSON_TO_HTML(this.question);
 
@@ -101,10 +108,18 @@ $(document).ready(() => {
                     author = this.users[comment.author];
 
                 console.log(comment.body);
+                let commentBody = null;
+                //try {
+                commentBody = JSON_TO_HTML(comment.body);
+                //} catch(e) {
+                //    debugger;
+                //    // Try again w/ debugger
+                //    commentBody = JSON_TO_HTML(comment.body);
+                //}
                 const discussionComment = {
                     id: comment.id,
                     rawcontent: comment.body,
-                    content: JSON_TO_HTML(comment.body),
+                    content: commentBody,
                     author: comment.author,
                     date: comment.date,
 
@@ -196,7 +211,10 @@ $(document).ready(() => {
             });
 
             $('katex').each((idx, el) => {
-                el.innerHTML = Katex.renderToString(el.innerHTML, {});
+                let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
+                el.innerHTML = Katex.renderToString(el.textContent, {
+                    displayMode: !isInline
+                });
             });
         },
     });

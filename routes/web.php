@@ -54,6 +54,10 @@ Route::get('/problems', function() {
     return view('problems');
 })->name('problems');
 
+Route::get('/brilliantexport/problems/{problemFirst}/{problem}', function ($problemId) {
+    return File::get(public_path() . "/brilliantexport/problems/$problemId/$problemId.html");
+})->where('problem', '[A-Za-z0-9_-]+');
+
 Route::get('/problem/{problem}', function ($problemId) {
     $p = Problem::where('id', (int)$problemId)->with(['topic', 'author', 'comments.author:id,name,created_at'])->first();
 
@@ -87,8 +91,10 @@ Route::get('/problem/{problem}', function ($problemId) {
         'level' => $p->level,
         'author' => $p->author_id,
         'users' => $users,
-        'comments' => $comments
-    ], 'user' => [
+        'comments' => $comments,
+        'source' => $p->source
+    ], 'source' => $p->source,
+    'user' => [
         'id' => Auth::id()
     ]];
 

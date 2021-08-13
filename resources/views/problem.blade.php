@@ -26,6 +26,7 @@
             <div class="ctnt-sections row">
                 <div class="prblm-header">
                     <span class="prblm-title">@{{ this.title }}</span>
+                    <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
                     <div class="prblm-topiclevel">
                         <span class="prblm-topic">@{{ this.topic }}</span>
                         <span class="prblm-level">Level @{{ this.level }}</span>
@@ -44,7 +45,7 @@
                             <span class="prblm-solution-btn" v-bind:class="[{ active: solution.selected }, { correct: solution.correct }, { disabled: solved }]" @click.prevent="solve(idx)">
                                 <span class="prblm-solution-bg">@{{ solution.correct ? "✓" : "" }}</span>
                                 <span v-if="solution.selected" class="prblm-solution-picked"></span>
-                                <span class="prblm-solution-text">@{{ solution.text }}</span>
+                                <span class="prblm-solution-text" v-html="solution.html"></span>
                             </span>
                         </template>
                         </form>

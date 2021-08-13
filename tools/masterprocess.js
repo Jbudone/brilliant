@@ -15,7 +15,7 @@ const PATH_TO_OUTDIR = './brilliant.parsed/';
 const PATH_TO_OUTPUT = PATH_TO_OUTDIR + 'problems.json';
 
 const PROBLEM_LIST_PATH = './rawproblems';
-const PATH_TO_PROBLEMS = './brilliantexport/problems';
+const PATH_TO_PROBLEMS = './public/brilliantexport/problems';
 
 // Parse arguments
 for (let i = 2; i < process.argv.length; ++i) {
@@ -49,7 +49,7 @@ let InitialJson = {
     batchSize: BATCH_SIZE   // Number of entries per batch
 };
 
-let BatchesRemaining = 3; // FIXME
+let BatchesRemaining = 1000; // FIXME
 
 // Read from file, if not exist then InitialJson
 let output = InitialJson;
@@ -108,9 +108,10 @@ const ProcessBatch = (batch) => {
         console.log(`Processing batch ${batchIdx}`);
         batch.parsedOutput = PATH_TO_OUTDIR + 'brilliant.parsed-' + batchIdx + '.json';
         const problemOffset = batchIdx * BATCH_SIZE;
-        const argsStr = `--path-to-problems brilliantexport/problems --problem-list rawproblems --output ${batch.parsedOutput} --batch-size ${BATCH_SIZE} --offset ${problemOffset} --verbose`,
+        let argsStr = `--path-to-problems public/brilliantexport/problems --problem-list rawproblems --output ${batch.parsedOutput} --batch-size ${BATCH_SIZE} --offset ${problemOffset} --verbose`,
             args = argsStr.split(' ');
 
+        console.log(`node ./tools/parseproblem.js ${argsStr}`);
         process = childProcess.fork('./tools/parseproblem.js', args);
     } else if (stage === 1) {
 
@@ -162,6 +163,8 @@ const FinishedBatch = (batch) => {
     // Process next batch or finished
     if (--BatchesRemaining > 0) {
         ProcessBatch({ stage: 0, batchIdx: batch.batchIdx + 1 });
+    } else {
+        console.log("Finished all batches");
     }
 };
 

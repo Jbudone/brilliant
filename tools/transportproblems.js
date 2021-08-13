@@ -50,12 +50,26 @@ for (let i = 0; i < input.length; ++i) {
     const categoryName = problemIn['category'];
     let categoryId = -1;
     if (categoryName === 'Algebra') categoryId = 1;
+    else if (categoryName === 'Geometry') categoryId = 2;
     else if (categoryName === 'Number Theory') categoryId = 3;
     else if (categoryName === 'Calculus') categoryId = 4;
+    else if (categoryName === 'Logic') categoryId = 5;
+    else if (categoryName === 'Classical Mechanics') categoryId = 6;
+    else if (categoryName === 'Electricity and Magnetism') categoryId = 7;
+    else if (categoryName === 'Computer Science') categoryId = 8;
+    else if (categoryName === 'Quantitative Finance') categoryId = 9;
+    else if (categoryName === 'Chemistry') categoryId = 10;
+    else if (categoryName === 'uncategorized') categoryId = 1;
+    else if (categoryName === 'Probability') categoryId = 5;
     else Assert(false, `Unexpected category ${categoryName}`);
 
     const problemOut = problemIn;
     problemOut['category'] = categoryId;
+
+
+    let problemSource = problemIn['source'];
+    problemSource = problemSource.match(/([^\/]*).html$/)[1];
+    problemOut['source'] = problemSource;
 
     //ProblemCategories: [
     //    { name: 'Algebra', id: 1 },

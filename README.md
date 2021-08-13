@@ -1,14 +1,11 @@
 TODO
  - Priority
    - Email verification
-   - Text component / Markdown
-        - Node/extension that auto integrates Katex (rather than jquery/manual conversion)
    - Materialize -> Tailwind
    - Problem parser
         - transport brilliant.json -> local.json  (copy images, transform links, etc.)
-        - seed database from json file
         - tiptap katex extension
-        - find a way to run problems in parts, multiple json files (batches), and seed from multiple jsons ;; script that runs scripts, halt on error
+        - tiptap Image extension (zoomable; reference assets list for src)
    - Discussion parser
    - Sort problems by hot/new, unsolved, discussions
    - Profile page:  click user and see list of problems
