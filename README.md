@@ -16,7 +16,9 @@ TODO
    - Hide solutions/discussion until question answered
    - BUG: Comment validation fail -- doesn't show validation fail from laravel (hidden element)   need to restore state
    - BUG: Comment length is massive w/ JSON and max is 255
-   - Flag button: flag incorrectly formatted question ;; link to original problem (pre-generated html) for user to compare
+   - Find a way to easily migrate new problems, update problems, etc. w/out affecting users/solves/comments
+        - All archived problems/users get flagged as archived
+        - Remove only archived in migrate??
 
 
 
@@ -96,6 +98,10 @@ TODO
         npm install
         # FIXME: migrate/seed but w/out deleting current docs
         npm run dev
+
+        php artisan migrate:fresh --seed
+
+
 
 
 

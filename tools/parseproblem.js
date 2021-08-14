@@ -61,6 +61,7 @@ let SINGLE_PROBLEM = null; // for debugging -- process a single problem
 //
 //   - Date from first post (otherwise preset beginning?)
 //   - Moderator Note: http://brilliant.laravel:8000/brilliantexport/problems/00-is-indeterminate/00-is-indeterminate.html
+//   - Empty text nodes: http://brilliant.laravel:8000/problem/8    http://brilliant.laravel:8000/brilliantexport/problems/0-1/0-1.html
 
 let verbose = false;
 let OUTPUT = null;
@@ -240,25 +241,45 @@ const processBody = (body, env) => {
             } else if (el.classList.length >= 1 && el.classList[0] === "image-caption") {
                 // FIXME: Other classes include "center"
                 //const zoomableEl = el.childNodes[1];
-                Assert(el.childNodes.length === 3, `image-caption has not 3 children: ${filepath}`); // #text .zoomable-image #text    \n \n
-                //Assert(zoomableEl.classList.length === 1 && zoomableEl.classList[0] === "zoomable-image", `zoomable-image has unexpected class list: ${filepath}`);
-                //Assert(zoomableEl.childNodes.length === 2, `zoomable-image has unexpected childNodes: ${filepath}`);
-                //const unknownSpanEl = zoomableEl.childNodes[0];
-                //Assert(unknownSpanEl.innerHTML === "", `unexpected content in span for zoomable-image: ${filepath}`);
-                //const imgEl = zoomableEl.childNodes[1];
-                const imgEl = el.childNodes[1];
-                //Assert(Object.keys(imgEl.attributes).length === 2, `unexpected attributes on img: ${filepath}`);
-                Assert(imgEl.attributes['src'] && imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
-                Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img: ${filepath}`);
-                const imgSrc = imgEl.attributes['src'].value;
 
-                json.type = "image";
+                // #text .zoomable-image #text   \n \n
+                // #text img #text span.caption
+                Assert((el.childNodes.length === 1) || (el.childNodes.length === 3) || (el.childNodes.length === 4), `image-caption has not 1/3/4 children: ${filepath}`); // #text .zoomable-image #text    \n \n
 
-                let src = imgSrc;
-                if (imgSrc.substr(0, 3) != "htt") {
-                    src = '/brilliantexport/' + imgSrc.substr(6); // ../../
+                if (el.childNodes.length === 1) {
+                    const videoEl = el.childNodes[0];
+                    Assert(videoEl.nodeName === "VIDEO", `Unexpected node for image-caption: ${filepath}`);
+                    console.log("FIXME: Handle Video element");
+
+                    json.type = "image";
+                    json.attrs = { src: "" };
+                } else {
+
+                    //Assert(zoomableEl.classList.length === 1 && zoomableEl.classList[0] === "zoomable-image", `zoomable-image has unexpected class list: ${filepath}`);
+                    //Assert(zoomableEl.childNodes.length === 2, `zoomable-image has unexpected childNodes: ${filepath}`);
+                    //const unknownSpanEl = zoomableEl.childNodes[0];
+                    //Assert(unknownSpanEl.innerHTML === "", `unexpected content in span for zoomable-image: ${filepath}`);
+                    //const imgEl = zoomableEl.childNodes[1];
+                    const imgEl = el.childNodes[1];
+                    //Assert(Object.keys(imgEl.attributes).length === 2, `unexpected attributes on img: ${filepath}`);
+                    Assert(imgEl.attributes['src'] && imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
+                    Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img: ${filepath}`);
+                    const imgSrc = imgEl.attributes['src'].value;
+
+                    json.type = "image";
+
+                    let src = imgSrc;
+                    if (imgSrc.substr(0, 3) != "htt") {
+                        src = '/brilliantexport/' + imgSrc.substr(6); // ../../
+                    }
+                    json.attrs = { src: src };
+
+                    if (el.childNodes.length === 4) {
+                        const captionEl = el.childNodes[3];
+                        Assert(captionEl.nodeName === "SPAN" && captionEl.classList.length === 1 && captionEl.classList[0] === "caption", `Unexpected caption: ${filepath}`);
+                        console.log("FIXME: Handle image caption");
+                    }
                 }
-                json.attrs = { src: src };
             } else if (el.classList.length === 1 && el.classList[0] === "reply-to") {
                 Assert(el.childNodes.length === 3, `reply-to has not 3 children: ${filepath}`); // #text .reply-to #text    \n \n
                 const replyEl = el.childNodes[1];
@@ -314,6 +335,12 @@ const processBody = (body, env) => {
             json.type = "codeBlock";
             json.content = [{ type: "text", text: el.textContent }];
             json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
+        } else if (el.nodeName === "CODE") {
+            // inline code block
+            Assert(el.classList.length === 0, `Unexpected class list for <code>: ${filepath}`);
+            json.type = "codeBlock";
+            json.content = [{ type: "text", text: el.textContent }];
+            json.attrs = [{ text: el.textContent, language: null }];
         } else if (el.nodeName === "BLOCKQUOTE") {
             json.type = "blockquote";
             json.content = [];

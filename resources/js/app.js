@@ -44,11 +44,6 @@ import TableHeader from '@tiptap/extension-table-header'
 
 import { Katex as ExtKatex } from './tiptap-katex.js'
 import { Mention as ExtMention } from './tiptap-mention.js'
-import { Strong as ExtStrong } from './tiptap-strong.js'
-import { Italics as ExtEm } from './tiptap-em.js'
-import { H1 as ExtH1 } from './tiptap-h1.js'
-import { HR as ExtHR } from './tiptap-hr.js'
-import { Code as ExtCode } from './tiptap-code.js'
 
 window['Vue'] = Vue;
 window['VueComponents'] = {

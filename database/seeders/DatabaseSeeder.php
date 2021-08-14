@@ -99,7 +99,7 @@ class DatabaseSeeder extends Seeder
         $users = [];
 
         function addUser($user, &$users) {
-            echo "    AddUser: '" . $user['name'] . "'\n";
+            //echo "    AddUser: '" . $user['name'] . "'\n";
 
 
             // {"profile":"https://brilliant.org/profile/anubhav-ztron7/","name":"Anubhav Jain","age":40,"location":"India"}
@@ -107,7 +107,7 @@ class DatabaseSeeder extends Seeder
             $userProfile = $user['profile'];
             if (array_key_exists($userProfile, $users)) {
                 $userId = $users[$userProfile]->id;
-                echo "    existing id: $userId\n";
+                //echo "    existing id: $userId\n";
                 return $userId;
             }
 
@@ -132,15 +132,15 @@ class DatabaseSeeder extends Seeder
             //$userId = $userDoc->create();
             $userId = $userDoc->id;
             $users[$userProfile] = $userDoc;
-            echo "    id: $userId\n";
+            //echo "    id: $userId\n";
             return $userId;
         }
 
         function addComment($comment, $problemId, $parentCommentId, &$users) {
-            echo "AddComment\n";
+            //echo "AddComment\n";
             $body = $comment['body'];
             $commentId = $comment['id'];
-            echo "  id: $commentId\n";
+            //echo "  id: $commentId\n";
 
             $author = $comment['author'];
             $authorId = addUser($author, $users);
@@ -155,7 +155,7 @@ class DatabaseSeeder extends Seeder
                 'parent_comment_id' => $parentCommentId
             ]);
 
-            echo "  Author: $authorId\n";
+            //echo "  Author: $authorId\n";
 
             $replies = $comment['replies'];
             foreach ($replies as $replyIdx => &$reply) {

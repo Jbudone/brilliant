@@ -40,7 +40,7 @@ const VERSION_PARSEPROBLEM = 0, // bump this to re-parse problems: parseproblem.
     VERSION_TRANSPORTPROBLEM = 0, // bump this to re-transport problems: transportproblems.js
     VERSION_MASTERPROCESS = 0;
 
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 10;
 
 
 let InitialJson = {
