@@ -120,6 +120,12 @@ Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['au
 //    return view('addproblem');
 //})->middleware(['auth']);
 
+Route::get('/randomproblem', function() {
+    $count = intval(Problem::count());
+    $randomIdx = rand(1, $count);
+    return redirect('/problem/' . $randomIdx);
+})->name('randomproblem');
+
 Route::post('/addproblem', [ProblemController::class, 'store'])->middleware(['auth']);
 Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
 Route::post('/edit', [ProblemController::class, 'change'])->middleware(['auth']);
