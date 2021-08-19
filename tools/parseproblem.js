@@ -55,13 +55,12 @@ let SINGLE_PROBLEM = null; // for debugging -- process a single problem
 
 // FIXME:
 //  Parse
-//   - Title Katex
+//   - Store solution/title Katex as {{ .... }}
 //   - Total solution answers, "78% answered correctly", ..
 //   - Relevant wiki
 //
 //   - Date from first post (otherwise preset beginning?)
 //   - Moderator Note: http://brilliant.laravel:8000/brilliantexport/problems/00-is-indeterminate/00-is-indeterminate.html
-//   - Empty text nodes: http://brilliant.laravel:8000/problem/8    http://brilliant.laravel:8000/brilliantexport/problems/0-1/0-1.html
 
 let verbose = false;
 let OUTPUT = null;
@@ -122,6 +121,11 @@ const CountElementsIn = (elements, inObj) => {
     return total;
 };
 
+const processText = (text) => {
+    if (text) return text;
+    return " ";
+};
+
 const outProblems = [];
 
 
@@ -129,6 +133,7 @@ const finishParsingProblems = () => {
     const out = JSON.stringify(outProblems);
 
     if (OUTPUT) {
+        console.log("WRITING TO " + OUTPUT);
         fs.writeFileSync(OUTPUT, out);
     } else {
         console.log(out);
@@ -202,14 +207,14 @@ const processBody = (body, env) => {
                 Assert(el.innerHTML === el.textContent, `Unexpected <p> innerHTML != el.textContent: ${filepath}`);
                 const contentChild = {
                     type: "text",
-                    text: el.textContent
+                    text: processText(el.textContent)
                 };
                 json.content.push(contentChild);
             }
         } else if (el.nodeName === "#text") {
             // text fragment
             json.type = "text";
-            json.text = el.textContent;
+            json.text = processText(el.textContent);
         } else if (el.nodeName === "SPAN") {
 
             let isInlineKatex = true;
@@ -232,11 +237,11 @@ const processBody = (body, env) => {
                 // NOTE: textContent &   innerHTML &amp;
                 //Assert(annotationEl.innerHTML === annotationEl.textContent, `Unexpected <span> innerHTML != el.textContent: ${filepath}`);
                 json.type = "katex";
-                json.content = [{ type: "text", text: annotationEl.textContent }];
+                json.content = [{ type: "text", text: processText(annotationEl.textContent) }];
                 json.attrs = { inline: isInlineKatex };
             } else if (el.classList.length >= 1 && el.classList[0] === "katex-error") {
                 json.type = "katex";
-                json.content = [{ type: "text", text: el.textContent }];
+                json.content = [{ type: "text", text: processText(el.textContent) }];
                 json.attrs = { inline: isInlineKatex };
             } else if (el.classList.length >= 1 && el.classList[0] === "image-caption") {
                 // FIXME: Other classes include "center"
@@ -244,7 +249,7 @@ const processBody = (body, env) => {
 
                 // #text .zoomable-image #text   \n \n
                 // #text img #text span.caption
-                Assert((el.childNodes.length === 1) || (el.childNodes.length === 3) || (el.childNodes.length === 4), `image-caption has not 1/3/4 children: ${filepath}`); // #text .zoomable-image #text    \n \n
+                //Assert((el.childNodes.length === 1) || (el.childNodes.length === 3) || (el.childNodes.length === 4), `image-caption has not 1/3/4 children: ${filepath}`); // #text .zoomable-image #text    \n \n
 
                 if (el.childNodes.length === 1) {
                     const videoEl = el.childNodes[0];
@@ -255,13 +260,27 @@ const processBody = (body, env) => {
                     json.attrs = { src: "" };
                 } else {
 
-                    //Assert(zoomableEl.classList.length === 1 && zoomableEl.classList[0] === "zoomable-image", `zoomable-image has unexpected class list: ${filepath}`);
-                    //Assert(zoomableEl.childNodes.length === 2, `zoomable-image has unexpected childNodes: ${filepath}`);
-                    //const unknownSpanEl = zoomableEl.childNodes[0];
-                    //Assert(unknownSpanEl.innerHTML === "", `unexpected content in span for zoomable-image: ${filepath}`);
-                    //const imgEl = zoomableEl.childNodes[1];
-                    const imgEl = el.childNodes[1];
-                    //Assert(Object.keys(imgEl.attributes).length === 2, `unexpected attributes on img: ${filepath}`);
+                    let captionEl = null, imgEl = null;
+                    for (let childNodeIdx = 0; childNodeIdx < el.childNodes.length; ++childNodeIdx) {
+                        let childNodeEl = el.childNodes[childNodeIdx];
+                        if (childNodeEl.nodeName === "#text") {
+                            continue;
+                        } else if (childNodeEl.nodeName === "SPAN") {
+
+                            Assert(childNodeEl.classList.length === 1, `Unexpected classlist for .image-caption child: ${filepath}`);
+                            if (childNodeEl.classList[0] === "zoomable-image") {
+                                imgEl = $('img', $(childNodeEl))[0];
+                            } else if (childNodeEl.classList[0] === "caption") {
+                                captionEl = childNodeEl;
+                            }
+                        } else if (childNodeEl.nodeName === "IMG") {
+                            imgEl = childNodeEl;
+                        } else {
+                            Assert(false, `Unexpected element in .image-caption: ${filepath}`);
+                        }
+                    }
+
+
                     Assert(imgEl.attributes['src'] && imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
                     Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img: ${filepath}`);
                     const imgSrc = imgEl.attributes['src'].value;
@@ -274,8 +293,7 @@ const processBody = (body, env) => {
                     }
                     json.attrs = { src: src };
 
-                    if (el.childNodes.length === 4) {
-                        const captionEl = el.childNodes[3];
+                    if (captionEl) {
                         Assert(captionEl.nodeName === "SPAN" && captionEl.classList.length === 1 && captionEl.classList[0] === "caption", `Unexpected caption: ${filepath}`);
                         console.log("FIXME: Handle image caption");
                     }
@@ -288,6 +306,10 @@ const processBody = (body, env) => {
                 json.type = "mention";
                 json.content = [{ type: "text", text: el.innerHTML }];
                 json.attrs = [{ profile: "" }];
+            } else if (el.classList.length >= 1 && el.classList[0] === "glossary") {
+                console.log("FIXME: glossary");
+                json.type = "paragraph";
+                json.content = [{ type: "text", text: el.textContent }];
             } else {
                 Assert(false, `ProcessBody - unexpected class for <span> '${el.classList[0]}' ${filepath}`);
             }
@@ -295,16 +317,16 @@ const processBody = (body, env) => {
             if (el.classList.length >= 1 && el.classList[0] === "at-mention") {
                 Assert(el.attributes.length === 4 && el.attributes[3].name === 'href', `Unexpected <a> attributes format: ${filepath}`);
                 json.type = "mention";
-                json.content = [{ type: "text", text: el.textContent }];
+                json.content = [{ type: "text", text: processText(el.textContent) }];
                 json.attrs = [{ profile: el.attributes[3].textContent }];
             } else if (el.classList.length >= 1 && el.classList[0] === "wiki_link") {
                 json.type = "text";
-                json.text = el.textContent;
+                json.text = processText(el.textContent);
                 json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
             } else if (el.classList.length === 0) {
                 // Just a normal link
                 json.type = "text";
-                json.text = el.textContent;
+                json.text = processText(el.textContent);
                 json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
             } else {
                 Assert(false, `ProcessBody - unexpected class for <a> '${el.classList[0]}' ${filepath}`);
@@ -315,31 +337,31 @@ const processBody = (body, env) => {
             //json.content = [{ type: "text", text: el.textContent }];
 
             json.type = "text";
-            json.text = el.textContent;
+            json.text = processText(el.textContent);
             json.marks = [{ type: "bold" }];
         } else if (["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"].indexOf(el.nodeName) >= 0) {
             Assert(el.classList.length === 0, `Unexpected class in <h1>: ${filepath}`);
             json.type = "heading";
             const headingLevels = { "H1": 1, "H2": 2, "H3": 3, "H4": 4, "H5": 5, "H6": 6, "H7": 7, "H8": 8 };
             json.attrs = [{ level: headingLevels[el.nodeName] }];
-            json.content = [{ type: "text", text: el.textContent }];
+            json.content = [{ type: "text", text: processText(el.textContent) }];
         } else if (el.nodeName === "EM") {
             Assert(el.classList.length === 0, `Unexpected class in <em>: ${filepath}`);
             json.type = "text";
-            json.text = el.textContent;
+            json.text = processText(el.textContent);
             json.marks = [{ type: "italic" }];
         } else if (el.nodeName === "PRE") {
             Assert(el.childNodes.length === 1, `pre has not 1 child: ${filepath}`);
             const codeEl = el.childNodes[0];
             Assert(codeEl.nodeName === "CODE", `Unexpected element ${codeEl.nodeName} in <pre>: ${filepath}`); // If this hits then just recursively handle children
             json.type = "codeBlock";
-            json.content = [{ type: "text", text: el.textContent }];
+            json.content = [{ type: "text", text: processText(el.textContent) }];
             json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
         } else if (el.nodeName === "CODE") {
             // inline code block
             Assert(el.classList.length === 0, `Unexpected class list for <code>: ${filepath}`);
             json.type = "codeBlock";
-            json.content = [{ type: "text", text: el.textContent }];
+            json.content = [{ type: "text", text: processText(el.textContent) }];
             json.attrs = [{ text: el.textContent, language: null }];
         } else if (el.nodeName === "BLOCKQUOTE") {
             json.type = "blockquote";
@@ -404,9 +426,42 @@ const processBody = (body, env) => {
                 const codeEl = $('code', el).eq(0)[0];
                 Assert(codeEl.nodeName === "CODE", `Unexpected element ${codeEl.nodeName} in <pre>: ${filepath}`); // If this hits then just recursively handle children
                 json.type = "codeBlock";
-                json.content = [{ type: "text", text: el.textContent }];
+                json.content = [{ type: "text", text: processText(codeEl.textContent) }];
                 json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
-            } else {
+            } else if (el.classList.length >= 1 && el.classList[0] === "cmp_codex_page_id") {
+                console.log("FIXME: Runnable code");
+
+                const codeEl = $('textarea', el).eq(0)[0];
+                json.type = "codeBlock";
+                json.content = [{ type: "text", text: processText(codeEl.textContent) }];
+                json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
+            } else if (el.classList.length >= 1 && el.classList[0] === "viz-wrapper") {
+                console.log("FIXME: snapsvg");
+                json.type = "paragraph";
+                json.content = [{type: "#text", text: "FIXME: IMPLEMENT SnapSVG"}];
+            } else if (el.classList.length >= 1 && el.classList[0] === "glossary-container") {
+                console.log("FIXME: glossary");
+                json.type = "paragraph";
+                json.content = [{type: "#text", text: "FIXME: IMPLEMENT Glossary"}];
+            } else if (el.classList.length === 0 && el.style.display === "none") {
+                console.log("FIXME: blank div, unnecessary to include");
+                json.type = "paragraph";
+                json.content = [{type: "#text", text: " "}];
+            } else if (el.classList.length >= 1 && (el.classList[0] === "center" || el.classList[0] === "left" || el.classList[0] === "right")) {
+                json.type = "paragraph";
+                json.content = [];
+                const children = el.childNodes;
+                for (let i = 0; i < children.length; ++i) {
+                    const contentChild = recursiveGetInputFromEl(children[i]);
+                    json.content.push(contentChild);
+                }
+            } else if (el.classList.length >= 1 && el.classList[0] === "video-container") {
+                console.log("FIXME: Handle Video element");
+
+                json.type = "image";
+                json.attrs = { src: "" };
+            }  else {
+                console.log(el.classList[0]);
                 Assert(false, `Unexpected class list for <div>: ${filepath}`);
             }
         } else if (el.nodeName === "TABLE") {
@@ -474,7 +529,10 @@ const parseProblemsBatch = (i) => {
             return;
         }
         const problem = rawproblemsList[i + j];
-        if (problem.length === 0) return; // Last line
+        if (problem.length === 0) {
+            finishParsingProblems();
+            return; // Last line
+        }
 
         const match = problem.match(/^([^\s]+) (.*)$/),
             problemName = match[2],
@@ -515,9 +573,11 @@ const parseProblemsBatch = (i) => {
 
                 categoryName = 'uncategorized';
                 categoryLevel = parseInt(matchCat[1]);
+                if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
             } else {
                 categoryName = matchCat[1];
                 categoryLevel = parseInt(matchCat[2]);
+                if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
             }
 
 
@@ -535,7 +595,27 @@ const parseProblemsBatch = (i) => {
         // Title
         const titleEl = $('.old-title-display');
         Assert( titleEl.length === 1 , `$(.old-title-display).length != 1: ${filepath}` );
-        const problemTitle = titleEl.text().trim();
+        let problemTitle = "";// processText(titleEl.text().trim());
+        {
+            // Title can contain Katex elements
+
+            const titleH1El = titleEl[0].childNodes[1];
+            Assert(titleH1El.nodeName === "H1", `Unexpected H1 title child: ${filepath}`);
+            for (let k = 0; k < titleH1El.childNodes.length; ++k) {
+                const titleH1ChildEl = titleH1El.childNodes[k];
+                if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
+                    const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
+                    Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
+                    problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
+                } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
+                    problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
+                } else if (titleH1ChildEl.nodeName === "#text") {
+                    problemTitle += titleH1ChildEl.textContent;
+                } else {
+                    Assert(false, `Unexpected element in title: ${filepath}`);
+                }
+            }
+        }
         outProblem.title = problemTitle;
 
         // Question
@@ -547,8 +627,8 @@ const parseProblemsBatch = (i) => {
         // Solutions
         const answerScriptEl = $('#ir_template_holder');
         Assert( answerScriptEl.length === 1 , `$(#ir_template_holder).length != 1: ${filepath}` );
-        const answer = answerScriptEl.attr('data-answers-list'),
-            multipleChoice = answerScriptEl.attr('data-has-multiple-options') === "true";
+        const answer = answerScriptEl.attr('data-answers-list');
+        let multipleChoice = answerScriptEl.attr('data-has-multiple-options') === "true";
 
         const answers = [];
         if (multipleChoice) {
@@ -556,7 +636,10 @@ const parseProblemsBatch = (i) => {
             Assert( answerContainerEl.length === 1 , `$(.solv-mcq-wrapper).length != 1: ${filepath}` );
 
             const answerEls = $('.btn-mcq', $('.solv-mcq-wrapper'));
-            Assert( answerEls.length > 1 , `$('.btn-mcq', $('.solv-mcq-wrapper')).length <= 1: ${filepath}` );
+
+            // NOTE: People can post multiple choice problems but only have 1 option
+            // FIXME: Transport these to non-multiple choice?
+            Assert( answerEls.length >= 1 , `$('.btn-mcq', $('.solv-mcq-wrapper')).length <= 1: ${filepath}` );
 
             for (let answerIdx = 0; answerIdx < answerEls.length; ++answerIdx) {
                 const answerOutEl = $('.btn-mcq', $('.solv-mcq-wrapper')).eq(answerIdx);
@@ -656,6 +739,8 @@ const parseProblemsBatch = (i) => {
                 // Note
                 if (solutionNoteEl.length > 0) {
                     console.log(`  FIXME: Solution Note ${filepath}`);
+                    // eg. http://brilliant.laravel:8000/brilliantexport/problems/-49/-49.html
+                    // eg. http://brilliant.laravel:8000/brilliantexport/problems/freefall/freefall.html
                 }
 
                 // Header
@@ -684,8 +769,13 @@ const parseProblemsBatch = (i) => {
 
                 // Content
                 const solutionBody = $('.comment-content .text', solutionEl).html();
-                Assert(solutionBody.length > 0, `No solution provided: ${filepath}`);
-                discussionBit.body = processBody(solutionBody, env);
+                if (!solutionBody) {
+                    console.log("FIXME: No solution provided -- please confirm");
+                    discussionBit.body = "";
+                } else {
+                    Assert(solutionBody.length > 0, `No solution provided: ${filepath}`);
+                    discussionBit.body = processBody(solutionBody, env);
+                }
 
 
                 // Footer

@@ -11,22 +11,21 @@
     </x-slot>
 
     <!-- Content -->
-    <div class="row">
-    <div class="col s8 offset-s2 ctnt-container">
-        <div id="problems" class="ctnt-main">
+    <div class="w-3/5 m-auto mt-6 font-serif">
+        <div id="problems" class="container ctnt-main">
             <div class="ctnt-sections row">
                 <span class="ctnt-btn active"><a href='#'>Problems</a></span>
                 <span class="ctnt-btn"><a href='#'>Needs Solution</a></span>
                 <span class="ctnt-btn"><a href='#'>Discussions</a></span>
             </div>
-            <table class="">
-                <thead>
+            <table class="container mt-6">
+                <thead class="text-left">
                     <tr>
-                        <th class="filter-container title"><strong>Title</strong></th>
+                        <th class="filter-container pl-4 font-sans font-semibold title">Title</th>
                         <th class="filter-container category">
                             <span class="dropdown" v-bind:class="{ open: (dropdownFilter == 'category') }">
                                 <a href='#' class="filter-btn" @click.stop.prevent="dropdownFilter = (dropdownFilter == 'category') ? '' : 'category'">
-                                    <strong>Topic</strong>
+                                    <strong class="pl-4 font-sans font-semibold">Topic</strong>
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
@@ -39,7 +38,7 @@
                         <th class="filter-container popularity">
                             <span class="dropdown" v-bind:class="{ open: (dropdownFilter == 'popularity') }">
                                 <a href='#' class="filter-btn" @click.stop.prevent="dropdownFilter = (dropdownFilter == 'popularity') ? '' : 'popularity'">
-                                    <strong>Popularity</strong>
+                                    <strong class="pl-4 font-sans font-semibold">Popularity</strong>
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
@@ -52,7 +51,7 @@
                         <th class="filter-container difficulty">
                             <span class="dropdown" v-bind:class="{ open: (dropdownFilter == 'difficulty') }">
                                 <a href='#' class="filter-btn" @click.stop.prevent="dropdownFilter = (dropdownFilter == 'difficulty') ? '' : 'difficulty'">
-                                    <strong>Difficulty</strong>
+                                    <strong class="pl-4 font-sans font-semibold">Difficulty</strong>
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
@@ -66,7 +65,7 @@
                 </thead>
                 <tbody v-if="displayedPosts">
                     <template v-if="displayedPosts && displayedPosts.length > 0 && displayedPosts[0] && displayedPosts[0].p" v-for="problem in displayedPosts">
-                        <tr class="prblmsnp-main">
+                        <tr class="prblmsnp-main border-dotted border border-cool-gray-100">
                             <td class="prblmsnp-title"><a v-bind:href='problem.p'>@{{ problem.n }}</a></td>
                             <td class="prblmsnp-category">@{{ problem.c }}</td>
                             <td class="prblmsnp-popularity">Popular</td>
@@ -75,7 +74,7 @@
                     </template>
                 </tbody>
             </table>
-            <ul class="pagination">
+            <ul class="pagination mt-4">
                 <li class="page-item">
                     <a href='#' class="page-link" v-bind:class="{ disabled: (page == 1) }" @click.prevent="page--"> Previous </a>
                 </li>
@@ -94,6 +93,5 @@
                 </li>
             </ul>
         </div>
-    </div>
     </div>
 </x-app-layout>

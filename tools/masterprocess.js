@@ -40,7 +40,7 @@ const VERSION_PARSEPROBLEM = 0, // bump this to re-parse problems: parseproblem.
     VERSION_TRANSPORTPROBLEM = 0, // bump this to re-transport problems: transportproblems.js
     VERSION_MASTERPROCESS = 0;
 
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 20;
 
 
 let InitialJson = {
@@ -48,8 +48,6 @@ let InitialJson = {
     processed: [], // Batches of problems (output json of parsed problems)
     batchSize: BATCH_SIZE   // Number of entries per batch
 };
-
-let BatchesRemaining = 1000; // FIXME
 
 // Read from file, if not exist then InitialJson
 let output = InitialJson;
@@ -96,6 +94,16 @@ if (reset) {
 // Entire problem list
 const rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8'),
     rawproblemsList = rawproblems.split('\n');
+
+
+let batchStart = output.processed.length;
+let totalBatches = Math.ceil((rawproblemsList.length - 1) / BATCH_SIZE);
+let BatchesRemaining = totalBatches - batchStart;
+
+if (BatchesRemaining <= 0) {
+    console.log("Already finished batches! Max: " + totalBatches);
+    ProcessExit();
+}
 
 
 console.log("Running through problems..");
@@ -168,5 +176,4 @@ const FinishedBatch = (batch) => {
     }
 };
 
-let batchStart = output.processed.length;
 ProcessBatch({ stage: 0, batchIdx: batchStart });

@@ -16,9 +16,21 @@ TODO
    - Hide solutions/discussion until question answered
    - BUG: Comment validation fail -- doesn't show validation fail from laravel (hidden element)   need to restore state
    - BUG: Comment length is massive w/ JSON and max is 255
+   - BUG: link *inside* heading/italics/strong: http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html ; http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
+   - BUG: large solutions http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
+   - BUG: Age/location not showing for author
+   - BUG: longtext date on comment
+   - BUG: Links not showing properly http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html
    - Find a way to easily migrate new problems, update problems, etc. w/out affecting users/solves/comments
         - All archived problems/users get flagged as archived
         - Remove only archived in migrate??
+   - Find best storage for comments/problems
+        - Need better solution than full JSON; maybe partial JSON? (strip out <p>, <doc>, etc. which can be inferred)
+            [] array of sequence of elements (since we don't need to worry about child elements, we can infer that)
+            {"m":"#text:red,h1","b":"body of text"}   <-- metadata, body; metadata can be compressed however we like
+            {"m":"katex:inline", "b": "katex body"}
+            Merge sequential text paragraphs w/   \n
+        - TEXT vs. MEDIUMTEXT -- http://brilliant.laravel:8000/brilliantexport/problems/a-problem-by-rocco-dalto-70/a-problem-by-rocco-dalto-70.html
 
 
 

@@ -17,7 +17,7 @@ $(document).ready(() => {
                 author: {},
                 question: "",
                 solutions: {},
-                discussion: [],
+                discussions: [],
                 users: {},
                 
                 solved: false,
@@ -66,6 +66,7 @@ $(document).ready(() => {
 
             this.id    = this.jsonData.id;
             this.title = this.jsonData.title;
+            this.titleHtml = TITLE_TO_HTML(this.title);
             this.topic = this.jsonData.topic;
             this.level = this.jsonData.level;
             this.author = {
@@ -121,7 +122,7 @@ $(document).ready(() => {
                     rawcontent: comment.body,
                     content: commentBody,
                     author: comment.author,
-                    date: comment.date,
+                    date: (new Date(comment.date)).toDateString(),
 
                     showReplyButton: function(){ return(UserJson.id && UserJson.id != comment.author); },
                     showEditButton: function(){ return(UserJson.id && UserJson.id === comment.author); },

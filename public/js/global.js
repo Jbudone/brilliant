@@ -37,3 +37,37 @@ window['JSON_TO_HTML'] = (json) => {
         return GenerateHTML(json, VueHTMLExtensions);
     }
 };
+
+window['TITLE_TO_HTML'] = (title) => {
+    // title with {{ katex }} elements {{ katex }} involved
+    let html = "";
+    let runningEl = "";
+    let inKatex = false;
+    for (let i = 0; i < title.length; ++i) {
+        if (!inKatex && i < (title.length - 1) && title[i] === '{' && title[i+1] === '{') {
+            inKatex = true;
+            if (runningEl.length > 0) html += `<span>${runningEl}</span>`;
+            runningEl = "";
+            i += 1;
+            continue;
+        }
+
+        if (inKatex && i < (title.length - 1) && title[i] === '}' && title[i+1] === '}') {
+            inKatex = false;
+            if (runningEl.length > 0) html += `<katex inline>${runningEl}</katex>`;
+            runningEl = "";
+            i += 1;
+            continue;
+        }
+
+        runningEl += title[i];
+    }
+
+    if (inKatex) {
+        html += `<katex inline>${runningEl}</katex>`;
+    } else {
+        html += `<span>${runningEl}</span>`;
+    }
+
+    return html;
+};

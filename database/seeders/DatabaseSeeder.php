@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         //Category::truncate();
         \App\Models\User::factory(10)->create();
 
+        $TEST_ONE_BATCH = null;
 
 
         $algebra = Category::create([ 'name' => 'Algebra' ]);
@@ -96,6 +97,8 @@ class DatabaseSeeder extends Seeder
         ]);
 */
 
+        // FIXME: Unsure if there's a better way to do this, but users cache adds up and bursts at 130mb
+        ini_set('memory_limit','256M');
         $users = [];
 
         function addUser($user, &$users) {
@@ -177,6 +180,8 @@ class DatabaseSeeder extends Seeder
 //{"versionParse":0,"versionTransport":0,"batchIdx":0,"parsedList":"./brilliant.parsed/brilliant.parsed-0.json","transportedList":"./brilliant.parsed/brilliant.local-0.json"}
         $problemBatchList = $jsonMaster->processed;
         foreach ($problemBatchList as $idx => &$problemBatch) {
+            if ($TEST_ONE_BATCH != null && $idx != $TEST_ONE_BATCH) continue;
+
             $jsonFile = $problemBatch->transportedList;
             echo "Loading batch: $jsonFile\n";
 
@@ -190,6 +195,8 @@ class DatabaseSeeder extends Seeder
                 $problem = $val;
 
                 $source = $problem['source'];
+                echo "$source\n";
+
                 $category = $problem['category'];
                 $level = $problem['level'];
                 $title = $problem['title'];
@@ -236,7 +243,6 @@ class DatabaseSeeder extends Seeder
                 }
 
 
-                echo "$source\n";
             }
         }
     }

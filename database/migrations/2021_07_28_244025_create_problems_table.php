@@ -23,7 +23,7 @@ class CreateProblemsTable extends Migration
             $table->foreign('author_id')->references('id')->on('users');
 
             $table->string('title', 128);
-            $table->text('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
+            $table->mediumText('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
             $table->smallInteger('level');
             $table->text('solution'); // index for multiple choice, text for input answer
             $table->text('source'); // link to source file

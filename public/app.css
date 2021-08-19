@@ -109,11 +109,6 @@ header {
 
 /* Content */
 
-.ctnt-container {
-    margin-top: 80px;
-    margin-left: 20px;
-}
-
 .ctnt-main {
     box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
     border-radius: 10px;
@@ -124,8 +119,7 @@ header {
 }
 
 .ctnt-sections {
-    margin-top: 10px;
-    padding: 0px 10px 0px 10px;
+    margin-top: 6px;
     border-radius: 4px;
 }
 
