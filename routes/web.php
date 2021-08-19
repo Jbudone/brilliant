@@ -36,13 +36,13 @@ Route::get('/allproblems', function () {
 });
 
 Route::get('/newproblems', function () {
-    $p = Problem::where('created_at', '>=', now()->subWeek())->get();
+    $p = Problem::where('created_at', '>=', now()->subWeek())->limit(1000)->get(['id', 'title', 'category_id', 'level']);
     $problems = [];
     foreach ($p as $problem) {
         $problems[] = [
             'n' => $problem->title,
             'p' => "problem/" . $problem->id,
-            'c' => $problem->topic->name,
+            'c' => $problem->category_id,
             'l' => $problem->level,
         ];
     }

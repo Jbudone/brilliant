@@ -11,6 +11,10 @@ window['globals'] = {
         { name: 'Computer Science', id: 8 },
         { name: 'Quantitative Finance', id: 9 },
         { name: 'Chemistry', id: 10 },
+        { name: 'Biology', id: 11 },
+        { name: 'Probability', id: 12 },
+        { name: 'Basic Mathematics', id: 13 },
+        { name: 'SAT® Math', id: 14 },
     ],
 
     ProblemLevels: [

@@ -48,6 +48,11 @@ $(document).ready(() => {
                 // For debugging, only seeded questions
                 let res = await fetch('/newproblems'),
                     data = await res.json();
+                for (let i = 0; i < data.length; ++i) {
+                    const catId = data[i].c,
+                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
+                    data[i].c = catEl.name;
+                }
                 this.jsonData = data;
                 this.applyFilters();
                 this.loadingProblems = false;
