@@ -32,9 +32,9 @@
 
 
     <!-- Content -->
-    <div class="row ctnt-container">
-        <div class="col s8 push-s2 ctnt-main prblm-container">
-            <div class="ctnt-sections row">
+    <div class="w-3/5 m-auto mt-6 font-serif ctnt-container">
+        <div class="pt-6 px-4 pb-4 ctnt-main prblm-container">
+            <div class="ctnt-sections">
                 @if(Route::is('addproblem'))
                 <div id="app" :type="add">
                 @else
@@ -55,80 +55,73 @@
 
                         @csrf
 
-                        <div class="row">
-                            <div class="col s7">
+                        <div class="grid grid-cols-7 gap-4">
+                            <div class="col-span-5">
 
-                        <span class="prblm-edit-header">Title</span>
-                        <input class="prblm-edit-title form-edit-input" type="text" name="title" v-bind:value="this.title" placeholder="Title" autocomplete="off" />
-                        @error('title')
-                        <div class="alert alert-danger">{{ $message }}</div>
-                        @enderror
-
-
-                        <div class="prblm-edit-topiclevel">
-
-                            <Dropdown
-                                    :options="globals.ProblemCategories"
-                                    :initial="this.topic"
-                                    :disabled="false"
-                                    name="category"
-                                    placeholder="Problem Category"
-                                    v-on:selected="selectCategory"
-                            >
-                            </Dropdown>
-                            @error('category_id')
-                            <div class="alert alert-danger">{{ $message }}</div>
-                            @enderror
+                                <span class="prblm-edit-header">Title</span>
+                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-bind:value="this.title" placeholder="Title" autocomplete="off" />
+                                @error('title')
+                                <div class="alert alert-danger">{{ $message }}</div>
+                                @enderror
 
 
-                            <Dropdown
-                                    :options="globals.ProblemLevels"
-                                    :initial="this.level"
-                                    :disabled="false"
-                                    name="level"
-                                    placeholder="Difficulty Level"
-                                    v-on:selected="selectLevel"
-                            >
-                            </Dropdown>
-                            @error('level')
-                            <div class="alert alert-danger">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <span class="prblm-edit-header">Question Body</span>
-                        <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
-                        @error('body')
-                        <div class="alert alert-danger">{{ $message }}</div>
-                        @enderror
+                                <div class="prblm-edit-topiclevel">
+                                    <Dropdown
+                                            :options="globals.ProblemCategories"
+                                            :initial="this.topic"
+                                            :disabled="false"
+                                            name="category"
+                                            placeholder="Problem Category"
+                                            v-on:selected="selectCategory"
+                                    >
+                                    </Dropdown>
+                                    @error('category_id')
+                                    <div class="alert alert-danger">{{ $message }}</div>
+                                    @enderror
 
 
+                                    <Dropdown
+                                            :options="globals.ProblemLevels"
+                                            :initial="this.level"
+                                            :disabled="false"
+                                            name="level"
+                                            placeholder="Difficulty Level"
+                                            v-on:selected="selectLevel"
+                                    >
+                                    </Dropdown>
+                                    @error('level')
+                                    <div class="alert alert-danger">{{ $message }}</div>
+                                    @enderror
+                                </div>
 
-                        <div class="prblm-edit-footer">
-                            <a href="#" class="prblm-edit-cancel" @click.prevent="cancel">Cancel</a>
-                            <a href="#" class="prblm-edit-save" @click.prevent="save">Save</a>
-                        </div>
+                                <span class="prblm-edit-header">Question Body</span>
+                                <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
+                                @error('body')
+                                <div class="alert alert-danger">{{ $message }}</div>
+                                @enderror
+
+                                <div class="prblm-edit-footer">
+                                    <a href="#" class="prblm-edit-cancel" @click.prevent="cancel">Cancel</a>
+                                    <a href="#" class="prblm-edit-save" @click.prevent="save">Save</a>
+                                </div>
                             </div>
-                            <div class="col offset-s1 s4">
+                            <div class="col-span-2">
                                 <span class="prblm-edit-header">Solutions</span>
                                 <div class="prblm-edit-solutions">
 
                                     <template v-for="(solution, idx) in solutions">
-                                    <p>
-                                    <label>
-                                        <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" @change="setCorrectSolution(idx)" />
-                                        <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" />
-                                    </label>
-                                    </p>
+                                        <p>
+                                        <label class="edit-solution">
+                                            <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" @change="setCorrectSolution(idx)" />
+                                            <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" />
+                                        </label>
+                                        </p>
                                     </template>
                                 </div>
                             </div>
-
                         </div>
                     </form>
                 </div>
-
-
-
             </div>
         </div>
     </div>

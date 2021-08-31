@@ -76,10 +76,10 @@
             </table>
             <ul class="pagination mt-4">
                 <li class="page-item">
-                    <a href='#' class="page-link" v-bind:class="{ disabled: (page == 1) }" @click.prevent="page--"> Previous </a>
+                    <a href='#' class="page-link" v-bind:class="{ disabled: (page == 1) }" @click.prevent="setPage(page-1)"> Previous </a>
                 </li>
                 <li class="page-item page-num" v-for="(pageNumber, index) in getPages()" v-bind:class="{ active: (page == pageNumber) }">
-                    <a href='#' class="page-link" @click.prevent="page = pageNumber"> @{{pageNumber}} </a>
+                    <a href='#' class="page-link" @click.prevent="setPage(pageNumber)"> @{{pageNumber}} </a>
                 </li>
                 <li v-if="showPaginationEllipses()" class="page-item">
                     <div id="wave">
@@ -89,7 +89,7 @@
                     </div>
                 </li>
                 <li class="page-item">
-                    <a href='#' class="page-link" v-bind:class="{ disabled: page >= maxPages }" @click.prevent="page++"> Next </a>
+                    <a href='#' class="page-link" v-bind:class="{ disabled: page >= maxPages }" @click.prevent="setPage(page+1)"> Next </a>
                 </li>
             </ul>
         </div>

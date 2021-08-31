@@ -1,6 +1,11 @@
 <template>
+<div class="border">
+<div class="-mb-6">
+Heading Font <div class=""><a class="" href="#">B</a><a class="" href="#">I</a><a class="" href="#">U</a></div> Align
+</div>
 <div>
-<editor-content class="editor" v-bind:id="name" v-bind:editor="editor" />
+<editor-content class="editor border-t-0" v-bind:id="name" v-bind:editor="editor" />
+</div>
 </div>
 <div>
 <editor-content class="preview" v-bind:id="namepreview" v-bind:editor="preview" v-if="haspreview" />
@@ -94,10 +99,22 @@ export default {
 
 <style>
 .editor .ProseMirror {
-    border: 1px solid #e1e1e1 !important;
-    padding: 10px 12px !important;
+    /*border: 1px solid #e1e1e1 !important;*/
+    /*padding: 10px 12px !important;*/
+    padding-top: 1.8rem;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 10px;
     width: 100%;
     min-height: 128px;
     line-height: 12px;
+}
+
+.ProseMirror:focus {
+    /*outline: none;*/
+}
+
+.ProseMirror:focus-visible {
+    /*outline: none;*/
 }
 </style>

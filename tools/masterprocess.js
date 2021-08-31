@@ -40,7 +40,7 @@ const VERSION_PARSEPROBLEM = 0, // bump this to re-parse problems: parseproblem.
     VERSION_TRANSPORTPROBLEM = 0, // bump this to re-transport problems: transportproblems.js
     VERSION_MASTERPROCESS = 0;
 
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 10;
 
 
 let InitialJson = {
@@ -127,6 +127,7 @@ const ProcessBatch = (batch) => {
         const argsStr = `--input ${batch.parsedOutput} --output ${batch.transportedOutput} --verbose`,
             args = argsStr.split(' ');
 
+        console.log(`node ./tools/transportproblems.js ${argsStr}`);
         process = childProcess.fork('./tools/transportproblems.js', args);
     }
 

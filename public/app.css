@@ -871,21 +871,6 @@ div#wave .dot:nth-child(3) {
     color: #FFF;
 }
 
-.edit-solution-radio {
-    opacity: 1 !important;
-    margin-top: 13px;
-    pointer-events: auto !important;
-}
-
-.edit-solution-input {
-    border: 1px solid #e1e1e1 !important;
-    padding: 6px 8px 6px 30px !important;
-    height: 28px !important;
-    margin-left: -6px !important;
-    width: 90% !important;
-    color: #000;
-}
-
 #addSolution {
     display: block;
     color: #039be5;
@@ -932,4 +917,18 @@ blockquote {
     box-shadow: none;
     border: 1px solid #d4d4d4;
     box-shadow: 0 0 0 1px #f3f3f3;
+}
+
+.edit-solution {
+    display: block;
+    margin-top: 6px;
+}
+
+.edit-solution-input {
+    border: 1px solid #e1e1e1 !important;
+    padding: 6px 8px 6px 8px !important;
+    height: 28px !important;
+    margin-left: 4px !important;
+    width: 90% !important;
+    color: #000;
 }

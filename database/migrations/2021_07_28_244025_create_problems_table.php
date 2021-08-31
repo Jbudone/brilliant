@@ -22,6 +22,8 @@ class CreateProblemsTable extends Migration
             $table->unsignedBigInteger('author_id');
             $table->foreign('author_id')->references('id')->on('users');
 
+            $table->unsignedBigInteger('archive_id')->nullable();
+
             $table->string('title', 128);
             $table->mediumText('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
             $table->smallInteger('level');

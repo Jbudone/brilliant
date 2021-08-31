@@ -72,11 +72,6 @@ window['VueHTMLExtensions'] = [
 
     ExtKatex,
     ExtMention,
-    //ExtStrong, // FIXME: Why can't we get Node from Bold Mark?
-    //ExtEm,
-    //ExtH1,
-    //ExtCode,
-    //ExtHR
 ];
 window['GenerateHTML'] = generateHTML;
 window['GenerateJSON'] = generateJSON;

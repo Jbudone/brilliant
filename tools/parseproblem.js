@@ -93,10 +93,27 @@ if (MAX_PROBLEMS > 0) MAX_PROBLEMS += PROBLEM_OFFSET;
 
 
 let rawproblemsList = null;
+let SINGLE_PROBLEM_IDX = -1;
 if (SINGLE_PROBLEM) {
-    rawproblemsList = [
-        `problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} PROBLEMNAME`
-    ];
+
+    let rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8');
+    rawproblemsList = rawproblems.split('\n');
+
+    for (let i = 0; i < rawproblemsList.length; ++i) {
+        if (rawproblemsList[i].indexOf(`problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `) === 0) {
+            SINGLE_PROBLEM_IDX = i;
+            rawproblemsList = [rawproblemsList[i]];
+            break;
+        }
+    }
+
+    if (SINGLE_PROBLEM_IDX === -1) {
+        Assert(`Couldn't find problem: ${SINGLE_PROBLEM}`);
+    }
+
+    //rawproblemsList = [
+    //    `problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} PROBLEMNAME`
+    //];
     // problems/_______________/_______________ Untitled problem
 } else {
     let rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8');
@@ -144,6 +161,15 @@ const finishParsingProblems = () => {
 const processBody = (body, env) => {
     const { filepath, $ } = env;
     const html = $.parseHTML(body);
+
+    const RECURSIVE_RUN_ON_NODES = (node, fn) => {
+        fn(node);
+        if (node.content) {
+            for (let i = 0; i < node.content.length; ++i) {
+                RECURSIVE_RUN_ON_NODES(node.content[i], fn);
+            }
+        }
+    };
 
     const recursiveGetInputFromEl = (el) => {
 
@@ -319,37 +345,80 @@ const processBody = (body, env) => {
                 json.type = "mention";
                 json.content = [{ type: "text", text: processText(el.textContent) }];
                 json.attrs = [{ profile: el.attributes[3].textContent }];
-            } else if (el.classList.length >= 1 && el.classList[0] === "wiki_link") {
-                json.type = "text";
-                json.text = processText(el.textContent);
-                json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
-            } else if (el.classList.length === 0) {
-                // Just a normal link
-                json.type = "text";
-                json.text = processText(el.textContent);
-                json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
+            } else if ((el.classList.length >= 1 && el.classList[0] === "wiki_link") || el.classList.length === 0) {
+                let isWikiLink = (el.classList.length >= 1 && el.classList[0] === "wiki_link");
+                debugger;
+                //json.type = "text";
+                //json.text = processText(el.textContent);
+                //json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
+                json.type = "a"
+                json.content = [];
+                const children = el.childNodes;
+                if (children.length > 0) {
+                    for (let i = 0; i < children.length; ++i) {
+                        const contentChild = recursiveGetInputFromEl(children[i]);
+                        json.content.push(contentChild);
+                    }
+                }
+
+                let href = "";
+                for (let i = 0; i < el.attributes.length; ++i) {
+                    const attr = el.attributes[i];
+                    if (attr.nodeName === "href") {
+                        href = attr.value;
+                        break;
+                    }
+                }
+
+                // Apply marks recursively to children
+                RECURSIVE_RUN_ON_NODES(json, (child) => {
+                    if (child.type === "text") {
+                        if (!child.marks) child.marks = [];
+                        child.marks.push({ attrs: { href: href, target: "_blank" }, type: "link" });
+                    }
+                });
+
             } else {
                 Assert(false, `ProcessBody - unexpected class for <a> '${el.classList[0]}' ${filepath}`);
             }
-        } else if (el.nodeName === "STRONG") {
-            Assert(el.classList.length === 0, `Unexpected class in <strong>: ${filepath}`);
-            //json.type = "strong";
-            //json.content = [{ type: "text", text: el.textContent }];
-
-            json.type = "text";
-            json.text = processText(el.textContent);
-            json.marks = [{ type: "bold" }];
         } else if (["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"].indexOf(el.nodeName) >= 0) {
             Assert(el.classList.length === 0, `Unexpected class in <h1>: ${filepath}`);
             json.type = "heading";
             const headingLevels = { "H1": 1, "H2": 2, "H3": 3, "H4": 4, "H5": 5, "H6": 6, "H7": 7, "H8": 8 };
             json.attrs = [{ level: headingLevels[el.nodeName] }];
-            json.content = [{ type: "text", text: processText(el.textContent) }];
-        } else if (el.nodeName === "EM") {
-            Assert(el.classList.length === 0, `Unexpected class in <em>: ${filepath}`);
-            json.type = "text";
-            json.text = processText(el.textContent);
-            json.marks = [{ type: "italic" }];
+            //json.content = [{ type: "text", text: processText(el.textContent) }];
+            json.content = [];
+            const children = el.childNodes;
+            if (children.length > 0) {
+                for (let i = 0; i < children.length; ++i) {
+                    const contentChild = recursiveGetInputFromEl(children[i]);
+                    json.content.push(contentChild);
+                }
+            }
+        } else if (["EM", "STRONG"].indexOf(el.nodeName) >= 0) {
+            Assert(el.classList.length === 0, `Unexpected class in <${el.nodeName}>: ${filepath}`);
+            json.type = el.nodeName.toLowerCase();
+            json.content = [];
+            const children = el.childNodes;
+            if (children.length > 0) {
+                for (let i = 0; i < children.length; ++i) {
+                    const contentChild = recursiveGetInputFromEl(children[i]);
+                    json.content.push(contentChild);
+                }
+            }
+
+            // Apply marks recursively to children
+            RECURSIVE_RUN_ON_NODES(json, (child) => {
+                if (child.type === "text") {
+                    if (!child.marks) child.marks = [];
+
+                    if (json.type === "em") {
+                        child.marks.push({ type: "italic" });
+                    } else if (json.type === "strong") {
+                        child.marks.push({ type: "bold" });
+                    }
+                }
+            });
         } else if (el.nodeName === "PRE") {
             Assert(el.childNodes.length === 1, `pre has not 1 child: ${filepath}`);
             const codeEl = el.childNodes[0];
@@ -550,6 +619,7 @@ const parseProblemsBatch = (i) => {
         };
 
         const outProblem = {};
+        outProblem.id = (SINGLE_PROBLEM_IDX > -1 ? SINGLE_PROBLEM_IDX : i+j) + 1;
         outProblem.source = filepath;
         //console.log(data);
 
@@ -663,7 +733,8 @@ const parseProblemsBatch = (i) => {
         const authorEl = $('.solv-author');
         Assert(authorEl.length === 1, `authorEl !== 1: ${filepath}`);
         const avatarEl = $('avatar img', authorEl),
-            userEl = $('.btn-profile', authorEl);
+            userEl = $('.btn-profile', authorEl),
+            userId = userEl.attr('data-id');
 
         const avatarSrc = avatarEl.attr('src'),
             profileLink = userEl.attr('href'),
@@ -716,6 +787,7 @@ const parseProblemsBatch = (i) => {
             profile: profileLink,
             name: userTitle,
             age: userAge,
+            id: userId,
             location: userLocation
         };
 
@@ -736,6 +808,15 @@ const parseProblemsBatch = (i) => {
                     solutionHeaderEl = $('.solution-header', solutionEl),
                     solutionFooterEl = $('.solution-footer', solutionEl);
 
+                // Solution Id
+                const solutionParentEl = solutionEl[0].parentNode,
+                    solutionElId = solutionParentEl.attributes['id'].value,
+                    solutionIdMatch = solutionElId.match(/post-(\d+)/);
+                Assert(solutionIdMatch && solutionIdMatch.length === 2, `Unexpected solution Id: ${filepath}`);
+                const solutionId = parseInt(solutionIdMatch[1]);
+                Assert(!isNaN(solutionId) && solutionId > 0, `Unexpected solution id value: ${filepath}`);
+                discussionBit.id = solutionId;
+
                 // Note
                 if (solutionNoteEl.length > 0) {
                     console.log(`  FIXME: Solution Note ${filepath}`);
@@ -751,6 +832,7 @@ const parseProblemsBatch = (i) => {
                 const avatarSrc = avatarEl.attr('src'),
                     profileLink = userEl.attr('href'),
                     userName    = userEl.text().trim(),
+                    userId      = userEl.attr('data-id'),
                     datePosted  = dateEl.attr('title');
 
                 Assert(avatarSrc.length > 0, `No avatar for user: ${filepath}`);
@@ -761,7 +843,8 @@ const parseProblemsBatch = (i) => {
                 discussionBit.author = {
                     avatar: avatarSrc,
                     profile: profileLink,
-                    name: userName
+                    name: userName,
+                    id: userId
                 };
 
                 discussionBit.date = datePosted;
@@ -801,7 +884,7 @@ const parseProblemsBatch = (i) => {
                 for (let commentIdx = 0; commentIdx < commentEls.length; ++commentIdx) {
                     const commentEl = commentEls.eq(commentIdx),
                         commentContainerEl = commentEl.parent(),
-                        commentId = commentEl.attr('data-comment'),
+                        commentId = parseInt(commentEl.attr('data-comment')),
                         commentLevel = commentContainerEl.attr('data-level');
 
                     Assert(commentContainerEl.hasClass('cmmnt-container'), `Comment is not immediately contained inside .cmmnt-container: ${filepath}`);
@@ -845,11 +928,13 @@ const parseProblemsBatch = (i) => {
 
                     const commentProfileLink = commentNameEl.attr('href'),
                         commentUserName = commentNameEl.text(),
+                        commentUserId = commentNameEl.attr('data-id'),
                         commentDate = commentDateEl.text();
 
                     comment.author = {
                         profile: commentProfileLink,
-                        name: commentUserName.trim()
+                        name: commentUserName.trim(),
+                        id: commentUserId
                     };
                     comment.date = commentDate.trim();
 

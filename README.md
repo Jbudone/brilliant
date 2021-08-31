@@ -9,7 +9,6 @@ TODO
    - Discussion parser
    - Sort problems by hot/new, unsolved, discussions
    - Profile page:  click user and see list of problems
-   - BUG: "0 Solutions"
    - BUG: Can submit problem w/ no solutions; can leave 1st solution field empty
    - Vue cleanup: Add $ref to element to reference from inside Vue component; emit custom events from child -> caught by parent component + validation; provide/inject props from parent -> child component; v-bind:value vs. v-model
    - BUG: Long question overflows into solutions
@@ -21,9 +20,11 @@ TODO
    - BUG: Age/location not showing for author
    - BUG: longtext date on comment
    - BUG: Links not showing properly http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html
+   - BUG: Elements being inlined http://brilliant.laravel:8000/problem/41980  (first comment) ; http://brilliant.laravel:8000/brilliantexport/problems/00-5/00-5.html (question)
    - Find a way to easily migrate new problems, update problems, etc. w/out affecting users/solves/comments
         - All archived problems/users get flagged as archived
         - Remove only archived in migrate??
+            OR -- archive_id , then follow-up migrates run updates
    - Find best storage for comments/problems
         - Need better solution than full JSON; maybe partial JSON? (strip out <p>, <doc>, etc. which can be inferred)
             [] array of sequence of elements (since we don't need to worry about child elements, we can infer that)

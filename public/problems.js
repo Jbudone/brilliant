@@ -13,7 +13,11 @@ $(document).ready(() => {
                                  // 5 discrete, 6 logic, 7 mechanics, 8 electricity, 9 compsci,
                                  // 10 finance, 11 chemistry
                 },
-                filteredProblems: null,
+
+                // FIXME: move these into filter
+                filteredProblems: null, // problem list from filter
+                filteredProblemsCount: null, // count of problem list for filter
+                curDisplayedPosts: [],
 
                 maxPages: 1,
                 loadingProblems: true,
@@ -25,7 +29,7 @@ $(document).ready(() => {
                     "Geometry",
                     "Number Theory",
                     "Calculus",
-                    "Discrete Math", // FIXME: Where is this?
+                    //"Discrete Math", // FIXME: Where is this?
                     "Logic",
                     "Classical Mechanics",
                     "Electricity and Magnetism",
@@ -42,9 +46,11 @@ $(document).ready(() => {
                 ]
             };
         },
+
         methods: {
             async getProblems() {
 
+                /*
                 // For debugging, only seeded questions
                 let res = await fetch('/newproblems'),
                     data = await res.json();
@@ -56,35 +62,42 @@ $(document).ready(() => {
                 this.jsonData = data;
                 this.applyFilters();
                 this.loadingProblems = false;
+                */
+
+
+
+                // Async new problems in background
+                let res = await fetch('/newproblems'),
+                    data = await res.json();
+                this.jsonData = [];
+                const existingProblems = {};
+                for (let i = 0; i < data.length; ++i) {
+                    const catId = data[i].c,
+                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
+                    data[i].c = catEl.name;
+
+                    this.jsonData.push(data[i]);
+                    existingProblems[data[i].title] = true;
+                }
+                this.applyFilters();
 
 
                 /*
-
-
-                // Fetch initial problems first
-                let res = await fetch('/initialproblems'),
-                    data = await res.json();
-                this.jsonData = data;
-                this.applyFilters();
-
-                const existingProblems = {};
-                for (let i = 0; i < this.jsonData.length; ++i) {
-                    existingProblems[this.jsonData[i].title] = true;
-                }
-
-                // Async new problems in background
-                res = await fetch('/newproblems');
+                // Fetch larger/common problem set
+                res = await fetch('/initialproblems');
                 data = await res.json();
-                this.applyFilters();
 
                 for (let i = 0; i < data.length; ++i) {
+                    const catId = data[i].c,
+                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
+                    data[i].c = catEl.name;
+
                     if (!existingProblems[data[i].title]) {
                         this.jsonData.push(data[i]);
                         existingProblems[data[i].title] = true;
-
-                        this.jsonData.push(data[i]);
                     }
                 }
+                this.applyFilters();
 
 
                 // Async all problems in background
@@ -92,28 +105,38 @@ $(document).ready(() => {
                 data = await res.json();
 
                 for (let i = 0; i < data.length; ++i) {
+                    const catId = data[i].c,
+                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
+                    data[i].c = catEl.name;
+
                     if (!existingProblems[data[i].title]) {
                         this.jsonData.push(data[i]);
                     }
                 }
 
                 this.applyFilters();
-                this.loadingProblems = false;
                 */
+                this.loadingProblems = false;
             },
 
             showPaginationEllipses() { let pages = this.getPages(); return(this.loadingProblems && (pages[pages.length-1] === this.maxPages)); },
-            setPage(page) { this.page = page; },
+            setPage(page) { this.page = page; this.paginate(); },
             setCategory(cat) { this.filter.category = cat; this.applyFilters(true); },
             setDifficulty(diff) { this.filter.difficulty = diff; this.applyFilters(true); },
 
             applyFilters(resetPage) {
-                if (resetPage) this.setPage(1);
+
+                this.filteredProblems = null;
+                this.filteredProblemsCount = null;
+                this.curDisplayedPosts = [];
 
                 // No filter? Just use entire problem list
                 if (this.filter.difficulty === 0 && this.filter.category === 0) {
                     this.filteredProblems = this.jsonData;
                     this.maxPages = Math.ceil(this.filteredProblems.length / 15);
+
+                    if (resetPage) this.setPage(1);
+                    else this.paginate();
                     return;
                 }
 
@@ -155,18 +178,64 @@ $(document).ready(() => {
                 this.filteredProblems = problems;
                 this.maxPages = Math.ceil(this.filteredProblems.length / 15);
                 console.log("Max pages: " + this.maxPages);
+
+                if (resetPage) this.setPage(1);
+                else this.paginate();
             },
 
-            paginate() {
+            async paginate() {
+
+                const categoryId = this.filter.category,
+                    level = this.filter.difficulty, // FIXME: dififculty is range of levels
+                    offset = 0; // FIXME: offset
+
+                // Total count of filtered problems
+                if (this.filteredProblemsCount === null) {
+                    let res = await fetch(`/problemspaginatecount/${categoryId}/${level}`);
+                    let data = await res.json();
+
+                    this.filteredProblemsCount = data['count'];
+                    this.maxPages = this.filteredProblemsCount / 15;
+                }
+
+                let fromIdx = (this.page - 1) * 15,
+                    toIdx = Math.min(fromIdx + 15, this.filteredProblemsCount);
+
+                let fetchProblems = false;
+                if (!this.filteredProblems) {
+                    fetchProblems = true;
+                } else {
+                    for (let i = fromIdx; i < toIdx; ++i) {
+                        if (!this.filteredProblems[i]) {
+                            fetchProblems = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Fetch paginated problems
+                if (fetchProblems) {
+                    let res = await fetch(`/problemspaginate/${categoryId}/${level}/${offset}`);
+                    let data = await res.json();
+
+                    if (!this.filteredProblems) this.filteredProblems = [];
+                    for (let i = fromIdx, j = 0; j < data.length; ++i, ++j) {
+
+                        const catId = data[j].c,
+                            catEl = globals.ProblemCategories.find((el) => el.id === catId);
+                        data[j].c = catEl.name;
+
+                        this.filteredProblems[i] = data[j];
+                    }
+                }
+
                 if (!this.filteredProblems) return [];
-                const problems = [],
-                    fromIdx = (this.page - 1) * 15,
-                    toIdx = Math.min(fromIdx + 15, this.filteredProblems.length);
+                const problems = [];
                 for (let i = fromIdx; i < toIdx; ++i) {
                     problems.push(this.filteredProblems[i]);
                 }
 
-                return problems;
+                this.curDisplayedPosts = problems;
             },
 
             getPages() {
@@ -199,7 +268,7 @@ $(document).ready(() => {
         },
         computed: {
             displayedPosts () {
-                return this.paginate();
+                return this.curDisplayedPosts;
             },
         },
     });

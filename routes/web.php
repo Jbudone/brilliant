@@ -24,16 +24,80 @@ Route::get('/', function () {
     return view('problems');
 });
 
+// Generate periodically
 Route::get('/initialproblems', function () {
+    // FIXME: If doesn't exist then trigger generate and wait until generated
     $problems = file_get_contents('../../initialproblems.json');
     return json_decode($problems);
 });
 
 // Generated nightly/weekly
 Route::get('/allproblems', function () {
-    $problems = file_get_contents('../../sortedproblems.json');
-    return json_decode($problems);
+    // FIXME: If doesn't exist then trigger generate and wait until generated
+    // FIXME: Split into multiple jsons of 10k size, order by date, fetch older sets on request (pagination)
+    //$problems = file_get_contents('../../sortedproblems.json');
+    //return json_decode($problems);
+    $p = Problem::get(['id', 'title', 'category_id', 'level']);
+    $problems = [];
+    foreach ($p as $problem) {
+        if(!$problem) continue;
+        $problems[] = [
+            'n' => $problem->title,
+            'p' => "problem/" . $problem->id,
+            'c' => $problem->category_id,
+            'l' => $problem->level,
+        ];
+    }
+
+    $output = json_encode($problems);
+    return $output;
 });
+
+Route::get('/problemspaginatecount/{categoryId}/{level}', function ($categoryId, $level) {
+    // FIXME: There's gotta be a cleaner way to do this
+    if ($categoryId > 0 && $level > 0) {
+        $count = Problem::where('category_id', $categoryId)->where('level', $level)->count();
+    } else if ($categoryId > 0) {
+        $count = Problem::where('category_id', $categoryId)->count();
+    } else if ($level > 0) {
+        $count = Problem::where('level', $level)->count();
+    } else {
+        $count = Problem::count();
+    }
+
+    return json_encode(['count' => $count]);
+})->where(['categoryId' => '[0-9]', 'level' => '[0-9]']);
+
+
+Route::get('/problemspaginate/{categoryId}/{level}/{offset}', function ($categoryId, $level, $offset) {
+    $query = Problem::orderBy('id', 'desc');
+    if ($categoryId > 0) {
+        $query = $query->where('category_id', $categoryId);
+    }
+
+    if ($level > 0) {
+        $query = $query->where('level', $level);
+    }
+
+    // offset as offset within filter
+    if ($offset > 0) {
+        $query = $query->offset($offset);
+    }
+
+    $p = $query->limit(1000)->get(['id', 'title', 'category_id', 'level']);
+    // FIXME: Return as json w/out manual json_encode
+    $problems = [];
+    foreach ($p as $problem) {
+        $problems[] = [
+            'n' => $problem->title,
+            'p' => "problem/" . $problem->id,
+            'c' => $problem->category_id,
+            'l' => $problem->level,
+        ];
+    }
+
+    return json_encode($problems);
+})->where(['categoryId' => '[0-9]', 'level' => '[0-9]', 'offset' => '[0-9]+']);
 
 Route::get('/newproblems', function () {
     $p = Problem::where('created_at', '>=', now()->subWeek())->limit(1000)->get(['id', 'title', 'category_id', 'level']);

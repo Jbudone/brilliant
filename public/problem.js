@@ -99,6 +99,7 @@ $(document).ready(() => {
             }
 
             this.question = this.jsonData.body.substr(solutionLen + solutionStart);
+            this.question = ENCODED_TO_JSON(this.question);
             this.question = JSON_TO_HTML(this.question);
 
             // Build discussions from flattened comments
@@ -111,7 +112,9 @@ $(document).ready(() => {
                 console.log(comment.body);
                 let commentBody = null;
                 //try {
-                commentBody = JSON_TO_HTML(comment.body);
+
+                commentBody = ENCODED_TO_JSON(comment.body);
+                commentBody = JSON_TO_HTML(commentBody);
                 //} catch(e) {
                 //    debugger;
                 //    // Try again w/ debugger

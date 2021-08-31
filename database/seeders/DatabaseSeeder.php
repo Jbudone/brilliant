@@ -7,6 +7,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Problem;
 use App\Models\Category;
 use App\Models\Comment;
+use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -109,6 +110,7 @@ class DatabaseSeeder extends Seeder
             // {"avatar":"../../brioche/avatars-2/resized/45/0a1a51a5f35d416e94e432d77f28b0ae.68411d626d-i7YKfyq5cI.jpg?width=45","profile":"https://brilliant.org/profile/nihar-pd4fyq/","name":"Nihar Mahajan"}
             $userProfile = $user['profile'];
             if (array_key_exists($userProfile, $users)) {
+                // FIXME: Check if updated (from current value in obj), and update if so
                 $userId = $users[$userProfile]->id;
                 //echo "    existing id: $userId\n";
                 return $userId;
@@ -116,7 +118,8 @@ class DatabaseSeeder extends Seeder
 
             //$userDoc = \App\Models\User::factory()->make();
             $userDoc = \App\Models\User::factory()->state([
-                'name' => $user['name'] // FIXME: validation, escape?
+                'name' => $user['name'], // FIXME: validation, escape?
+                'archive_id' => $user['id']
             ])->create();
             //$userDoc['name'] = $user['name'];
             //'profile' => $user['profile']
@@ -155,7 +158,8 @@ class DatabaseSeeder extends Seeder
                 'author_id' => $authorId,
                 'problem_id' => $problemId,
                 'body' => $body,
-                'parent_comment_id' => $parentCommentId
+                'parent_comment_id' => $parentCommentId,
+                'archive_id' => $commentId
             ]);
 
             //echo "  Author: $authorId\n";
@@ -179,6 +183,7 @@ class DatabaseSeeder extends Seeder
 
 //{"versionParse":0,"versionTransport":0,"batchIdx":0,"parsedList":"./brilliant.parsed/brilliant.parsed-0.json","transportedList":"./brilliant.parsed/brilliant.local-0.json"}
         $problemBatchList = $jsonMaster->processed;
+        $expectedCount = 0;
         foreach ($problemBatchList as $idx => &$problemBatch) {
             if ($TEST_ONE_BATCH != null && $idx != $TEST_ONE_BATCH) continue;
 
@@ -197,6 +202,7 @@ class DatabaseSeeder extends Seeder
                 $source = $problem['source'];
                 echo "$source\n";
 
+                $problemId = $problem['id'];
                 $category = $problem['category'];
                 $level = $problem['level'];
                 $title = $problem['title'];
@@ -215,13 +221,15 @@ class DatabaseSeeder extends Seeder
                     'level' => 1, // FIXME: Transport level -> levelId
                     'author_id' => $authorId,
                     'solution' => 0, // FIXME: Transport get solution idx
-                    'source' => $source
+                    'source' => $source,
+                    'archive_id' => $problemId
                 ]);
 
 
                 // Discussion
-                $discussions = $problem['discussion'];
+                $discussions = $problem['discussions'];
                 foreach ($discussions as $discussionIdx => &$discussion) {
+                    $discussionId = $discussion['id'];
                     $discussionAuthor = $discussion['author'];
                     $discussionBody = $discussion['body'];
                     $discussionReactions = $discussion['reactions'];
@@ -232,7 +240,8 @@ class DatabaseSeeder extends Seeder
                         'author_id' => $discussionAuthorId,
                         'problem_id' => $problemDoc->id,
                         'body' => $discussionBody,
-                        'parent_comment_id' => null
+                        'parent_comment_id' => null,
+                        'archive_id' => $discussionId
                     ]);
 
                     $discussionComments = $discussion['comments'];
@@ -241,9 +250,15 @@ class DatabaseSeeder extends Seeder
                     }
 
                 }
+            }
 
-
+            $expectedCount += intval($jsonMaster->batchSize);
+            $actualCount = intval(Problem::count());
+            if ($expectedCount != $actualCount) {
+                print "Seeding Problems mismatched expected count: $expectedCount != $actualCount";
+                exit;
             }
         }
     }
 }
+
