@@ -1,4 +1,4 @@
-import './sharedGlobals.mjs';
+import './sharedGlobals.js';
 
 window['globals'] = {
     ProblemCategories: [
@@ -158,7 +158,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         } else if (metaType === "horizontalRule") {
             inflated.type = "horizontalRule";
         } else if (metaType === "hardBreak") {
-            inflated.type = "horizontalRule";
+            inflated.type = "hardBreak";
         } else if (metaType === "bulletList") {
             inflated.type = "bulletList";
             inflated.count = parseInt(body);
