@@ -579,7 +579,7 @@ const parseProblem = (id, env) => {
         answered: -1
     };
     if (metaScript.length > 0) {
-        let correctAnswersMatch = $('#ir_template_holder').text.match(/(\d+)\% of people got this right/);
+        let correctAnswersMatch = metaScript[0].text.match(/(\d+)\% of people got this right/);
         if (correctAnswersMatch && correctAnswersMatch.length === 2) {
             let correctAnswersPct = parseInt(correctAnswersMatch[1]);
             archiveMeta.answered = correctAnswersPct;

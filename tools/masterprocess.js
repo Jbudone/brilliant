@@ -133,7 +133,7 @@ const ProcessBatch = (batch) => {
         if (discussion) {
             argsStr += ' --discussion --problem-list rawdiscussions';
         } else {
-            argsStr += `--problem-list rawproblems`;
+            argsStr += ' --problem-list rawproblems';
         }
 
         let args = argsStr.split(' ');
