@@ -21,7 +21,7 @@
     </x-slot>
 
     <!-- Content -->
-    <div class="w-3/5 m-auto mt-6 font-serif">
+    <div class="sm:w-3/5 m-auto mt-6 font-serif">
         <div id="app" class="ctnt-main prblm-container">
             <div class="ctnt-sections">
                 <div class="px-4">
@@ -34,10 +34,10 @@
                     </div>
                 </div>
 
-                <div class="prblm-question grid grid-cols-7 gap-4">
-                    <div class="prblm-question-content col-span-5" v-html="this.question"></div>
+                <div class="prblm-question md:grid md:grid-cols-7 md:gap-4">
+                    <div class="prblm-question-content md:col-span-5" v-html="this.question"></div>
 
-                    <div class="prblm-question-solution col-span-2">
+                    <div class="prblm-question-solution md:col-span-2">
                         <form method="POST" action="/solve" id="prblm-form-solve">
                         @csrf
                         <input type="text" id="prblm-solve-selected" name="solution" style="display: none;" />
