@@ -10,11 +10,15 @@ let ProcessExit = process.exit;
 
 let verbose = false;
 let reset = false;
+let discussion = false;
 
 const PATH_TO_OUTDIR = './brilliant.parsed/';
-const PATH_TO_OUTPUT = PATH_TO_OUTDIR + 'problems.json';
+const PATH_TO_OUTPUT_PROBLEMS = PATH_TO_OUTDIR + 'master.problems.json';
+const PATH_TO_OUTPUT_DISCUSSIONS = PATH_TO_OUTDIR + 'master.discussions.json';
+
 
 const PROBLEM_LIST_PATH = './rawproblems';
+const DISCUSSION_LIST_PATH = './rawdiscussions';
 const PATH_TO_PROBLEMS = './public/brilliantexport/problems';
 
 // Parse arguments
@@ -28,6 +32,8 @@ for (let i = 2; i < process.argv.length; ++i) {
     //    PROBLEM_LIST_PATH = process.argv[++i];
     //} else if (arg === '--output') {
     //    OUTPUT = process.argv[++i];
+    } else if (arg === '--discussion') {
+        discussion = true;
     } else if (arg === '--reset') {
         reset = true;
     } else {
@@ -40,7 +46,9 @@ const VERSION_PARSEPROBLEM = 0, // bump this to re-parse problems: parseproblem.
     VERSION_TRANSPORTPROBLEM = 0, // bump this to re-transport problems: transportproblems.js
     VERSION_MASTERPROCESS = 0;
 
-const BATCH_SIZE = 10;
+const BATCH_SIZE = 100;
+
+const PATH_TO_OUTPUT = discussion ? PATH_TO_OUTPUT_DISCUSSIONS : PATH_TO_OUTPUT_PROBLEMS;
 
 
 let InitialJson = {
@@ -92,8 +100,13 @@ if (reset) {
 }
 
 // Entire problem list
-const rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8'),
-    rawproblemsList = rawproblems.split('\n');
+let rawproblems;
+if (discussion) {
+    rawproblems = fs.readFileSync(DISCUSSION_LIST_PATH, 'utf8');
+} else {
+    rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8');
+}
+const rawproblemsList = rawproblems.split('\n');
 
 
 let batchStart = output.processed.length;
@@ -114,18 +127,28 @@ const ProcessBatch = (batch) => {
     let process = null;
     if (stage === 0) {
         console.log(`Processing batch ${batchIdx}`);
-        batch.parsedOutput = PATH_TO_OUTDIR + 'brilliant.parsed-' + batchIdx + '.json';
+        batch.parsedOutput = PATH_TO_OUTDIR + 'brilliant.' + (discussion ? 'DISC' : 'PROB') + '.' + batchIdx + '.json';
         const problemOffset = batchIdx * BATCH_SIZE;
-        let argsStr = `--path-to-problems public/brilliantexport/problems --problem-list rawproblems --output ${batch.parsedOutput} --batch-size ${BATCH_SIZE} --offset ${problemOffset} --verbose`,
-            args = argsStr.split(' ');
+        let argsStr = `--path-to-problems public/brilliantexport/problems --output ${batch.parsedOutput} --batch-size ${BATCH_SIZE} --offset ${problemOffset} --verbose`;
+        if (discussion) {
+            argsStr += ' --discussion --problem-list rawdiscussions';
+        } else {
+            argsStr += `--problem-list rawproblems`;
+        }
+
+        let args = argsStr.split(' ');
 
         console.log(`node ./tools/parseproblem.js ${argsStr}`);
         process = childProcess.fork('./tools/parseproblem.js', args);
     } else if (stage === 1) {
 
-        batch.transportedOutput = PATH_TO_OUTDIR + 'brilliant.local-' + batchIdx + '.json';
-        const argsStr = `--input ${batch.parsedOutput} --output ${batch.transportedOutput} --verbose`,
-            args = argsStr.split(' ');
+        batch.transportedOutput = PATH_TO_OUTDIR + 'transported.' + (discussion ? 'DISC' : 'PROB') + '.' + batchIdx + '.json';
+        let argsStr = `--input ${batch.parsedOutput} --output ${batch.transportedOutput} --verbose`;
+        if (discussion) {
+            argsStr += ' --discussion';
+        }
+
+        const args = argsStr.split(' ');
 
         console.log(`node ./tools/transportproblems.js ${argsStr}`);
         process = childProcess.fork('./tools/transportproblems.js', args);

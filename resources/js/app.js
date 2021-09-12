@@ -16,6 +16,15 @@ const Katex = require('katex');
 
 const Vue = require('vue');
 //const Dropdown = require('./dropdown.vue');
+
+import TipTapKatex from './tiptap-katex.vue';
+window['KatexView'] = TipTapKatex;
+
+
+import { VueNodeViewRenderer } from '@tiptap/vue-3'
+window['VueNodeViewRenderer'] = VueNodeViewRenderer;
+
+
 import Dropdown from './dropdown.vue';
 import EditableSolutions from './editablesolutions.vue';
 import TipTapForm from './tiptapform.vue';
@@ -26,6 +35,7 @@ import Paragraph from '@tiptap/extension-paragraph'
 import Text from '@tiptap/extension-text'
 import Bold from '@tiptap/extension-bold'
 import Italics from '@tiptap/extension-italic'
+import Underline from '@tiptap/extension-underline'
 import HardBreak from '@tiptap/extension-hard-break'
 import Blockquote from '@tiptap/extension-blockquote'
 import Image from '@tiptap/extension-image'
@@ -41,9 +51,21 @@ import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
 
+import StarterKit from '@tiptap/starter-kit'
 
 import { Katex as ExtKatex } from './tiptap-katex.js'
 import { Mention as ExtMention } from './tiptap-mention.js'
+
+
+// load all highlight.js languages
+import lowlight from 'lowlight'
+
+// load specific languages only
+// import lowlight from 'lowlight/lib/core'
+// import javascript from 'highlight.js/lib/languages/javascript'
+// lowlight.registerLanguage('javascript', javascript)
+
+
 
 window['Vue'] = Vue;
 window['VueComponents'] = {
@@ -58,11 +80,37 @@ window['VueHTMLExtensions'] = [
     Text,
     Bold,
     Italics,
+    Underline,
     HardBreak,
     Blockquote,
     Image,
     Heading,
     CodeBlockLowlight,
+    HorizontalRule,
+    Link,
+    BulletList,
+    OrderedList,
+    ListItem,
+    Table, TableRow, TableCell, TableHeader,
+
+    ExtKatex,
+    ExtMention,
+];
+window['TipTapExtensions'] = [
+    StarterKit,
+    Document,
+    Paragraph,
+    Text,
+    Bold,
+    Italics,
+    Underline,
+    HardBreak,
+    Blockquote,
+    Image,
+    Heading,
+    CodeBlockLowlight.configure({
+      lowlight,
+    }),
     HorizontalRule,
     Link,
     BulletList,

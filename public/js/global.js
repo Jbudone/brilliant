@@ -39,10 +39,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
     const deflatedJson = JSON.parse(deflatedStr),
         inflatedJson = {
             type: "doc",
-            content: [{
-                type: "paragraph",
-                content: []
-            }]
+            content: []
         };
 
     const READ_META = (meta) => {
@@ -174,6 +171,9 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         } else if (metaType === "tableCell") {
             inflated.type = "tableCell";
             inflated.body = body;
+        } else if (metaType === "paragraph") {
+            inflated.type = "paragraph";
+            inflated.count = parseInt(body);
         } else {
             Assert(false, `Unexpected deflated meta type: ${metaType}`);
         }
@@ -181,15 +181,15 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         return inflated;
     };
     
-    const firstParagraph = inflatedJson.content[0];
+    const doc = inflatedJson;
 
-    let elStack = [firstParagraph],
-        childCount = -1;
+    let elStack = [doc],
+        childCount = [];
 
     const pushChildEl = (el) => {
 
         let parentEl = elStack[elStack.length - 1];
-        if (elStack.type === "bulletList" || elStack.type === "orderedList") {
+        if (parentEl.type === "bulletList" || parentEl.type === "orderedList") {
             const intermediaryParentEl = {
                 type: "listItem",
                 content: []
@@ -197,7 +197,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
 
             parentEl.content.push(intermediaryParentEl);
             parentEl = intermediaryParentEl;
-        } else if (elStack.type === "tableRow") {
+        } else if (parentEl.type === "tableRow") {
             const intermediaryParentEl = {
                 type: "tableCell",
                 content: []
@@ -205,6 +205,11 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
 
             parentEl.content.push(intermediaryParentEl);
             parentEl = intermediaryParentEl;
+        //} else if (parentEl.type === "paragraph" && el.type === "text") {
+        //    el = {
+        //        type: "paragraph",
+        //        content: [el]
+        //    };
         }
 
         parentEl.content.push(el);
@@ -257,7 +262,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
                 content: []
             };
 
-            childCount = inflated.count;
+            childCount.push(inflated.count);
             pushChildEl(el);
             elStack.push(el);
         } else if (inflated.type === "codeBlock") {
@@ -269,7 +274,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
                 }]
             };
 
-            childCount = inflated.count;
+            childCount.push(inflated.count);
             pushChildEl(el.content[0]);
             elStack.push(el.content[0]);
         } else if (inflated.type === "heading") {
@@ -279,7 +284,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
                 content: []
             };
 
-            childCount = inflated.count;
+            childCount.push(inflated.count);
             pushChildEl(el);
             elStack.push(el);
         } else if (inflated.type === "image") {
@@ -297,13 +302,13 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
             };
 
             pushChildEl(el);
-        } else if (["bulletList", "orderedList", "table", "tableRow"].indexOf(inflated.type) >= 0) {
+        } else if (["paragraph", "bulletList", "orderedList", "table", "tableRow"].indexOf(inflated.type) >= 0) {
             const el = {
                 type: inflated.type,
                 content: []
             };
 
-            childCount = inflated.count;
+            childCount.push(inflated.count);
             pushChildEl(el);
             elStack.push(el);
         } else {
@@ -313,12 +318,65 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
 
         // Predetermined count of children to element
         // NOTE: This hits once on setup
-        if (childCount > -1) {
-            if (--childCount === -1) {
+        while (childCount.length > 0) {
+            if (--childCount[childCount.length-1] === -1) {
                 elStack.pop();
+                childCount.pop();
+            } else {
+                break;
             }
-            
         }
+    }
+
+    return inflatedJson;
+};
+
+// Same as encoded, but stripped down (for title, solutions, one-liners)
+window['INLINE_TO_JSON'] = (raw) => {
+    // abc {{ katex }} abc
+
+    const inflatedJson = {
+            type: "doc",
+            content: [{
+                type: "paragraph",
+                content: []
+            }]
+        };
+
+    let html = raw;
+    do {
+        let idxStart = html.indexOf('{{'),
+            idxEnd = html.indexOf('}}');
+
+        if (idxStart === -1 || idxEnd <= idxStart) break;
+
+        // add left (raw text)
+        let start = html.substr(0, idxStart);
+        if (start.trim() !== "") {
+            inflatedJson.content[0].content.push({
+                type: "text",
+                text: start
+            });
+        }
+
+        // add katex
+        let katexRaw = html.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+        inflatedJson.content[0].content.push({
+            type: "katex",
+            attrs: { inline: true },
+            content: [{ type: "text", text: katexRaw }]
+        });
+
+        // update html to right-onward
+        html = html.substr(idxEnd + 2);
+    } while (true);
+
+    // add remaining text
+    if (html.trim() !== "") {
+        inflatedJson.content[0].content.push({
+            type: "text",
+            text: html
+        });
     }
 
     return inflatedJson;

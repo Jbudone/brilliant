@@ -1,72 +1,95 @@
+WEEKEND
+ - Discussion parse
+ - Re-parse all (<p> tag)
+ - CSS
+ - Finish text editor:  inline vs. full ; code ; link
+ - Think about popularity -- score field on problem document?  Can run a worker to mass-update when we update equation
+ - Profile page
+ - Ideas/Roadmap page, upvote ideas/suggestions/features to order better
+ - BUG: Preview -- ul/ol  off screen
+
+
 TODO
  - Priority
    - Email verification
    - Materialize -> Tailwind
+   - Mobile view, responsive
+   - Transport problems: solution/title wrap in {{ }} for KaTex parts, use raw for remaining
+   - Delete question
+   - BUG: Add problem -- set category/level resets title
+   - Text editor
+        - Save (deflate); Edit
+            - Katex -> {{ }}
+        - Preview answers/title (in case of Katex)
+        - TipTap components
+            - horizontalBreak, hardBreak
+            - link
+        - inline vs. full
+        - code
+
+
+        - Image extension  drag/drop, move around
+        - Table extension
+        - KaTex extension
+            - inline attribute + command to inline vs. block
+            - renderHTML, parseHTML
+            - Fix deleting inner content sometimes deletes entire node
+        - @mention
+        - text limit
+        - BUG:  <tip-tap-form :value="getQuestionBody()" .../>  value gets set repeatedly rather than only once on init
+        - Tooltip
+        - Spellcheck
+        - Embedded video (Youtube, upload)
+        - Tailwind Styling on nodes: https://www.tiptap.dev/guide/styling
+        - Keyboard shortcuts -- const CustomBulletList = BulletList.extend({ addKeyboardShortcuts() { return { 'Mod-l': () => this.editor.commands.toggleBulletList(), } }, })
+        - Attributes parseHTML/renderHTML  -- https://www.tiptap.dev/guide/custom-extensions   (so you can copy/paste from textbox and retain attributes/nodes/etc.)
+        - Typography extension: (c) -> ©
    - Problem parser
-        - transport brilliant.json -> local.json  (copy images, transform links, etc.)
-        - tiptap katex extension
         - tiptap Image extension (zoomable; reference assets list for src)
+        - Author age/location
+        - Extract: date (inferred?), popularity (inferred), sections (problem/solution)
    - Discussion parser
    - Sort problems by hot/new, unsolved, discussions
    - Profile page:  click user and see list of problems
    - BUG: Can submit problem w/ no solutions; can leave 1st solution field empty
    - Vue cleanup: Add $ref to element to reference from inside Vue component; emit custom events from child -> caught by parent component + validation; provide/inject props from parent -> child component; v-bind:value vs. v-model
-   - BUG: Long question overflows into solutions
    - Hide solutions/discussion until question answered
    - BUG: Comment validation fail -- doesn't show validation fail from laravel (hidden element)   need to restore state
-   - BUG: Comment length is massive w/ JSON and max is 255
-   - BUG: link *inside* heading/italics/strong: http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html ; http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
    - BUG: large solutions http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
-   - BUG: Age/location not showing for author
-   - BUG: longtext date on comment
+   - BUG: Elements being inlined http://brilliant.laravel:8000/problem/41980  (first comment) ; http://brilliant.laravel:8000/brilliantexport/problems/00-5/00-5.html (question) ; http://brilliant.jbud.me/problem/280 (comment + question)
+   - Inflate/Deflate
+        - Merge sequential text paragraphs w/ \n
+    - BUG: http://brilliant.laravel:8000/problem/81303  katex solution (centered vs. left)
+    - BUG: blockquote next to pre/code gets merged http://brilliant.jbud.me/brilliantexport/problems/very-easy-2/very-easy-2.html
+    - BUG: line breaks http://brilliant.laravel:8000/problem/10
+    - Add question -> go to question page rather than /problems
+
+    DOUBLE CHECK FROM LATEST
    - BUG: Links not showing properly http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html
-   - BUG: Elements being inlined http://brilliant.laravel:8000/problem/41980  (first comment) ; http://brilliant.laravel:8000/brilliantexport/problems/00-5/00-5.html (question)
-   - Find a way to easily migrate new problems, update problems, etc. w/out affecting users/solves/comments
-        - All archived problems/users get flagged as archived
-        - Remove only archived in migrate??
-            OR -- archive_id , then follow-up migrates run updates
-   - Find best storage for comments/problems
-        - Need better solution than full JSON; maybe partial JSON? (strip out <p>, <doc>, etc. which can be inferred)
-            [] array of sequence of elements (since we don't need to worry about child elements, we can infer that)
-            {"m":"#text:red,h1","b":"body of text"}   <-- metadata, body; metadata can be compressed however we like
-            {"m":"katex:inline", "b": "katex body"}
-            Merge sequential text paragraphs w/   \n
-        - TEXT vs. MEDIUMTEXT -- http://brilliant.laravel:8000/brilliantexport/problems/a-problem-by-rocco-dalto-70/a-problem-by-rocco-dalto-70.html
+   - BUG: link *inside* heading/italics/strong: http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html ; http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
+   - BUG: orderedList/bulletList http://brilliant.laravel:8000/problem/10
 
 
 
- - Restructure
-   - Template page + Vue/Materialize for problem + discussion; KaTex
-        - Tiptap text component (full + stripped for comment vs. problem ; preview)
-        - Generate KaTex for math
-        - Generate code for code snippets
-        - Genrete html from template:  blockquote ``` , bold ** , italics __ , images, etc.
-        - Get raw input (for form submission)
-   - Cleanup
-        - Text component (full for problem, inline/small for short replies)
-        - Preview/Markdown/KaTex viewer (problem, comments, preview for problem)
-
-        - Emoji react component
-        - Upvote component
-        - Report component
-        - Answer question component
-        - Mix setup: watch, hotload, faster compile, cache busting, etc.
+   - Answer question component
    - Questions
         - Add/Edit question, check unique title  (NOTE: we may edit problem body but leave title the same, but then uniqueness fails)
         - Add/Edit question validation fail -- show validation fail on form, fill fields again
         - Add/Edit question Frontend validation
         - Add/Edit question include solutions
         - Validation fail -- store old() as JSON for vue, then set default value as either old value or default (current) value
-
-
-        - Hide solution until answered
-        - Show selected answer
-        - Emoji react
-        - Upvote
-    - Parser
-        - Extract body, discussion in raw html of entire section -> raw.json
-        - Follow-up parser to run through raw.json and parse html
+    - Hide solution until answered
+    - Show selected answer
     - README
+    - Emoji react; Upvote
+    - Cache busting
+    - Report component
+    - Archived view: disallow commenting on archived questions (question owners can unarchive?)
+    - Prizes: emojis, gold coins, components (thematic horizontal rule), fonts
+
+
+
+
 
         == Install ==
 
@@ -108,6 +131,8 @@ TODO
 
         == Update ==
         git pull
+
+        source ~/.bashrc
         npm install
         # FIXME: migrate/seed but w/out deleting current docs
         npm run dev
@@ -119,16 +144,11 @@ TODO
 
 
 
-   - Email verification, emailing
    - Look into Vuex or data store model for cross-component communication
-   - Solution: non-multiple choice, images, latex
-   - Fix "[Vue warn]: Invalid VNode type: Symbol(Fragment) (symbol)"  warning -- Vue loaded twice, temp solved by exporting Vue from app.js
    - Profile page
    - Cache busting include css/js
    - Serve css/js -> public/ folder, SASS, Babylon
-   - Production: strip out parts of css/js that aren't needed
-   - FIXME's: CSS + JS
-   - Laravel Mix
+   - Production: strip out parts of css/js that aren't needed, tree shaking
    - Laravel caching  https://laracasts.com/series/laravel-8-from-scratch/episodes/10
    - Template sections of html (header file, footer file, etc.) for shared html
    - Notifications (someone replied to your comment)
@@ -137,17 +157,12 @@ TODO
    - Question status:  verified, unsolved
    - Cleanup REST url, and naming conventions  show, index, create, store, edit, update, destory
    - Home/welcome page
-
-
- - Parse problems
-    - Extract: date (inferred?), popularity (inferred), sections (problem/solution)
-    - Problem UID
- - Show discussions
- - Show unsolved problems
- - Hide solutions (until you solve)
- - Hover question to see preview
- - Cleanup page / blank space
- - CSS test across browsers, cleanup
+   - Show discussions
+   - Show unsolved problems
+   - Hide solutions (until you solve)
+   - Hover question to see preview
+   - Cleanup page / blank space
+   - CSS test across browsers, cleanup
 
 
 

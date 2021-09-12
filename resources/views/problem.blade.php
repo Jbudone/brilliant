@@ -89,6 +89,7 @@
                 <div class="prblm-discussions">
                     <div class="mb-4">
                         <span class="solutions text-xl">@{{ this.discussions.length }} Solutions</span>
+                        <span class="block text-grey-800 text-lg" v-if="this.discussions.length == 0">No explanations have been posted yet. Check back later!</span>
                         <a id='addSolution' href='#'>Add Solution</a>
                     </div>
                     <div id='addSolutionContainer' class='hidden'>

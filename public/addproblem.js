@@ -70,12 +70,82 @@ $(document).ready(() => {
             },
 
             getQuestionBody() {
-                return this.question;
+                return (this.question ? GenerateHTML(this.question, VueHTMLExtensions) : "");
             },
 
             save() {
 
-                let body = JSON.stringify(this.question);
+                let questionJson = this.question;
+
+                // FIXME: Inject katex in texts w/ {{ }}
+                const recurseEl = (el) => {
+                    if (el.content instanceof Array) {
+                        for (let i = 0; i < el.content.length; ++i) {
+                            if (el.content[i].type === "text") {
+                                let textParts = [];
+                                let textHtml = el.content[i].text;
+
+                                let readFrom = 0;
+                                do {
+                                    let idxStart = textHtml.indexOf('{{', readFrom),
+                                        idxEnd = textHtml.indexOf('}}', readFrom);
+
+                                    if (idxStart === -1 || idxEnd <= idxStart) break;
+
+                                    let katexRaw = textHtml.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+                                    // FIXME: Inline?
+
+                                    let start = textHtml.substr(readFrom, idxStart);
+                                    if (start.trim() !== "") {
+                                        textParts.push({
+                                            type: "text",
+                                            text: start
+                                        });
+                                    }
+
+                                    if (katexRaw.trim() !== "") {
+                                        textParts.push({
+                                            type: "katex",
+                                            content: [{ type: "text", text: katexRaw }],
+                                            attrs: { inline: true }
+                                        });
+                                    }
+
+                                    readFrom = idxEnd + 2;
+                                } while (true);
+
+                                let end = textHtml.substr(readFrom);
+                                if (end.trim() !== "") {
+                                    textParts.push({
+                                        type: "text",
+                                        text: end
+                                    });
+                                }
+
+                                if (el.content[i].marks) {
+                                    for (let j = 0; j < textParts.length; ++j) {
+                                        textParts[j].marks = el.content[i].marks;
+                                    }
+                                }
+
+                                if (textParts.length > 0) {
+                                    el.content.splice(i, 1, ...textParts);
+                                }
+                            } else {
+                                recurseEl(el.content[i]);
+                            }
+                        }
+                    }
+                };
+
+                recurseEl(questionJson);
+
+
+                let bodyInflatedJson = questionJson;
+                let { child, elements } = JSON_BODY_TO_HTML(bodyInflatedJson);
+                let bodyDeflatedHtml = child,
+                    bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
+
                 let solutions = [];
                 for (let i = 0; i < this.solutions.length; ++i) {
                     const solution = {};
@@ -87,9 +157,10 @@ $(document).ready(() => {
                     solutions.push(solution);
                 }
                 let solutionsStr = JSON.stringify({solutions: solutions});
-                body = solutionsStr.length + solutionsStr + body;
-                this.$refs.formBody.value = body;
+                let body = solutionsStr.length + solutionsStr + bodyDeflatedJson;
+                console.log(body);
 
+                this.$refs.formBody.value = body;
                 this.$refs.form.submit();
             }
         },
@@ -113,7 +184,28 @@ $(document).ready(() => {
                     solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
                     solutionJson = JSON.parse(solutionString);
                 this.solutions = solutionJson.solutions;
-                this.question = this.jsonData.body.substr(solutionLen + solutionStart);
+
+                let question = this.jsonData.body.substr(solutionLen + solutionStart);
+                this.question = ENCODED_TO_JSON(question);
+
+                // FIXME: There's probably a better way to do this
+                // Replace Katex tags w/  {{ text }}
+                const recurseEl = (el) => {
+                    if (el.content instanceof Array) {
+                        for (let i = 0; i < el.content.length; ++i) {
+                            if (el.content[i].type === "katex") {
+                                // FIXME: Inline?
+                                el.content[i] = el.content[i].content[0];
+                                Assert(el.content[i].type === "text");
+                                el.content[i].text = '{{ ' + el.content[i].text + ' }}';
+                            } else {
+                                recurseEl(el.content[i]);
+                            }
+                        }
+                    }
+                };
+
+                recurseEl(this.question);
 
                 for (let i = this.solutions.length; i < 4; ++i) {
                     this.solutions.push({

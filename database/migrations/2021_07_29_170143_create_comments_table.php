@@ -28,6 +28,7 @@ class CreateCommentsTable extends Migration
             $table->foreign('parent_comment_id')->references('id')->on('comments');
 
             $table->unsignedBigInteger('archive_id')->nullable();
+            $table->index('archive_id');
 
             $table->timestamps();
         });

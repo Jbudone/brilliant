@@ -55,7 +55,6 @@ let SINGLE_PROBLEM = null; // for debugging -- process a single problem
 
 // FIXME:
 //  Parse
-//   - Store solution/title Katex as {{ .... }}
 //   - Total solution answers, "78% answered correctly", ..
 //   - Relevant wiki
 //
@@ -64,6 +63,7 @@ let SINGLE_PROBLEM = null; // for debugging -- process a single problem
 
 let verbose = false;
 let OUTPUT = null;
+let DISCUSSION = false; // Parsing discussion, not problem
 
 
 // Parse arguments
@@ -83,6 +83,8 @@ for (let i = 2; i < process.argv.length; ++i) {
         MAX_PROBLEMS = parseInt(process.argv[++i]);
     } else if (arg === '--single-problem') {
         SINGLE_PROBLEM = process.argv[++i];
+    } else if (arg === '--discussion') {
+        DISCUSSION = true;
     } else {
         console.log(`Unexpected argument: ${arg}`);
         process.exit(1);
@@ -146,6 +148,16 @@ const processText = (text) => {
 const outProblems = [];
 
 
+// FIXME: This is an absolutely bonkers way to import module, but couldn't find a better way just yet
+const window = global;
+let sharedGlobalsStr = fs.readFileSync('public/js/sharedGlobals.js', 'utf8');
+sharedGlobalsStr = sharedGlobalsStr.split('\n');
+sharedGlobalsStr.pop();
+sharedGlobalsStr.pop();
+sharedGlobalsStr = sharedGlobalsStr.join('\n');
+eval(sharedGlobalsStr);
+
+
 const finishParsingProblems = () => {
     const out = JSON.stringify(outProblems);
 
@@ -157,436 +169,425 @@ const finishParsingProblems = () => {
     }
 };
 
-// Reverse generated html -> markdown/latex
-const processBody = (body, env) => {
-    const { filepath, $ } = env;
-    const html = $.parseHTML(body);
+const parseDiscussion = (id, env) => {
 
-    const RECURSIVE_RUN_ON_NODES = (node, fn) => {
-        fn(node);
-        if (node.content) {
-            for (let i = 0; i < node.content.length; ++i) {
-                RECURSIVE_RUN_ON_NODES(node.content[i], fn);
+    let { $, filepath, problemName, problemFile } = env;
+
+    const outProblem = {};
+    outProblem.id = id;
+    outProblem.source = filepath;
+
+    const categoryAndLevel = $('.topic-level-info').text();
+
+    // Category / Level
+    let categoryName, categoryLevel;
+    if (verbose) {
+        console.log(id + "   " + categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
+    }
+
+    outProblem.category = categoryName;
+    outProblem.level = categoryLevel;
+
+    // Title
+    const titleEl = $('.nf-content-header');
+    Assert( titleEl.length === 1 , `$(.nf-content-header).length != 1: ${filepath}` );
+    let problemTitle = "";// processText(titleEl.text().trim());
+    {
+        // Title can contain Katex elements
+
+        const titleH1El = titleEl[0].childNodes[1];
+        Assert(titleH1El.nodeName === "H1", `Unexpected H1 title child: ${filepath}`);
+        for (let k = 0; k < titleH1El.childNodes.length; ++k) {
+            const titleH1ChildEl = titleH1El.childNodes[k];
+            if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
+                const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
+                Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
+                problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
+            } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
+                problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
+            } else if (titleH1ChildEl.nodeName === "#text") {
+                problemTitle += titleH1ChildEl.textContent;
+            } else {
+                Assert(false, `Unexpected element in title: ${filepath}`);
             }
         }
-    };
+    }
+    outProblem.title = problemTitle;
 
-    const recursiveGetInputFromEl = (el) => {
+    return outProblem;
+};
 
-        /*
-        if (el.nodeName === "P") {
-            // <p>..</p>
-            const children = el.children;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    input += recursiveGetInputFromEl(children[i]);
-                }
-            } else {
-                // plain text
-                input += el.innerHTML;
+const parseProblem = (id, env) => {
+
+    let { $, filepath, problemName, problemFile } = env;
+
+    const outProblem = {};
+    outProblem.id = id;
+    outProblem.source = filepath;
+    //console.log(data);
+
+    const categoryAndLevel = $('.topic-level-info').text();
+
+    // Category / Level
+    let categoryName, categoryLevel;
+    if(categoryAndLevel.replaceAll('\n','').replaceAll(' ','') === "Levelpending") {
+        // FIXME: level unset
+        categoryName = 'uncategorized';
+        categoryLevel = 0;
+    } else {
+        let matchCat = categoryAndLevel.match(/^\s*(Algebra|Biology|Geometry|Number Theory|Calculus|Probability|Basic Mathematics|Logic|Classical Mechanics|Electricity and Magnetism|Computer Science|Quantitative Finance|Chemistry|Number Theory and Algebra|SAT® Math)\s*Level\s*(\d*)/);
+
+        if (!matchCat) {
+            matchCat = categoryAndLevel.match(/^\s*Level\s*(\d*)/);
+            if (!matchCat) {
+                console.log(categoryAndLevel);
+                throw "Unexpected level/category";
             }
-        } else if (el.nodeName === "#text") {
-            // text fragment
-            input += el.textContent;
-        } else if (el.nodeName === "SPAN") {
-            if (el.classList.length >= 1 && el.classList[0] === "katex") {
-                const mathmlEl = el.children[0];
-                Assert(el.children.length === 2, `katex has not 2 children: ${filepath}`);
-                Assert(mathmlEl.classList[0] === "katex-mathml", `katex mathml unexpected: ${filepath}`);
-                Assert(mathmlEl.children.length === 1, `katex-mathml has unexpected children: ${filepath}`);
-                Assert(mathmlEl.children[0].children.length === 1, `math has unexpected children: ${filepath}`);
-                Assert(mathmlEl.children[0].children[0].children.length === 2, `semantics has unexpected children: ${filepath}`);
-                const annotationEl = mathmlEl.children[0].children[0].children[1];
-                Assert(annotationEl.nodeName === "annotation", `unexpected annotation: ${filepath}`);
-                return annotationEl.innerHTML;
-            } else {
-                Assert(false, `ProcessBody - unexpected class for <span> '${el.classList[0]}' ${filepath}`);
-            }
-        } else if (el.nodeName === "A") {
-            if (el.classList.length >= 1 && el.classList[0] === "at-mention") {
-                // FIXME: Could include attributes for profile
-                input += el.innerHTML;
-            } else {
-                Assert(false, `ProcessBody - unexpected class for <a> '${el.classList[0]}' ${filepath}`);
-            }
+
+            categoryName = 'uncategorized';
+            categoryLevel = parseInt(matchCat[1]);
+            if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
         } else {
-            Assert(false, `ProcessBody - unexpected nodeName '${el.nodeName}' ${filepath}`);
+            categoryName = matchCat[1];
+            categoryLevel = parseInt(matchCat[2]);
+            if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
         }
 
-        Assert(input && input !== "undefined" && input.length > 0, `Unexpected input "${input}": ${filepath}`);
+
+
+        //console.log( $('.topic-level-info').text() );
+    }
+
+    if (verbose) {
+        console.log(id + "   " + categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
+    }
+
+    outProblem.category = categoryName;
+    outProblem.level = categoryLevel;
+
+    // Title
+    const titleEl = $('.old-title-display');
+    Assert( titleEl.length === 1 , `$(.old-title-display).length != 1: ${filepath}` );
+    let problemTitle = "";// processText(titleEl.text().trim());
+    {
+        // Title can contain Katex elements
+
+        const titleH1El = titleEl[0].childNodes[1];
+        Assert(titleH1El.nodeName === "H1", `Unexpected H1 title child: ${filepath}`);
+        for (let k = 0; k < titleH1El.childNodes.length; ++k) {
+            const titleH1ChildEl = titleH1El.childNodes[k];
+            if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
+                const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
+                Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
+                problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
+            } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
+                problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
+            } else if (titleH1ChildEl.nodeName === "#text") {
+                problemTitle += titleH1ChildEl.textContent;
+            } else {
+                Assert(false, `Unexpected element in title: ${filepath}`);
+            }
+        }
+    }
+    outProblem.title = problemTitle;
+
+    // Question
+    const questionBodyEl = $('.question-text');
+    Assert( questionBodyEl.length === 1 , `$(.question-text).length != 1: ${filepath}` );
+    const questionBody = questionBodyEl.html().trim('\n');
+    outProblem.body = PROBLEM_PARSE_BODY(questionBody, env);
+
+    // Solutions
+    const answerScriptEl = $('#ir_template_holder');
+    Assert( answerScriptEl.length === 1 , `$(#ir_template_holder).length != 1: ${filepath}` );
+    const answer = answerScriptEl.attr('data-answers-list');
+    let multipleChoice = answerScriptEl.attr('data-has-multiple-options') === "true";
+
+    const answers = [];
+    if (multipleChoice) {
+        const answerContainerEl = $('.solv-mcq-wrapper');
+        Assert( answerContainerEl.length === 1 , `$(.solv-mcq-wrapper).length != 1: ${filepath}` );
+
+        const answerEls = $('.btn-mcq', $('.solv-mcq-wrapper'));
+
+        // NOTE: People can post multiple choice problems but only have 1 option
+        // FIXME: Transport these to non-multiple choice?
+        Assert( answerEls.length >= 1 , `$('.btn-mcq', $('.solv-mcq-wrapper')).length <= 1: ${filepath}` );
+
+        for (let answerIdx = 0; answerIdx < answerEls.length; ++answerIdx) {
+            const answerOutEl = $('.btn-mcq', $('.solv-mcq-wrapper')).eq(answerIdx);
+            Assert(answerOutEl[0].childNodes.length === 5, `Unexpected solution children: ${filepath}`); // #text span.bg #text span #text
+            //const answer = $('.btn-mcq', $('.solv-mcq-wrapper')).eq(answerIdx).text().trim();//[answerIdx].innerText;
+            const answerEl = answerOutEl[0].childNodes[3];
+            Assert(answerEl.nodeName === "SPAN", `Unexpected solution child: ${filepath}`);
+            Assert( answerEl.textContent.length > 0 , `Empty answer: ${filepath}` );
+            const answer = PROBLEM_PARSE_BODY($(answerEl).html(), env);
+
+            const correct = $( $('.btn-mcq', $('.solv-mcq-wrapper'))[answerIdx] ).hasClass('correct')
+            answers.push({ correct: correct, text: answer });
+        }
+    } else {
+        answers.push({ correct: true, text: answer });
+    }
+
+    outProblem.answers = answers;
+
+    // Author
+    const authorEl = $('.solv-author');
+    Assert(authorEl.length === 1, `authorEl !== 1: ${filepath}`);
+    const avatarEl = $('avatar img', authorEl),
+        userEl = $('.btn-profile', authorEl),
+        userId = userEl.attr('data-id');
+
+    const avatarSrc = avatarEl.attr('src'),
+        profileLink = userEl.attr('href'),
+        userName    = userEl.text(),
+        userText    = userEl.parent().text(),
+        userTitle   = userEl.attr('title');
+
+    Assert(userTitle.length > 0 && userTitle.indexOf('\\') === -1 && userTitle.indexOf('"') === -1, `Bad user title: ${filepath}`);
+
+    /*
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+        }
+
+        const escapedUserTitle = escapeRegExp(userTitle);
+
+        const userMatch   = userText.match(new RegExp("^\\s*by\\s+("+ escapedUserTitle +"),?\\s*(\\d+)?,?\\s*(.*)?\\s*$"));
+        Assert(userMatch, `Bad user match: ${filepath}`);
+
+        let userAge = null, userLocation = null;
+        if (userMatch.length > 2 && userMatch[2] !== undefined) {
+            // age or location included
+            Assert(userMatch.length === 4, "FIX Age/Location");
+            const userAge = parseInt(userMatch[2]);
+            Assert(userAge >= 0 && userAge < 100, `Bad user age: ${filepath}`);
+            const userLocation = userMatch[3].trim();
+            Assert(userLocation.length > 0, `Bad user location: ${filepath}`);
+        }
         */
 
-
-        let json = {};
-        if (el.nodeName === "P") {
-            // <p>..</p>
-            json.type = "paragraph";
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
-            } else {
-                // plain text
-                Assert(el.innerHTML === el.textContent, `Unexpected <p> innerHTML != el.textContent: ${filepath}`);
-                const contentChild = {
-                    type: "text",
-                    text: processText(el.textContent)
-                };
-                json.content.push(contentChild);
-            }
-        } else if (el.nodeName === "#text") {
-            // text fragment
-            json.type = "text";
-            json.text = processText(el.textContent);
-        } else if (el.nodeName === "SPAN") {
-
-            let isInlineKatex = true;
-            if (el.classList.length === 1 && el.classList[0] === "katex-display") {
-                Assert(el.childNodes.length === 1, `katex-display has not 1 child: ${filepath}`);
-                el = el.childNodes[0]; // katex
-                isInlineKatex = false;
-            }
-
-            if (el.classList.length >= 1 && el.classList[0] === "katex") {
-                const mathmlEl = el.childNodes[0];
-                Assert(el.childNodes.length === 2, `katex has not 2 children: ${filepath}`);
-                Assert(mathmlEl.classList[0] === "katex-mathml", `katex mathml unexpected: ${filepath}`);
-                Assert(mathmlEl.childNodes.length === 1, `katex-mathml has unexpected children: ${filepath}`);
-                Assert(mathmlEl.childNodes[0].childNodes.length === 1, `math has unexpected children: ${filepath}`);
-                Assert(mathmlEl.childNodes[0].childNodes[0].childNodes.length === 2, `semantics has unexpected children: ${filepath}`);
-                const annotationEl = mathmlEl.childNodes[0].childNodes[0].childNodes[1];
-                Assert(annotationEl.nodeName === "annotation", `unexpected annotation: ${filepath}`);
-
-                // NOTE: textContent &   innerHTML &amp;
-                //Assert(annotationEl.innerHTML === annotationEl.textContent, `Unexpected <span> innerHTML != el.textContent: ${filepath}`);
-                json.type = "katex";
-                json.content = [{ type: "text", text: processText(annotationEl.textContent) }];
-                json.attrs = { inline: isInlineKatex };
-            } else if (el.classList.length >= 1 && el.classList[0] === "katex-error") {
-                json.type = "katex";
-                json.content = [{ type: "text", text: processText(el.textContent) }];
-                json.attrs = { inline: isInlineKatex };
-            } else if (el.classList.length >= 1 && el.classList[0] === "image-caption") {
-                // FIXME: Other classes include "center"
-                //const zoomableEl = el.childNodes[1];
-
-                // #text .zoomable-image #text   \n \n
-                // #text img #text span.caption
-                //Assert((el.childNodes.length === 1) || (el.childNodes.length === 3) || (el.childNodes.length === 4), `image-caption has not 1/3/4 children: ${filepath}`); // #text .zoomable-image #text    \n \n
-
-                if (el.childNodes.length === 1) {
-                    const videoEl = el.childNodes[0];
-                    Assert(videoEl.nodeName === "VIDEO", `Unexpected node for image-caption: ${filepath}`);
-                    console.log("FIXME: Handle Video element");
-
-                    json.type = "image";
-                    json.attrs = { src: "" };
+            let userAge = null, userLocation = null;
+            const userTextChunks = $.parseHTML($('.solv-author .text').html());
+            if (userTextChunks.length >= 4) {
+                Assert(userTextChunks.length === 5, `Unexpected userText chunks: ${filepath}`); // Expect ends w/ #text "\n\n\n"
+                const userAgeParts = userTextChunks[2].textContent.match(/^,?\s*(\d+),?\s*$/);
+                userAge = parseInt(userAgeParts[1]);
+                userLocation = userTextChunks[3].textContent.trim();
+            } else if (userTextChunks.length === 3) {
+                let ageOrLocation = userTextChunks[2].textContent;
+                if (parseInt(ageOrLocation) > 0) {
+                    userAge = ageOrLocation;
                 } else {
-
-                    let captionEl = null, imgEl = null;
-                    for (let childNodeIdx = 0; childNodeIdx < el.childNodes.length; ++childNodeIdx) {
-                        let childNodeEl = el.childNodes[childNodeIdx];
-                        if (childNodeEl.nodeName === "#text") {
-                            continue;
-                        } else if (childNodeEl.nodeName === "SPAN") {
-
-                            Assert(childNodeEl.classList.length === 1, `Unexpected classlist for .image-caption child: ${filepath}`);
-                            if (childNodeEl.classList[0] === "zoomable-image") {
-                                imgEl = $('img', $(childNodeEl))[0];
-                            } else if (childNodeEl.classList[0] === "caption") {
-                                captionEl = childNodeEl;
-                            }
-                        } else if (childNodeEl.nodeName === "IMG") {
-                            imgEl = childNodeEl;
-                        } else {
-                            Assert(false, `Unexpected element in .image-caption: ${filepath}`);
-                        }
-                    }
-
-
-                    Assert(imgEl.attributes['src'] && imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
-                    Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img: ${filepath}`);
-                    const imgSrc = imgEl.attributes['src'].value;
-
-                    json.type = "image";
-
-                    let src = imgSrc;
-                    if (imgSrc.substr(0, 3) != "htt") {
-                        src = '/brilliantexport/' + imgSrc.substr(6); // ../../
-                    }
-                    json.attrs = { src: src };
-
-                    if (captionEl) {
-                        Assert(captionEl.nodeName === "SPAN" && captionEl.classList.length === 1 && captionEl.classList[0] === "caption", `Unexpected caption: ${filepath}`);
-                        console.log("FIXME: Handle image caption");
-                    }
+                    userLocation = ageOrLocation.trim();
                 }
-            } else if (el.classList.length === 1 && el.classList[0] === "reply-to") {
-                Assert(el.childNodes.length === 3, `reply-to has not 3 children: ${filepath}`); // #text .reply-to #text    \n \n
-                const replyEl = el.childNodes[1];
-
-                // FIXME: <a href="00-is-indeterminate.html#comment-a3f5128804e92"> @Prasun Biswas</a>
-                json.type = "mention";
-                json.content = [{ type: "text", text: el.innerHTML }];
-                json.attrs = [{ profile: "" }];
-            } else if (el.classList.length >= 1 && el.classList[0] === "glossary") {
-                console.log("FIXME: glossary");
-                json.type = "paragraph";
-                json.content = [{ type: "text", text: el.textContent }];
-            } else {
-                Assert(false, `ProcessBody - unexpected class for <span> '${el.classList[0]}' ${filepath}`);
             }
-        } else if (el.nodeName === "A") {
-            if (el.classList.length >= 1 && el.classList[0] === "at-mention") {
-                Assert(el.attributes.length === 4 && el.attributes[3].name === 'href', `Unexpected <a> attributes format: ${filepath}`);
-                json.type = "mention";
-                json.content = [{ type: "text", text: processText(el.textContent) }];
-                json.attrs = [{ profile: el.attributes[3].textContent }];
-            } else if ((el.classList.length >= 1 && el.classList[0] === "wiki_link") || el.classList.length === 0) {
-                let isWikiLink = (el.classList.length >= 1 && el.classList[0] === "wiki_link");
-                debugger;
-                //json.type = "text";
-                //json.text = processText(el.textContent);
-                //json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
-                json.type = "a"
-                json.content = [];
-                const children = el.childNodes;
-                if (children.length > 0) {
-                    for (let i = 0; i < children.length; ++i) {
-                        const contentChild = recursiveGetInputFromEl(children[i]);
-                        json.content.push(contentChild);
-                    }
+
+
+    outProblem.author = {
+        avatar: avatarSrc,
+        profile: profileLink,
+        name: userTitle,
+        age: userAge,
+        id: userId,
+        location: userLocation
+    };
+
+
+    // Discussion
+    const discussionContainerEl = $('.discsol-list');
+    Assert( discussionContainerEl.length === 1 , `$(.discsol-list).length != 1: ${filepath}` );
+    const solutionEls = $('.solution', discussionContainerEl);
+    const discussion = [];
+    if (solutionEls.length > 0) {
+        for (let solutionIdx = 0; solutionIdx < solutionEls.length; ++solutionIdx) {
+
+            const discussionBit = {};
+            discussion.push(discussionBit);
+
+            const solutionEl = $('.solution-main', solutionEls.eq(solutionIdx)),
+                solutionNoteEl = solutionEl.siblings('.solution-note'),
+                solutionHeaderEl = $('.solution-header', solutionEl),
+                solutionFooterEl = $('.solution-footer', solutionEl);
+
+            // Solution Id
+            const solutionParentEl = solutionEl[0].parentNode,
+                solutionElId = solutionParentEl.attributes['id'].value,
+                solutionIdMatch = solutionElId.match(/post-(\d+)/);
+            Assert(solutionIdMatch && solutionIdMatch.length === 2, `Unexpected solution Id: ${filepath}`);
+            const solutionId = parseInt(solutionIdMatch[1]);
+            Assert(!isNaN(solutionId) && solutionId > 0, `Unexpected solution id value: ${filepath}`);
+            discussionBit.id = solutionId;
+
+            // Note
+            if (solutionNoteEl.length > 0) {
+                console.log(`  FIXME: Solution Note ${filepath}`);
+                // eg. http://brilliant.laravel:8000/brilliantexport/problems/-49/-49.html
+                // eg. http://brilliant.laravel:8000/brilliantexport/problems/freefall/freefall.html
+            }
+
+            // Header
+            const avatarEl = $('.avatar img', solutionHeaderEl),
+                userEl = $('.btn-profile', solutionHeaderEl),
+                dateEl = $('span', solutionHeaderEl).last(); // NOTE: Could have [Staff] title
+
+            const avatarSrc = avatarEl.attr('src'),
+                profileLink = userEl.attr('href'),
+                userName    = userEl.text().trim(),
+                userId      = userEl.attr('data-id'),
+                datePosted  = dateEl.attr('title');
+
+            Assert(avatarSrc.length > 0, `No avatar for user: ${filepath}`);
+            Assert(profileLink.length > 0, `No profile for user: ${filepath}`);
+            Assert(userName.length > 0, `No name for user: ${filepath}`);
+            Assert(datePosted.length > 0, `No date post for user: ${filepath}`);
+
+            discussionBit.author = {
+                avatar: avatarSrc,
+                profile: profileLink,
+                name: userName,
+                id: userId
+            };
+
+            discussionBit.date = datePosted;
+
+
+            // Content
+            const solutionBody = $('.comment-content .text', solutionEl).html();
+            if (!solutionBody) {
+                console.log("FIXME: No solution provided -- please confirm");
+                discussionBit.body = "";
+            } else {
+                Assert(solutionBody.length > 0, `No solution provided: ${filepath}`);
+                discussionBit.body = PROBLEM_PARSE_BODY(solutionBody, env);
+            }
+
+
+            // Footer
+            const helpfulEl   = $('.reactions .helpful', solutionFooterEl),
+                interestingEl = $('.reactions .interesting', solutionFooterEl),
+                brilliantEl   = $('.reactions .brilliant', solutionFooterEl),
+                confusedEl    = $('.reactions .confused', solutionFooterEl);
+
+            const helpfulCount   = parseInt(helpfulEl.text().match(/^\d+/)[0]),
+                interestingCount = parseInt(interestingEl.text().match(/^\d+/)[0]),
+                brilliantCount   = parseInt(brilliantEl.text().match(/^\d+/)[0]),
+                confusedCount    = parseInt(confusedEl.text().match(/^\d+/)[0]);
+
+            discussionBit.reactions = [helpfulCount, interestingCount, brilliantCount, confusedCount];
+
+
+            // Comments
+            const solutionContainerEl = solutionEl.parent().parent(),
+                commentsContainerEl = $('.discsol-comments', solutionContainerEl),
+                commentEls = $('.comment-item', commentsContainerEl),
+                comments = [];
+            discussionBit.comments = comments;
+            for (let commentIdx = 0; commentIdx < commentEls.length; ++commentIdx) {
+                const commentEl = commentEls.eq(commentIdx),
+                    commentContainerEl = commentEl.parent(),
+                    commentId = parseInt(commentEl.attr('data-comment')),
+                    commentLevel = commentContainerEl.attr('data-level');
+
+                Assert(commentContainerEl.hasClass('cmmnt-container'), `Comment is not immediately contained inside .cmmnt-container: ${filepath}`);
+                const comment = {
+                    el: commentEl,
+                    id: commentId,
+                    level: parseInt(commentLevel),
+                    replies: [],
+                    parent: null
                 }
 
-                let href = "";
-                for (let i = 0; i < el.attributes.length; ++i) {
-                    const attr = el.attributes[i];
-                    if (attr.nodeName === "href") {
-                        href = attr.value;
+                // Which comment is this a reply to?
+                // NOTE: Need to check from the end -> start to find child-most comment
+                let parentComment = null;
+                for (let parentCommentIdx = comments.length - 1; parentCommentIdx >= 0; --parentCommentIdx) {
+                    // comment-level0 [comment-id=6140]
+                    // replies
+                    //   reply-to .unhide_new_reply_6140
+                    //   comment-level1
+                    //   replies
+                    // comment-level0
+                    // comment-level0
+                    // ...
+                    if(commentEl.siblings(`.unhide_new_reply_${comments[parentCommentIdx].id}`).length > 0) {
+                        parentComment = comments[parentCommentIdx];
+                        Assert(comment.level > parentComment.level, `Wrong comment parent found (level mismatch): ${filepath}`);
+
+                        parentComment.replies.push(comment);
+                        comment.parent = parentComment;
+
                         break;
                     }
                 }
 
-                // Apply marks recursively to children
-                RECURSIVE_RUN_ON_NODES(json, (child) => {
-                    if (child.type === "text") {
-                        if (!child.marks) child.marks = [];
-                        child.marks.push({ attrs: { href: href, target: "_blank" }, type: "link" });
-                    }
-                });
+                // Comment author
+                const commentFooterEl = $('.meta', commentEl);
+                Assert(commentFooterEl.length === 1, `Comment footer el != 1: ${filepath}`);
 
-            } else {
-                Assert(false, `ProcessBody - unexpected class for <a> '${el.classList[0]}' ${filepath}`);
-            }
-        } else if (["H1", "H2", "H3", "H4", "H5", "H6", "H7", "H8"].indexOf(el.nodeName) >= 0) {
-            Assert(el.classList.length === 0, `Unexpected class in <h1>: ${filepath}`);
-            json.type = "heading";
-            const headingLevels = { "H1": 1, "H2": 2, "H3": 3, "H4": 4, "H5": 5, "H6": 6, "H7": 7, "H8": 8 };
-            json.attrs = [{ level: headingLevels[el.nodeName] }];
-            //json.content = [{ type: "text", text: processText(el.textContent) }];
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
-            }
-        } else if (["EM", "STRONG"].indexOf(el.nodeName) >= 0) {
-            Assert(el.classList.length === 0, `Unexpected class in <${el.nodeName}>: ${filepath}`);
-            json.type = el.nodeName.toLowerCase();
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
+                const commentNameEl = $('.author', commentFooterEl),
+                    commentDateEl = $('.ts', commentFooterEl);
+
+                const commentProfileLink = commentNameEl.attr('href'),
+                    commentUserName = commentNameEl.text(),
+                    commentUserId = commentNameEl.attr('data-id'),
+                    commentDate = commentDateEl.text();
+
+                comment.author = {
+                    profile: commentProfileLink,
+                    name: commentUserName.trim(),
+                    id: commentUserId
+                };
+                comment.date = commentDate.trim();
+
+
+
+                // Comment content
+                // WARNING: We have to process this AFTER the author since we need to remove the .meta el to process the entire block as the comment body
+                //const commentContentContainerEl = commentEl.children('.text', commentEl);
+                const commentContentContainerEl = commentEl.children('.comment-content').children('.comment-text-wrapper').children('.text');
+                Assert(commentContentContainerEl.length === 1, `$(.text, .comment-item).length != 1: ${filepath}`);
+                //const commentContentEl = $('p', commentContentContainerEl).first(); // FIXME: Multiple <p>'s
+                //Assert(commentContentEl.length === 1, `$(p, commentContentContainerEl).length != 1: ${filepath}`);
+                //const commentContent = PROBLEM_PARSE_BODY(commentContentEl.html(), env);
+                $('.meta', commentContentContainerEl).remove();
+                const commentContent = PROBLEM_PARSE_BODY(commentContentContainerEl.html(), env);
+                comment.body = commentContent;
+
+                comments.push(comment);
             }
 
-            // Apply marks recursively to children
-            RECURSIVE_RUN_ON_NODES(json, (child) => {
-                if (child.type === "text") {
-                    if (!child.marks) child.marks = [];
+            // Nuke non-JSON parts from comments
+            for (let commentIdx = comments.length - 1; commentIdx >= 0; --commentIdx) {
+                const comment = comments[commentIdx];
+                if (comment.parent) {
+                    comments.splice(commentIdx, 1);
+                }
 
-                    if (json.type === "em") {
-                        child.marks.push({ type: "italic" });
-                    } else if (json.type === "strong") {
-                        child.marks.push({ type: "bold" });
-                    }
-                }
-            });
-        } else if (el.nodeName === "PRE") {
-            Assert(el.childNodes.length === 1, `pre has not 1 child: ${filepath}`);
-            const codeEl = el.childNodes[0];
-            Assert(codeEl.nodeName === "CODE", `Unexpected element ${codeEl.nodeName} in <pre>: ${filepath}`); // If this hits then just recursively handle children
-            json.type = "codeBlock";
-            json.content = [{ type: "text", text: processText(el.textContent) }];
-            json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
-        } else if (el.nodeName === "CODE") {
-            // inline code block
-            Assert(el.classList.length === 0, `Unexpected class list for <code>: ${filepath}`);
-            json.type = "codeBlock";
-            json.content = [{ type: "text", text: processText(el.textContent) }];
-            json.attrs = [{ text: el.textContent, language: null }];
-        } else if (el.nodeName === "BLOCKQUOTE") {
-            json.type = "blockquote";
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
+                delete comment.el;
+                delete comment.parent;
             }
-        } else if (el.nodeName === "HR") {
-            Assert(el.classList.length === 0, `Unexpected class in <hr>: ${filepath}`);
-            json.type = "horizontalRule";
-        } else if (el.nodeName === "BR") {
-            Assert(el.classList.length === 0, `Unexpected class in <br>: ${filepath}`);
-            json.type = "hardBreak";
-        } else if (el.nodeName === "UL") {
-            json.type = "bulletList";
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    if (children[i].nodeName === "LI") { // skip #text
-                        const contentChild = recursiveGetInputFromEl(children[i]);
-                        json.content.push(contentChild);
-                    }
-                }
-            }
-        } else if (el.nodeName === "OL") {
-            json.type = "orderedList";
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    if (children[i].nodeName === "LI") { // skip #text
-                        const contentChild = recursiveGetInputFromEl(children[i]);
-                        json.content.push(contentChild);
-                    }
-                }
-            }
-        } else if (el.nodeName === "LI") {
-            json.type = "listItem";
-            json.content = [];
-            const children = el.childNodes;
-            if (children.length > 0) {
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
-            }
-        } else if (el.nodeName === "DIV") {
-            if (el.classList.length === 1 && el.classList[0] === "table-wrapper") {
-                json.type = "paragraph";
-                json.content = [];
-                const children = el.childNodes;
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
-            } else if (el.classList.length === 1 && el.classList[0] === "codex-static-code") {
-                const codeEl = $('code', el).eq(0)[0];
-                Assert(codeEl.nodeName === "CODE", `Unexpected element ${codeEl.nodeName} in <pre>: ${filepath}`); // If this hits then just recursively handle children
-                json.type = "codeBlock";
-                json.content = [{ type: "text", text: processText(codeEl.textContent) }];
-                json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
-            } else if (el.classList.length >= 1 && el.classList[0] === "cmp_codex_page_id") {
-                console.log("FIXME: Runnable code");
-
-                const codeEl = $('textarea', el).eq(0)[0];
-                json.type = "codeBlock";
-                json.content = [{ type: "text", text: processText(codeEl.textContent) }];
-                json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
-            } else if (el.classList.length >= 1 && el.classList[0] === "viz-wrapper") {
-                console.log("FIXME: snapsvg");
-                json.type = "paragraph";
-                json.content = [{type: "#text", text: "FIXME: IMPLEMENT SnapSVG"}];
-            } else if (el.classList.length >= 1 && el.classList[0] === "glossary-container") {
-                console.log("FIXME: glossary");
-                json.type = "paragraph";
-                json.content = [{type: "#text", text: "FIXME: IMPLEMENT Glossary"}];
-            } else if (el.classList.length === 0 && el.style.display === "none") {
-                console.log("FIXME: blank div, unnecessary to include");
-                json.type = "paragraph";
-                json.content = [{type: "#text", text: " "}];
-            } else if (el.classList.length >= 1 && (el.classList[0] === "center" || el.classList[0] === "left" || el.classList[0] === "right")) {
-                json.type = "paragraph";
-                json.content = [];
-                const children = el.childNodes;
-                for (let i = 0; i < children.length; ++i) {
-                    const contentChild = recursiveGetInputFromEl(children[i]);
-                    json.content.push(contentChild);
-                }
-            } else if (el.classList.length >= 1 && el.classList[0] === "video-container") {
-                console.log("FIXME: Handle Video element");
-
-                json.type = "image";
-                json.attrs = { src: "" };
-            }  else {
-                console.log(el.classList[0]);
-                Assert(false, `Unexpected class list for <div>: ${filepath}`);
-            }
-        } else if (el.nodeName === "TABLE") {
-            json.type = "table";
-            json.content = [];
-            const children = el.childNodes;
-            for (let i = 0; i < children.length; ++i) {
-                if (children[i].nodeName === "TBODY") {
-                    const bodyChildren = children[i].childNodes;
-                    for (let j = 0; j < bodyChildren.length; ++j) {
-                        const contentChild = recursiveGetInputFromEl(bodyChildren[j]);
-                        json.content.push(contentChild);
-                    }
-                } else if (children[i].nodeName === "#text") { // ignore
-                } else {
-                    Assert(false, `Unexpected child for <table>: ${filepath}`);
-                }
-            }
-        } else if (el.nodeName === "TR") {
-            json.type = "tableRow";
-            json.content = [];
-            const children = el.childNodes;
-            for (let i = 0; i < children.length; ++i) {
-                const contentChild = recursiveGetInputFromEl(children[i]);
-                json.content.push(contentChild);
-            }
-        } else if (el.nodeName === "TD") {
-            json.type = "tableCell";
-            json.content = [];
-            const children = el.childNodes;
-            for (let i = 0; i < children.length; ++i) {
-                const contentChild = recursiveGetInputFromEl(children[i]);
-                json.content.push(contentChild);
-            }
-        } else {
-            Assert(false, `ProcessBody - unexpected nodeName '${el.nodeName}' ${filepath}`);
         }
-
-        Assert(json && Object.entries(json).length > 0, `Unexpected json parse: ${filepath}`);
-        return json;
-    };
-
-    // Generate JSON rather than HTML since we could have <> in codeblocks which may break html parsing
-    let doc = {
-        type: "doc",
-        content: []
-    };
-    for (let i = 0; i < html.length; ++i) {
-        const el = html[i];
-        const elJson = recursiveGetInputFromEl(el);
-        if (elJson) doc.content.push(elJson);
     }
 
-    //let json = generateJSON(input, tiptapExtensions);
-    let jsonStr = JSON.stringify(doc);
-    return jsonStr;
+    outProblem.discussion = discussion;
+
+    // Metadata
+    const metaScript = $('#ir_template_holder');
+    const archiveMeta = {
+        answered: -1
+    };
+    if (metaScript.length > 0) {
+        let correctAnswersMatch = $('#ir_template_holder').text.match(/(\d+)\% of people got this right/);
+        if (correctAnswersMatch && correctAnswersMatch.length === 2) {
+            let correctAnswersPct = parseInt(correctAnswersMatch[1]);
+            archiveMeta.answered = correctAnswersPct;
+        }
+    }
+
+    outProblem.meta = archiveMeta;
+    return outProblem;
 };
 
 const parseProblemsBatch = (i) => {
@@ -615,361 +616,15 @@ const parseProblemsBatch = (i) => {
         const $ = jQuery(dom.window);
 
         const env = {
-            $, filepath
+            $, filepath, problemName, problemFile
         };
 
-        const outProblem = {};
-        outProblem.id = (SINGLE_PROBLEM_IDX > -1 ? SINGLE_PROBLEM_IDX : i+j) + 1;
-        outProblem.source = filepath;
-        //console.log(data);
-
-        const categoryAndLevel = $('.topic-level-info').text();
-
-        // Category / Level
-        let categoryName, categoryLevel;
-        if(categoryAndLevel.replaceAll('\n','').replaceAll(' ','') === "Levelpending") {
-            // FIXME: level unset
-            categoryName = 'uncategorized';
-            categoryLevel = 0;
+        let outProblem;
+        if (DISCUSSION) {
+            outProblem = parseDiscussion((SINGLE_PROBLEM_IDX > -1 ? SINGLE_PROBLEM_IDX : i+j) + 1, env);
         } else {
-            let matchCat = categoryAndLevel.match(/^\s*(Algebra|Biology|Geometry|Number Theory|Calculus|Probability|Basic Mathematics|Logic|Classical Mechanics|Electricity and Magnetism|Computer Science|Quantitative Finance|Chemistry|Number Theory and Algebra|SAT® Math)\s*Level\s*(\d*)/);
-
-            if (!matchCat) {
-                matchCat = categoryAndLevel.match(/^\s*Level\s*(\d*)/);
-                if (!matchCat) {
-                    console.log(categoryAndLevel);
-                    throw "Unexpected level/category";
-                }
-
-                categoryName = 'uncategorized';
-                categoryLevel = parseInt(matchCat[1]);
-                if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
-            } else {
-                categoryName = matchCat[1];
-                categoryLevel = parseInt(matchCat[2]);
-                if (isNaN(categoryLevel)) categoryLevel = 1; // Level Pending
-            }
-
-
-
-            //console.log( $('.topic-level-info').text() );
+            outProblem = parseProblem((SINGLE_PROBLEM_IDX > -1 ? SINGLE_PROBLEM_IDX : i+j) + 1, env);
         }
-
-        if (verbose) {
-            console.log((i+j) + "   " + categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
-        }
-
-        outProblem.category = categoryName;
-        outProblem.level = categoryLevel;
-
-        // Title
-        const titleEl = $('.old-title-display');
-        Assert( titleEl.length === 1 , `$(.old-title-display).length != 1: ${filepath}` );
-        let problemTitle = "";// processText(titleEl.text().trim());
-        {
-            // Title can contain Katex elements
-
-            const titleH1El = titleEl[0].childNodes[1];
-            Assert(titleH1El.nodeName === "H1", `Unexpected H1 title child: ${filepath}`);
-            for (let k = 0; k < titleH1El.childNodes.length; ++k) {
-                const titleH1ChildEl = titleH1El.childNodes[k];
-                if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
-                    const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
-                    Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
-                    problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
-                } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
-                    problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
-                } else if (titleH1ChildEl.nodeName === "#text") {
-                    problemTitle += titleH1ChildEl.textContent;
-                } else {
-                    Assert(false, `Unexpected element in title: ${filepath}`);
-                }
-            }
-        }
-        outProblem.title = problemTitle;
-
-        // Question
-        const questionBodyEl = $('.question-text');
-        Assert( questionBodyEl.length === 1 , `$(.question-text).length != 1: ${filepath}` );
-        const questionBody = questionBodyEl.html().trim('\n');
-        outProblem.body = processBody(questionBody, env);
-
-        // Solutions
-        const answerScriptEl = $('#ir_template_holder');
-        Assert( answerScriptEl.length === 1 , `$(#ir_template_holder).length != 1: ${filepath}` );
-        const answer = answerScriptEl.attr('data-answers-list');
-        let multipleChoice = answerScriptEl.attr('data-has-multiple-options') === "true";
-
-        const answers = [];
-        if (multipleChoice) {
-            const answerContainerEl = $('.solv-mcq-wrapper');
-            Assert( answerContainerEl.length === 1 , `$(.solv-mcq-wrapper).length != 1: ${filepath}` );
-
-            const answerEls = $('.btn-mcq', $('.solv-mcq-wrapper'));
-
-            // NOTE: People can post multiple choice problems but only have 1 option
-            // FIXME: Transport these to non-multiple choice?
-            Assert( answerEls.length >= 1 , `$('.btn-mcq', $('.solv-mcq-wrapper')).length <= 1: ${filepath}` );
-
-            for (let answerIdx = 0; answerIdx < answerEls.length; ++answerIdx) {
-                const answerOutEl = $('.btn-mcq', $('.solv-mcq-wrapper')).eq(answerIdx);
-                Assert(answerOutEl[0].childNodes.length === 5, `Unexpected solution children: ${filepath}`); // #text span.bg #text span #text
-                //const answer = $('.btn-mcq', $('.solv-mcq-wrapper')).eq(answerIdx).text().trim();//[answerIdx].innerText;
-                const answerEl = answerOutEl[0].childNodes[3];
-                Assert(answerEl.nodeName === "SPAN", `Unexpected solution child: ${filepath}`);
-                Assert( answerEl.textContent.length > 0 , `Empty answer: ${filepath}` );
-                const answer = processBody($(answerEl).html(), env);
-
-                const correct = $( $('.btn-mcq', $('.solv-mcq-wrapper'))[answerIdx] ).hasClass('correct')
-                answers.push({ correct: correct, text: answer });
-            }
-        } else {
-            answers.push({ correct: true, text: answer });
-        }
-
-        outProblem.answers = answers;
-
-        // Author
-        const authorEl = $('.solv-author');
-        Assert(authorEl.length === 1, `authorEl !== 1: ${filepath}`);
-        const avatarEl = $('avatar img', authorEl),
-            userEl = $('.btn-profile', authorEl),
-            userId = userEl.attr('data-id');
-
-        const avatarSrc = avatarEl.attr('src'),
-            profileLink = userEl.attr('href'),
-            userName    = userEl.text(),
-            userText    = userEl.parent().text(),
-            userTitle   = userEl.attr('title');
-
-        Assert(userTitle.length > 0 && userTitle.indexOf('\\') === -1 && userTitle.indexOf('"') === -1, `Bad user title: ${filepath}`);
-
-        /*
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-        }
-
-        const escapedUserTitle = escapeRegExp(userTitle);
-
-        const userMatch   = userText.match(new RegExp("^\\s*by\\s+("+ escapedUserTitle +"),?\\s*(\\d+)?,?\\s*(.*)?\\s*$"));
-        Assert(userMatch, `Bad user match: ${filepath}`);
-
-        let userAge = null, userLocation = null;
-        if (userMatch.length > 2 && userMatch[2] !== undefined) {
-            // age or location included
-            Assert(userMatch.length === 4, "FIX Age/Location");
-            const userAge = parseInt(userMatch[2]);
-            Assert(userAge >= 0 && userAge < 100, `Bad user age: ${filepath}`);
-            const userLocation = userMatch[3].trim();
-            Assert(userLocation.length > 0, `Bad user location: ${filepath}`);
-        }
-        */
-
-        let userAge = null, userLocation = null;
-        const userTextChunks = $.parseHTML($('.solv-author .text').html());
-        if (userTextChunks.length >= 4) {
-            Assert(userTextChunks.length === 5, `Unexpected userText chunks: ${filepath}`); // Expect ends w/ #text "\n\n\n"
-            const userAgeParts = userTextChunks[2].textContent.match(/^,?\s*(\d+),?\s*$/);
-            userAge = parseInt(userAgeParts[1]);
-            userLocation = userTextChunks[3].textContent.trim();
-        } else if (userTextChunks.length === 3) {
-            let ageOrLocation = userTextChunks[2].textContent;
-            if (parseInt(ageOrLocation) > 0) {
-                userAge = ageOrLocation;
-            } else {
-                userLocation = ageOrLocation.trim();
-            }
-        }
-
-
-        outProblem.author = {
-            avatar: avatarSrc,
-            profile: profileLink,
-            name: userTitle,
-            age: userAge,
-            id: userId,
-            location: userLocation
-        };
-
-
-        // Discussion
-        const discussionContainerEl = $('.discsol-list');
-        Assert( discussionContainerEl.length === 1 , `$(.discsol-list).length != 1: ${filepath}` );
-        const solutionEls = $('.solution', discussionContainerEl);
-        const discussion = [];
-        if (solutionEls.length > 0) {
-            for (let solutionIdx = 0; solutionIdx < solutionEls.length; ++solutionIdx) {
-                
-                const discussionBit = {};
-                discussion.push(discussionBit);
-
-                const solutionEl = $('.solution-main', solutionEls.eq(solutionIdx)),
-                    solutionNoteEl = solutionEl.siblings('.solution-note'),
-                    solutionHeaderEl = $('.solution-header', solutionEl),
-                    solutionFooterEl = $('.solution-footer', solutionEl);
-
-                // Solution Id
-                const solutionParentEl = solutionEl[0].parentNode,
-                    solutionElId = solutionParentEl.attributes['id'].value,
-                    solutionIdMatch = solutionElId.match(/post-(\d+)/);
-                Assert(solutionIdMatch && solutionIdMatch.length === 2, `Unexpected solution Id: ${filepath}`);
-                const solutionId = parseInt(solutionIdMatch[1]);
-                Assert(!isNaN(solutionId) && solutionId > 0, `Unexpected solution id value: ${filepath}`);
-                discussionBit.id = solutionId;
-
-                // Note
-                if (solutionNoteEl.length > 0) {
-                    console.log(`  FIXME: Solution Note ${filepath}`);
-                    // eg. http://brilliant.laravel:8000/brilliantexport/problems/-49/-49.html
-                    // eg. http://brilliant.laravel:8000/brilliantexport/problems/freefall/freefall.html
-                }
-
-                // Header
-                const avatarEl = $('.avatar img', solutionHeaderEl),
-                    userEl = $('.btn-profile', solutionHeaderEl),
-                    dateEl = $('span', solutionHeaderEl).last(); // NOTE: Could have [Staff] title
-
-                const avatarSrc = avatarEl.attr('src'),
-                    profileLink = userEl.attr('href'),
-                    userName    = userEl.text().trim(),
-                    userId      = userEl.attr('data-id'),
-                    datePosted  = dateEl.attr('title');
-
-                Assert(avatarSrc.length > 0, `No avatar for user: ${filepath}`);
-                Assert(profileLink.length > 0, `No profile for user: ${filepath}`);
-                Assert(userName.length > 0, `No name for user: ${filepath}`);
-                Assert(datePosted.length > 0, `No date post for user: ${filepath}`);
-
-                discussionBit.author = {
-                    avatar: avatarSrc,
-                    profile: profileLink,
-                    name: userName,
-                    id: userId
-                };
-
-                discussionBit.date = datePosted;
-
-
-                // Content
-                const solutionBody = $('.comment-content .text', solutionEl).html();
-                if (!solutionBody) {
-                    console.log("FIXME: No solution provided -- please confirm");
-                    discussionBit.body = "";
-                } else {
-                    Assert(solutionBody.length > 0, `No solution provided: ${filepath}`);
-                    discussionBit.body = processBody(solutionBody, env);
-                }
-
-
-                // Footer
-                const helpfulEl   = $('.reactions .helpful', solutionFooterEl),
-                    interestingEl = $('.reactions .interesting', solutionFooterEl),
-                    brilliantEl   = $('.reactions .brilliant', solutionFooterEl),
-                    confusedEl    = $('.reactions .confused', solutionFooterEl);
-                
-                const helpfulCount   = parseInt(helpfulEl.text().match(/^\d+/)[0]),
-                    interestingCount = parseInt(interestingEl.text().match(/^\d+/)[0]),
-                    brilliantCount   = parseInt(brilliantEl.text().match(/^\d+/)[0]),
-                    confusedCount    = parseInt(confusedEl.text().match(/^\d+/)[0]);
-
-                discussionBit.reactions = [helpfulCount, interestingCount, brilliantCount, confusedCount];
-
-
-                // Comments
-                const solutionContainerEl = solutionEl.parent().parent(),
-                    commentsContainerEl = $('.discsol-comments', solutionContainerEl),
-                    commentEls = $('.comment-item', commentsContainerEl),
-                    comments = [];
-                discussionBit.comments = comments;
-                for (let commentIdx = 0; commentIdx < commentEls.length; ++commentIdx) {
-                    const commentEl = commentEls.eq(commentIdx),
-                        commentContainerEl = commentEl.parent(),
-                        commentId = parseInt(commentEl.attr('data-comment')),
-                        commentLevel = commentContainerEl.attr('data-level');
-
-                    Assert(commentContainerEl.hasClass('cmmnt-container'), `Comment is not immediately contained inside .cmmnt-container: ${filepath}`);
-                    const comment = {
-                        el: commentEl,
-                        id: commentId,
-                        level: parseInt(commentLevel),
-                        replies: [],
-                        parent: null
-                    }
-
-                    // Which comment is this a reply to?
-                    // NOTE: Need to check from the end -> start to find child-most comment
-                    let parentComment = null;
-                    for (let parentCommentIdx = comments.length - 1; parentCommentIdx >= 0; --parentCommentIdx) {
-                        // comment-level0 [comment-id=6140]
-                        // replies
-                        //   reply-to .unhide_new_reply_6140
-                        //   comment-level1
-                        //   replies
-                        // comment-level0
-                        // comment-level0
-                        // ...
-                        if(commentEl.siblings(`.unhide_new_reply_${comments[parentCommentIdx].id}`).length > 0) {
-                            parentComment = comments[parentCommentIdx];
-                            Assert(comment.level > parentComment.level, `Wrong comment parent found (level mismatch): ${filepath}`);
-
-                            parentComment.replies.push(comment);
-                            comment.parent = parentComment;
-
-                            break;
-                        }
-                    }
-
-                    // Comment author
-                    const commentFooterEl = $('.meta', commentEl);
-                    Assert(commentFooterEl.length === 1, `Comment footer el != 1: ${filepath}`);
-
-                    const commentNameEl = $('.author', commentFooterEl),
-                        commentDateEl = $('.ts', commentFooterEl);
-
-                    const commentProfileLink = commentNameEl.attr('href'),
-                        commentUserName = commentNameEl.text(),
-                        commentUserId = commentNameEl.attr('data-id'),
-                        commentDate = commentDateEl.text();
-
-                    comment.author = {
-                        profile: commentProfileLink,
-                        name: commentUserName.trim(),
-                        id: commentUserId
-                    };
-                    comment.date = commentDate.trim();
-
-
-
-                    // Comment content
-                    // WARNING: We have to process this AFTER the author since we need to remove the .meta el to process the entire block as the comment body
-                    //const commentContentContainerEl = commentEl.children('.text', commentEl);
-                    const commentContentContainerEl = commentEl.children('.comment-content').children('.comment-text-wrapper').children('.text');
-                    Assert(commentContentContainerEl.length === 1, `$(.text, .comment-item).length != 1: ${filepath}`);
-                    //const commentContentEl = $('p', commentContentContainerEl).first(); // FIXME: Multiple <p>'s
-                    //Assert(commentContentEl.length === 1, `$(p, commentContentContainerEl).length != 1: ${filepath}`);
-                    //const commentContent = processBody(commentContentEl.html(), env);
-                    $('.meta', commentContentContainerEl).remove();
-                    const commentContent = processBody(commentContentContainerEl.html(), env);
-                    comment.body = commentContent;
-
-                    comments.push(comment);
-                }
-
-                // Nuke non-JSON parts from comments
-                for (let commentIdx = comments.length - 1; commentIdx >= 0; --commentIdx) {
-                    const comment = comments[commentIdx];
-                    if (comment.parent) {
-                        comments.splice(commentIdx, 1);
-                    }
-
-                    delete comment.el;
-                    delete comment.parent;
-                }
-            }
-        }
-
-        outProblem.discussion = discussion;
-
 
         outProblems.push(outProblem);
 

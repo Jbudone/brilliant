@@ -94,7 +94,8 @@ $(document).ready(() => {
             // JSON -> HTML for solutions ONLY if its multiple choice, since you can't latex/img an input solution
             if (this.solutions.length > 1) {
                 for (let i = 0; i < this.solutions.length; ++i) {
-                    this.solutions[i].html = JSON_TO_HTML(this.solutions[i].text);
+                    const solutionJson = INLINE_TO_JSON(this.solutions[i].text);
+                    this.solutions[i].html = JSON_TO_HTML(solutionJson);
                 }
             }
 

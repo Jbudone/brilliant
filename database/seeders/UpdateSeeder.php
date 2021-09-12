@@ -102,7 +102,6 @@ class UpdateSeeder extends Seeder
 //{"versionParse":0,"versionTransport":0,"batchIdx":0,"parsedList":"./brilliant.parsed/brilliant.parsed-0.json","transportedList":"./brilliant.parsed/brilliant.local-0.json"}
         $problemBatchList = $jsonMaster->processed;
         foreach ($problemBatchList as $idx => &$problemBatch) {
-
             $jsonFile = $problemBatch->transportedList;
             echo "Loading batch: $jsonFile\n";
 
@@ -126,18 +125,24 @@ class UpdateSeeder extends Seeder
                 $solutions = json_encode(['solutions' => $problem['answers']]);
                 $body = strlen($solutions) . $solutions . $questionBody;
 
+//$timerStart = microtime(true);
                 $author = $problem['author'];
                 addUser($author, $users);
+//$timerEnd = microtime(true); echo "addUser: " . ($timerEnd - $timerStart) . "\n"; $timerStart = microtime(true);
+
+                $archiveMeta = $problem['meta'];
 
                 $problemDoc = tap(Problem::where("archive_id", $problemId))->update([
                     'title' => $title,
                     'body' => $body,
                     'category_id' => $category,
-                    'level' => 1, // FIXME: Transport level -> levelId
+                    'level' => $level, // FIXME: Transport level -> levelId
                     //'author_id' => $authorId,
                     'solution' => 0, // FIXME: Transport get solution idx
+                    'archive_meta' => $archiveMeta
                     //'source' => $source
                 ])->first();
+//$timerEnd = microtime(true); echo "problemDoc: " . ($timerEnd - $timerStart) . "\n"; $timerStart = microtime(true);
 
 
                 // Discussion
@@ -149,6 +154,7 @@ class UpdateSeeder extends Seeder
 
                     $discussionAuthor = $discussion['author'];
                     addUser($discussionAuthor, $users);
+//$timerEnd = microtime(true); echo "addUser Discussion: " . ($timerEnd - $timerStart) . "\n"; $timerStart = microtime(true);
 
                     $discussionDoc = tap(Comment::where("archive_id", $discussionId))->update([
                         //'author_id' => $discussionAuthorId,
@@ -156,11 +162,13 @@ class UpdateSeeder extends Seeder
                         'body' => $discussionBody,
                         //'parent_comment_id' => null
                     ])->first();
+//$timerEnd = microtime(true); echo "addComment: " . ($timerEnd - $timerStart) . "\n"; $timerStart = microtime(true);
 
                     $discussionComments = $discussion['comments'];
                     foreach ($discussionComments as $commentIdx => &$comment) {
                         addComment($comment, $problemDoc->id, $discussionDoc->id, $users);
                     }
+//$timerEnd = microtime(true); echo "addComments: " . ($timerEnd - $timerStart) . "\n"; $timerStart = microtime(true);
 
                 }
             }

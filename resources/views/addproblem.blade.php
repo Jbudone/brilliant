@@ -59,7 +59,7 @@
                             <div class="col-span-5">
 
                                 <span class="prblm-edit-header">Title</span>
-                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-bind:value="this.title" placeholder="Title" autocomplete="off" />
+                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-model="this.title" placeholder="Title" autocomplete="off" />
                                 @error('title')
                                 <div class="alert alert-danger">{{ $message }}</div>
                                 @enderror
@@ -113,7 +113,7 @@
                                         <p>
                                         <label class="edit-solution">
                                             <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" @change="setCorrectSolution(idx)" />
-                                            <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" />
+                                            <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" autocomplete="off" />
                                         </label>
                                         </p>
                                     </template>
