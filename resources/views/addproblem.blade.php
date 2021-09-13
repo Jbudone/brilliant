@@ -32,7 +32,7 @@
 
 
     <!-- Content -->
-    <div class="w-3/5 m-auto mt-6 font-serif ctnt-container">
+    <div class="sm:w-3/5 m-auto mt-6 font-serif ctnt-container">
         <div class="pt-6 px-4 pb-4 ctnt-main prblm-container">
             <div class="ctnt-sections">
                 @if(Route::is('addproblem'))
@@ -55,11 +55,11 @@
 
                         @csrf
 
-                        <div class="grid grid-cols-7 gap-4">
-                            <div class="col-span-5">
+                        <div class="md:grid md:grid-cols-7 md:gap-4">
+                            <div class="col-span-5 pl-2">
 
                                 <span class="prblm-edit-header">Title</span>
-                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-model="this.title" placeholder="Title" autocomplete="off" />
+                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-model="this.title" placeholder="Title" autocomplete="off" @input="updatePreview()" />
                                 @error('title')
                                 <div class="alert alert-danger">{{ $message }}</div>
                                 @enderror
@@ -95,15 +95,10 @@
                                 </div>
 
                                 <span class="prblm-edit-header">Question Body</span>
-                                <tip-tap-form :name="`editor`" :namepreview="`preveditor`" :haspreview="true" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
+                                <tip-tap-form :name="`editor`" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
                                 @error('body')
                                 <div class="alert alert-danger">{{ $message }}</div>
                                 @enderror
-
-                                <div class="prblm-edit-footer">
-                                    <a href="#" class="prblm-edit-cancel" @click.prevent="cancel">Cancel</a>
-                                    <a href="#" class="prblm-edit-save" @click.prevent="save">Save</a>
-                                </div>
                             </div>
                             <div class="col-span-2">
                                 <span class="prblm-edit-header">Solutions</span>
@@ -113,7 +108,7 @@
                                         <p>
                                         <label class="edit-solution">
                                             <input class="with-gap edit-solution-radio" name="solutionsGroup" type="radio" v-bind:id="'solution' + idx" v-bind:checked="checkedSolution(idx)" @change="setCorrectSolution(idx)" />
-                                            <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" autocomplete="off" />
+                                            <input class="edit-solution-input" type="text" v-bind:name="'solution' + idx" placeholder="Solution Option" v-model="solution.text" autocomplete="off" @input="updatePreview()" />
                                         </label>
                                         </p>
                                     </template>
@@ -121,6 +116,25 @@
                             </div>
                         </div>
                     </form>
+                    <div>
+                        <div class="preview">
+                            <div ref="previewTitle"></div>
+
+                            <div class="">
+                                <div class="pl-4">
+                                    <div ref="previewContent"></div>
+                                </div>
+                                <div class="" style="width:80%">
+                                    <div ref="previewSolutions"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prblm-edit-footer pr-8">
+                            <a href="#" class="prblm-edit-cancel" @click.prevent="cancel">Cancel</a>
+                            <a href="#" class="prblm-edit-save" @click.prevent="save">Save</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

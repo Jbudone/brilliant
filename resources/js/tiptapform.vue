@@ -92,7 +92,7 @@ export default {
         haspreview: {
             type: Boolean,
             required: false,
-            default: true,
+            default: false,
             note: 'Has preview window'
         },
         value: {
@@ -134,38 +134,18 @@ export default {
 
                 return html;
             };
-
-            // FIXME: Get title from addproblem app
-            let title = $('.prblm-edit-title').first().val();
-            let solutions = [];
-            $('.edit-solution-input').each((i, el) => {
-                solutions.push({
-                    text: el.value
-                });
-            });
-
             
             html = katexText(html);
-            title = katexText(title);
-
-            // FIXME: Should vueify this better
-            let solutionsContent = "";
-            for (let i = 0; i < solutions.length; ++i) {
-                let solution = solutions[i].text;
-                solution = '<span class="text-lg m-1 p-1 pl-2 w-full h-8 block bg-gray-100 truncate">' + katexText(solution) + '</span>';
-                solutionsContent += solution + "\n";
-            }
-
-            this.$refs.previewTitle.innerHTML = title;
             this.$refs.previewContent.innerHTML = html;
-            this.$refs.previewSolutions.innerHTML = solutionsContent;
         },
 
         setInput(input) {
             const inputHTML = JSON_TO_HTML(input);
             this.editor.commands.setContent(inputHTML);
 
-            this.updatePreview(this.editor);
+            if (this.haspreview) {
+                this.updatePreview(this.editor);
+            }
         },
 
         headingList() {
@@ -190,9 +170,9 @@ export default {
 
             onUpdate({ editor }) {
 
+                _this.$emit('update', _this.editor.getJSON());
                 if (_this.haspreview) {
                     // The content has changed.
-                    _this.$emit('update', _this.editor.getJSON());
                     _this.updatePreview(editor);
                 }
             },
@@ -200,11 +180,6 @@ export default {
 
         if (this.haspreview) {
             this.preview = document.getElementById(this.namepreview);
-
-
-            // FIXME: Better way to bind title/solutions
-            $('.prblm-edit-title').on('input', () => _this.updatePreview(_this.editor));
-            $('.edit-solution-input').on('input', () => _this.updatePreview(_this.editor));
         }
 
         // FIXME: Use Vuex or something to avoid this
@@ -236,6 +211,7 @@ export default {
 }
 
 .preview {
+    margin-left: 20px;
     padding-top: 1.8rem;
     padding-left: 12px;
     padding-right: 12px;

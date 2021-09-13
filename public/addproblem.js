@@ -67,6 +67,61 @@ $(document).ready(() => {
 
             setQuestionBody(json) {
                 this.question = json;
+                this.updatePreview();
+            },
+
+            updatePreview() {
+
+                let html = this.$refs.editor.editor.getHTML();
+
+                // FIXME: Replace {{ }} w/ katex tag ; run katex
+                const katexText = (html) => {
+                    let readFrom = 0;
+                    do {
+                        let idxStart = html.indexOf('{{', readFrom),
+                            idxEnd = html.indexOf('}}', readFrom);
+
+                        if (idxStart === -1 || idxEnd <= idxStart) break;
+
+                        let katexRaw = html.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+                        let katexHtml = Katex.renderToString(katexRaw, {
+                            displayMode: false, // inline
+                        });
+
+                        let end = html.substr(idxEnd + 2);
+                        html = html.substr(0, idxStart) + katexHtml;
+                        readFrom = html.length;
+                        html += end;
+
+                    } while (true);
+
+                    return html;
+                };
+
+                // FIXME: Get title from addproblem app
+                let title = $('.prblm-edit-title').first().val();
+                let solutions = [];
+                $('.edit-solution-input').each((i, el) => {
+                    solutions.push({
+                        text: el.value
+                    });
+                });
+
+
+                html = katexText(html);
+                title = katexText(title);
+
+                // FIXME: Should vueify this better
+                let solutionsContent = "";
+                for (let i = 0; i < solutions.length; ++i) {
+                    let solution = solutions[i].text;
+                    solution = '<span class="text-lg m-1 p-1 pl-2 w-full h-8 block bg-gray-100 truncate">' + katexText(solution) + '</span>';
+                    solutionsContent += solution + "\n";
+                }
+
+                this.$refs.previewTitle.innerHTML = title;
+                this.$refs.previewContent.innerHTML = html;
+                this.$refs.previewSolutions.innerHTML = solutionsContent;
             },
 
             getQuestionBody() {
@@ -229,6 +284,7 @@ $(document).ready(() => {
         },
         mounted() {
             this.$refs.editor.setInput(this.question);
+            this.updatePreview();
         },
         beforeUnmount() {
         },
