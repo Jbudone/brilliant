@@ -11,7 +11,7 @@
     </x-slot>
 
     <!-- Content -->
-    <div class="w-3/5 m-auto mt-6 font-serif">
+    <div class="sm:w-3/5 m-auto mt-6 font-serif">
         <div id="problems" class="container ctnt-main">
             <div class="ctnt-sections row">
                 <span class="ctnt-btn active"><a href='#'>Problems</a></span>
