@@ -74,7 +74,7 @@
                     </template>
                 </tbody>
             </table>
-            <ul class="pagination mt-4">
+            <ul class="pagination mt-4 list-none">
                 <li class="page-item">
                     <a href='#' class="page-link" v-bind:class="{ disabled: (page == 1) }" @click.prevent="setPage(page-1)"> Previous </a>
                 </li>

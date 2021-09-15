@@ -100,7 +100,7 @@
                             <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
                             <input type="text" name="parent_comment_id" value="" style="display: none;" />
 
-                            <tip-tap-form :name="`editoraddsolution`" :namepreview="`prevaddsolution`" :haspreview="false"></tip-tap-form>
+                            <tip-tap-form :name="`editoraddsolution`" :namepreview="`prevaddsolution`" :haspreview="true"></tip-tap-form>
                             @error('comment')
                             <div class="alert alert-danger">{{ $message }}</div>
                             @enderror
@@ -120,7 +120,7 @@
                             <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
                             <input type="text" name="parent_comment_id" value="" style="display: none;" />
 
-                            <tip-tap-form :name="`editorreplyto`" :namepreview="`prevreplyto`" :haspreview="false"></tip-tap-form>
+                            <tip-tap-form :name="`editorreplyto`" :namepreview="`prevreplyto`" :haspreview="true"></tip-tap-form>
                             @error('comment')
                             <div class="alert alert-danger">{{ $message }}</div>
                             @enderror
@@ -139,7 +139,7 @@
                             <input type="text" name="comment" style="display: none;" />
                             <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
 
-                            <tip-tap-form :name="`editorreplyedit`" :namepreview="`prevreplyedit`" :haspreview="false"></tip-tap-form>
+                            <tip-tap-form :name="`editorreplyedit`" :namepreview="`prevreplyedit`" :haspreview="true"></tip-tap-form>
                             @error('comment')
                             <div class="alert alert-danger">{{ $message }}</div>
                             @enderror

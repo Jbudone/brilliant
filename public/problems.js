@@ -195,7 +195,7 @@ $(document).ready(() => {
                     let data = await res.json();
 
                     this.filteredProblemsCount = data['count'];
-                    this.maxPages = this.filteredProblemsCount / 15;
+                    this.maxPages = Math.ceil(this.filteredProblemsCount / 15);
                 }
 
                 let fromIdx = (this.page - 1) * 15,
