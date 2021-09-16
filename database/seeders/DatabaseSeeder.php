@@ -20,19 +20,16 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-
-        //Problem::truncate();
-        //Category::truncate();
         \App\Models\User::factory(10)->create();
 
         // FIXME: Default user for easy login
 
 
-        $algebra = Category::create([ 'name' => 'Algebra' ]);
-        $geometry = Category::create([ 'name' => "Geometry" ]);
-        $numberTheory = Category::create([ 'name' => "Number Theory" ]);
-        $calculus = Category::create([ 'name' => "Calculus" ]);
-        $logic = Category::create([ 'name' => "Logic" ]);
+        Category::create([ 'name' => 'Algebra' ]);
+        Category::create([ 'name' => "Geometry" ]);
+        Category::create([ 'name' => "Number Theory" ]);
+        Category::create([ 'name' => "Calculus" ]);
+        Category::create([ 'name' => "Logic" ]);
         Category::create([ 'name' => "Classical Mechanics" ]);
         Category::create([ 'name' => "Electricity and Magnetism" ]);
         Category::create([ 'name' => "Computer Science" ]);
