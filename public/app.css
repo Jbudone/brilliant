@@ -962,3 +962,13 @@ ul {
     list-style-type: disc;
     margin-left: 1rem;
 }
+
+a[href] {
+    color: #55D;
+    font-weight: 800;
+}
+
+a[href]:hover {
+    color: #88D;
+    font-weight: 800;
+}
