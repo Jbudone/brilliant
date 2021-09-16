@@ -162,6 +162,9 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         } else if (metaType === "orderedList") {
             inflated.type = "orderedList";
             inflated.count = parseInt(body);
+        } else if (metaType === "listItem") {
+            inflated.type = "listItem";
+            inflated.count = parseInt(body);
         } else if (metaType === "table") {
             inflated.type = "table";
             inflated.count = parseInt(body);
@@ -189,6 +192,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
     const pushChildEl = (el) => {
 
         let parentEl = elStack[elStack.length - 1];
+        /*
         if (parentEl.type === "bulletList" || parentEl.type === "orderedList") {
             const intermediaryParentEl = {
                 type: "listItem",
@@ -211,6 +215,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         //        content: [el]
         //    };
         }
+        */
 
         parentEl.content.push(el);
     };
@@ -302,7 +307,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
             };
 
             pushChildEl(el);
-        } else if (["paragraph", "bulletList", "orderedList", "table", "tableRow"].indexOf(inflated.type) >= 0) {
+        } else if (["paragraph", "bulletList", "orderedList", "listItem", "table", "tableRow", "tableCell"].indexOf(inflated.type) >= 0) {
             const el = {
                 type: inflated.type,
                 content: []

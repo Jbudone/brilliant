@@ -12,6 +12,7 @@ const META_MAP = {
     'blockquote': 'Bq',
     'bulletList': 'Bl',
     'orderedList': 'Ol',
+    'listItem': 'Li',
     'heading': 'Hd',
     'codeBlock': 'Cb',
     'horizontalRule': 'Hr',
@@ -45,14 +46,12 @@ for (const key in META_MAP) {
 
 const JSON_BODY_TO_HTML = (json) => {
 
-    if (json.type === "doc" || json.type === "listItem" || json.type === "tableCell") {
+    if (json.type === "doc") {
         // top level
         let contents = [];
-        let immediateChildren = 0;
         const contentLen = json.content ? json.content.length : 0;
         for (let i = 0; i < contentLen; ++i) {
             let { child, elements } = JSON_BODY_TO_HTML(json.content[i]);
-            immediateChildren += elements;
             if (child) {
                 if (child instanceof Array) {
                     for (let j = 0; j < child.length; ++j) {
@@ -66,7 +65,7 @@ const JSON_BODY_TO_HTML = (json) => {
 
         // FIXME: Merge terms (texts, nuke '\n' #text's, etc.)
 
-        return { child: contents, elements: immediateChildren };
+        return { child: contents, elements: 1 };
     } else if (json.type === "text" || json.type === "#text") {
         let meta = META_MAP['text'],
             text = json.text;
@@ -177,7 +176,7 @@ const JSON_BODY_TO_HTML = (json) => {
             }
         }
         return { child: contents, elements: immediateChildren };
-    } else if (["paragraph","bulletList", "orderedList", "blockquote", "heading", "codeBlock", "table", "tableRow", "em", "strong", "a"].indexOf(json.type) >= 0) {
+    } else if (["paragraph","bulletList", "orderedList", "blockquote", "heading", "codeBlock", "table", "tableRow", "em", "strong", "a", "listItem", "tableCell"].indexOf(json.type) >= 0) {
         let meta = META_MAP[json.type];
 
         if (json.type === "heading") {
@@ -263,11 +262,14 @@ const BODY_HTML_TO_INLINE = (list) => {
         const elType = el.substr(0, 2), // Intentionally ignore marks
             elText = el.substr(el.indexOf(':') + 1);
 
-        Assert(elType === META_MAP['text'] || elType === META_MAP['katex'], `Unexpected elType in: ${el}`);
+        // Unfortunately Brilliant allowed some odd content for solutions; just ignore these
+        const ignoredWhitelist = [META_MAP['horizontalRule'], META_MAP['orderedList'], META_MAP['bulletList'], META_MAP['blockquote'], META_MAP['heading']];
+
+        Assert(elType === META_MAP['text'] || elType === META_MAP['katex'] || ignoredWhitelist.indexOf(elType) !== -1, `Unexpected elType in: ${el}`);
         if (elType === META_MAP['text']) {
             inline += elText.trim();
         } else if (elType === META_MAP['katex']) {
-            inline += " {{" + elText.trim() + "}} ";
+            inline += " \\(" + elText.trim() + "\\) ";
         }
     }
 
