@@ -72,14 +72,14 @@ $(document).ready(() => {
 
             updatePreview() {
 
-                let html = this.$refs.editor.editor.getHTML();
+                //let html = this.$refs.editor.editor.getHTML();
 
                 // FIXME: Replace {{ }} w/ katex tag ; run katex
                 const katexText = (html) => {
                     let readFrom = 0;
                     do {
-                        let idxStart = html.indexOf('{{', readFrom),
-                            idxEnd = html.indexOf('}}', readFrom);
+                        let idxStart = html.indexOf('\\(', readFrom),
+                            idxEnd = html.indexOf('\\)', readFrom);
 
                         if (idxStart === -1 || idxEnd <= idxStart) break;
 
@@ -108,7 +108,10 @@ $(document).ready(() => {
                 });
 
 
-                html = katexText(html);
+                let bodyJson = this.$refs.editor.editor.getJSON();
+                JSON_TRANSLATE_INLINE_KATEX(bodyJson);
+                let bodyHtml = JSON_TO_HTML(bodyJson);
+
                 title = katexText(title);
 
                 // FIXME: Should vueify this better
@@ -120,8 +123,16 @@ $(document).ready(() => {
                 }
 
                 this.$refs.previewTitle.innerHTML = title;
-                this.$refs.previewContent.innerHTML = html;
+                this.$refs.previewContent.innerHTML = bodyHtml;
                 this.$refs.previewSolutions.innerHTML = solutionsContent;
+
+                // FIXME: Find a better way to do this
+                $('katex', this.$refs.previewContent).each((idx, el) => {
+                    let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
+                    el.innerHTML = Katex.renderToString(el.textContent, {
+                        displayMode: !isInline
+                    });
+                });
             },
 
             getQuestionBody() {
@@ -142,8 +153,8 @@ $(document).ready(() => {
 
                                 let readFrom = 0;
                                 do {
-                                    let idxStart = textHtml.indexOf('{{', readFrom),
-                                        idxEnd = textHtml.indexOf('}}', readFrom);
+                                    let idxStart = textHtml.indexOf('\\(', readFrom),
+                                        idxEnd = textHtml.indexOf('\\)', readFrom);
 
                                     if (idxStart === -1 || idxEnd <= idxStart) break;
 

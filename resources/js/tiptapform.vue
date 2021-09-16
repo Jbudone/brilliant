@@ -111,12 +111,13 @@ export default {
         updatePreview(editor) {
             // Get JSON -> find text nodes -> run KaTex renders
             let json = editor.getJSON();
-            json = JSON.parse(JSON.stringify(json)); // FIXME: Ref to editor?
+            //json = JSON.parse(JSON.stringify(json)); // FIXME: Ref to editor?
             JSON_TRANSLATE_INLINE_KATEX(json);
             let html = JSON_TO_HTML(json);
 
             this.$refs.previewContent.innerHTML = html;
 
+            // FIXME: Find a better way to do this
             $('katex', this.$refs.previewContent).each((idx, el) => {
                 let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
                 el.innerHTML = Katex.renderToString(el.textContent, {
