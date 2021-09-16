@@ -345,8 +345,8 @@ window['INLINE_TO_JSON'] = (raw) => {
 
     let html = raw;
     do {
-        let idxStart = html.indexOf('{{'),
-            idxEnd = html.indexOf('}}');
+        let idxStart = html.indexOf('\\('),
+            idxEnd = html.indexOf('\\)');
 
         if (idxStart === -1 || idxEnd <= idxStart) break;
 
@@ -396,6 +396,72 @@ window['JSON_TO_HTML'] = (json) => {
 
         return GenerateHTML(json, VueHTMLExtensions);
     }
+};
+
+// JSON -> convert text \( ... \) to katex
+// Use with Editor
+window['JSON_TRANSLATE_INLINE_KATEX'] = (json) => {
+
+    if (json.content) {
+
+        for (let i = 0; i < json.content.length; ++i) {
+            const revised = JSON_TRANSLATE_INLINE_KATEX(json.content[i]);
+            if (revised instanceof Array) {
+                json.content.splice(i, 1, ...revised);
+                i += revised.length;
+            }
+        }
+    } else if (json.type === "text") {
+        // Look for KaTex and replace here
+
+        let text = json.text;
+        let readFrom = 0;
+        let split = [];
+        do {
+            let idxStart = text.indexOf('\\(', readFrom),
+                idxEnd = text.indexOf('\\)', idxStart);
+
+            if (idxStart === -1 || idxEnd <= idxStart) break;
+
+
+            let t = text.substr(readFrom, idxStart - readFrom);
+            if (t.trim().length > 0) {
+                split.push({
+                    type: "text",
+                    text: text.substr(readFrom, idxStart - readFrom)
+                });
+            }
+
+            t = text.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+            if (t.trim().length > 0) {
+                split.push({
+                    type: "katex",
+                    attrs: { inline: true },
+                    content: [{ type: "text", text: t }]
+                });
+            }
+
+            readFrom = idxEnd + 2
+
+        } while (true);
+
+        if (split.length === 0) {
+            // Nothing changed, no need to revise
+            return json;
+        }
+
+        let t = text.substr(readFrom);
+        if (t.trim().length > 0) {
+            split.push({
+                type: "text",
+                text: text.substr(readFrom)
+            });
+        }
+
+        return split;
+    }
+
+    return json;
 };
 
 window['TITLE_TO_HTML'] = (title) => {

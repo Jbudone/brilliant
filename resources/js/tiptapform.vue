@@ -43,7 +43,7 @@
             <div class="mx-4 space-x-4">
                 <a href="#" class="fas fa-block-quote hover:text-purple-700" @click.prevent="editor.chain().focus().toggleBlockquote().run()"></a>
                 <a href="#" class="fas fa-link hover:text-purple-700"></a>
-                <a href="#" class="fas fa-square-root-alt hover:text-purple-700" @click.prevent="editor.chain().focus().insertContent('{{ }}').run()"></a>
+                <a href="#" class="fas fa-square-root-alt hover:text-purple-700" @click.prevent="editor.chain().focus().insertContent('\\( \\)').run()"></a>
                 <a href="#" class="fas fa-table hover:text-purple-700 disabled"></a>
                 <a href="#" class="fas fa-code hover:text-purple-700" @click.prevent="editor.chain().focus().toggleCodeBlock().run()"></a>
                 <!-- <a href="#" class="fas fa-image hover:text-purple-700"></a> -->
@@ -109,34 +109,20 @@ export default {
     },
     methods: {
         updatePreview(editor) {
-            let html = editor.getHTML();
+            // Get JSON -> find text nodes -> run KaTex renders
+            let json = editor.getJSON();
+            json = JSON.parse(JSON.stringify(json)); // FIXME: Ref to editor?
+            JSON_TRANSLATE_INLINE_KATEX(json);
+            let html = JSON_TO_HTML(json);
 
-            // FIXME: Replace {{ }} w/ katex tag ; run katex
-            const katexText = (html) => {
-                let readFrom = 0;
-                do {
-                    let idxStart = html.indexOf('{{', readFrom),
-                        idxEnd = html.indexOf('}}', readFrom);
-
-                    if (idxStart === -1 || idxEnd <= idxStart) break;
-
-                    let katexRaw = html.substr(idxStart + 2, (idxEnd - idxStart) - 2);
-                    let katexHtml = Katex.renderToString(katexRaw, {
-                        displayMode: false, // inline
-                    });
-
-                    let end = html.substr(idxEnd + 2);
-                    html = html.substr(0, idxStart) + katexHtml;
-                    readFrom = html.length;
-                    html += end;
-
-                } while (true);
-
-                return html;
-            };
-            
-            html = katexText(html);
             this.$refs.previewContent.innerHTML = html;
+
+            $('katex', this.$refs.previewContent).each((idx, el) => {
+                let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
+                el.innerHTML = Katex.renderToString(el.textContent, {
+                    displayMode: !isInline
+                });
+            });
         },
 
         setInput(input) {
