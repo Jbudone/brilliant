@@ -963,12 +963,12 @@ ul {
     margin-left: 1rem;
 }
 
-a[href] {
+#app a[href] {
     color: #55D;
     font-weight: 800;
 }
 
-a[href]:hover {
+#app a[href]:hover {
     color: #88D;
     font-weight: 800;
 }
