@@ -9,7 +9,7 @@ let rawproblemsList = rawproblems.split('\n');
 
 for (let i = 0; i < rawproblemsList.length; ++i) {
     if (rawproblemsList[i].indexOf(`problems/${PROBLEM}/${PROBLEM} `) === 0) {
-        console.log(`${i} -- ${PROBLEM}`);
+        console.log(`${i+1} -- ${PROBLEM}`);
         process.exit();
     }
 }
