@@ -1,0 +1,333 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+
+use App\Models\Problem;
+use App\Models\Category;
+use App\Models\Comment;
+use App\Models\User;
+
+class UpdateArchive extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'archive:update {--seed} {--discussion} {--batch=}';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Update the database archived problem set (or discussions)';
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    public static $users = [];
+    public function init()
+    {
+        ini_set('memory_limit','256M');
+        $users = [];
+    }
+
+    public static function addUser($user) {
+        $userProfile = $user['profile'];
+        if (array_key_exists($userProfile, UpdateArchive::$users)) {
+            // FIXME: Check if updated (from current value in obj), and update if so
+            $userId = UpdateArchive::$users[$userProfile]->id;
+            //echo "    existing id: $userId\n";
+            return $userId;
+        }
+
+        $userDoc = \App\Models\User::factory()->state([
+            'name' => $user['name'], // FIXME: validation, escape?
+            'archive_id' => $user['id']
+        ])->create();
+        //$userDoc['name'] = $user['name'];
+        //'profile' => $user['profile']
+
+            /*
+            if (isset($user['age'])) {
+                $userDoc['age'] = intval($user['age']); // FIXME: validation
+            }
+
+            if (isset($user['location'])) {
+                $userDoc['location'] = $user['location']; // FIXME: validation
+            }
+             */
+
+        $userId = $userDoc->id;
+        UpdateArchive::$users[$userProfile] = $userDoc;
+        return $userId;
+    }
+
+    public static function updateUser($user) {
+        $userProfile = $user['profile'];
+        if (array_key_exists($userProfile, UpdateArchive::$users)) {
+            // FIXME: Check if updated (from current value in obj), and update if so
+            $userId = UpdateArchive::$users[$userProfile]->id;
+            return;
+        }
+
+
+        $userId = $user['id'];
+        $userName = $user['name'];
+
+        $userDoc = tap(User::where('archive_id', $userId))->update([
+            'name' => $userName,
+        ])->first();
+
+        UpdateArchive::$users[$userProfile] = $userDoc;
+        return $userDoc->id;
+    }
+
+    public static function addComment($comment, $problemId, $parentCommentId) {
+        $body = $comment['body'];
+        $commentId = $comment['id'];
+
+        $author = $comment['author'];
+        $authorId = UpdateArchive::addUser($author, UpdateArchive::$users);
+
+        $commentDoc = Comment::create([
+            'author_id' => $authorId,
+            'problem_id' => $problemId,
+            'body' => $body,
+            'parent_comment_id' => $parentCommentId,
+            'archive_id' => $commentId
+        ]);
+
+        $replies = $comment['replies'];
+        foreach ($replies as $replyIdx => &$reply) {
+            UpdateArchive::addComment($reply, $problemId, $commentDoc->id, UpdateArchive::$users);
+        }
+
+        return 1;
+    }
+
+    public static function updateComment($comment, $problemId, $parentCommentId) {
+        $body = $comment['body'];
+        $commentId = $comment['id'];
+
+        $author = $comment['author'];
+        $authorId = UpdateArchive::updateUser($author, UpdateArchive::$users);
+
+        $commentDoc = tap(Comment::where('archive_id', $commentId))->update([
+            'body' => $body,
+        ])->first();
+
+        $replies = $comment['replies'];
+        foreach ($replies as $replyIdx => &$reply) {
+            UpdateArchive::updateComment($reply, $problemId, $commentDoc->id, UpdateArchive::$users);
+        }
+    }
+
+    public static function addProblem($problem)
+    {
+        $source = $problem['source'];
+        echo "$source\n";
+
+        $questionBody = $problem['body'];
+        $solutions = json_encode(['solutions' => $problem['answers']]);
+        $body = strlen($solutions) . $solutions . $questionBody;
+
+        $author = $problem['author'];
+        $authorId = UpdateArchive::addUser($author);
+
+        $problemDoc = Problem::create([
+            'title' => $problem['title'],
+            'body' => $body,
+            'category_id' => $problem['category'],
+            'level' => $problem['level'],
+            'author_id' => $authorId,
+            'solution' => 0, // FIXME: Transport get solution idx
+            'source' => $problem['source'],
+            'archive_id' => $problem['id'],
+            'archive_meta' => "", // FIXME: Meta
+            'discussion' => FALSE
+        ]);
+
+
+        // Discussion
+        $discussions = $problem['discussions'];
+        foreach ($discussions as $discussionIdx => &$discussion) {
+            //$discussionReactions = $discussion['reactions'];
+            $discussionAuthorId = UpdateArchive::addUser($discussion['author']);
+
+            $discussionDoc = Comment::create([
+                'author_id' => $discussionAuthorId,
+                'problem_id' => $problemDoc->id,
+                'body' => $discussion['body'],
+                'parent_comment_id' => null,
+                'archive_id' => $discussion['id']
+            ]);
+
+            $discussionComments = $discussion['comments'];
+            foreach ($discussionComments as $commentIdx => &$comment) {
+                UpdateArchive::addComment($comment, $problemDoc->id, $discussionDoc->id);
+            }
+        }
+    }
+
+    public function addDiscussion($discussion)
+    {
+        $source = $discussion['source'];
+        echo "$source\n";
+    }
+
+    public static function updateProblem($problem)
+    {
+        $problemId = $problem['id'];
+        $source = $problem['source'];
+        echo "$source\n";
+
+
+
+        $category = $problem['category'];
+        $level = $problem['level'];
+        $title = $problem['title'];
+        $questionBody = $problem['body'];
+        $solutions = json_encode(['solutions' => $problem['answers']]);
+        $body = strlen($solutions) . $solutions . $questionBody;
+        $author = $problem['author'];
+        $archiveMeta = $problem['meta'];
+
+        $authorId = UpdateArchive::updateUser($author);
+
+        $problemDoc = tap(Problem::where("archive_id", $problemId))->update([
+            'title' => $title,
+            'body' => $body,
+            'category_id' => $category,
+            'level' => $level,
+            'solution' => 0, // FIXME: Transport get solution idx
+            'archive_meta' => $archiveMeta
+        ])->first();
+
+        if (!$problemDoc) {
+            print "Could not find Problem::archive_id=$problemId\n";
+            exit;
+        }
+
+        // Discussion
+        $discussions = $problem['discussions'];
+        foreach ($discussions as $discussionIdx => &$discussion) {
+            $discussionId = $discussion['id'];
+            $discussionAuthor = $discussion['author'];
+            $discussionBody = $discussion['body'];
+            $discussionReactions = $discussion['reactions'];
+
+            $discussionAuthorId = UpdateArchive::updateUser($discussionAuthor);
+
+            $discussionDoc = tap(Comment::where("archive_id", $discussionId))->update([
+                'body' => $discussionBody,
+            ])->first();
+
+            $discussionComments = $discussion['comments'];
+            foreach ($discussionComments as $commentIdx => &$comment) {
+                UpdateArchive::updateComment($comment, $problemDoc->id, $discussionDoc->id);
+            }
+        }
+    }
+
+    public function updateDiscussion($discussion)
+    {
+        echo "Test test\n";
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle()
+    {
+        $seed = $this->option('seed');
+        $singleBatchIdx = $this->option('batch');
+
+        ini_set('memory_limit','256M');
+
+        if ($this->option('discussion')) {
+            $this->info("Updating discussion");
+
+            $jsonMasterStr = file_get_contents("./brilliant.parsed/master.discussions.json");
+            $jsonMaster = json_decode($jsonMasterStr);
+
+            $problemBatchList = $jsonMaster->processed;
+
+            if ($seed) {
+                echo "Deleting existing discussions";
+                Problem::where('discussion', TRUE)->delete();
+            }
+
+            foreach ($problemBatchList as $idx => &$problemBatch) {
+                if ($singleBatchIdx && $singleBatchIdx != $idx) continue;
+
+                $jsonFile = $problemBatch->transportedList;
+                echo "Loading batch: $jsonFile\n";
+
+                // Seed from json file
+                $jsonStr = file_get_contents($jsonFile);
+                $json = json_decode($jsonStr, true);
+
+                // Problems
+                foreach ($json as $key => &$val) {
+                    $discussion = $val;
+
+                    if ($seed) {
+                        UpdateArchive::addDiscussion($discussion);
+                    } else {
+                        UpdateArchive::updateDiscussion($discussion);
+                    }
+                }
+            }
+
+        } else {
+            $this->info("Updating problems");
+
+            $jsonMasterStr = file_get_contents("./brilliant.parsed/master.problems.json");
+            $jsonMaster = json_decode($jsonMasterStr);
+
+            $problemBatchList = $jsonMaster->processed;
+
+            if ($seed) {
+                echo "Deleting existing problems";
+                Problem::where('discussion', FALSE)->delete();
+            }
+
+            foreach ($problemBatchList as $idx => &$problemBatch) {
+                if ($singleBatchIdx && $singleBatchIdx != $idx) continue;
+
+                $jsonFile = $problemBatch->transportedList;
+                echo "Loading batch: $jsonFile\n";
+
+                // Seed from json file
+                $jsonStr = file_get_contents($jsonFile);
+                $json = json_decode($jsonStr, true);
+
+                // Problems
+                foreach ($json as $key => &$val) {
+                    $problem = $val;
+
+                    if ($seed) {
+                        UpdateArchive::addProblem($problem);
+                    } else {
+                        UpdateArchive::updateProblem($problem);
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+}

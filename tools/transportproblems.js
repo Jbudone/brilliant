@@ -4,6 +4,7 @@ let INPUT = 'out';
 let OUTPUT = null;
 let verbose = false;
 let DISCUSSION = false;
+let UPDATE_IDX = null;
 
 
 // TODO:
@@ -23,6 +24,8 @@ for (let i = 2; i < process.argv.length; ++i) {
         INPUT = process.argv[++i];
     } else if (arg === '--output') {
         OUTPUT = process.argv[++i];
+    } else if (arg === '--index') {
+        UPDATE_IDX = process.argv[++i];
     } else if (arg === '--discussion') {
         DISCUSSION = true;
     } else {
@@ -168,6 +171,7 @@ for (let i = 0; i < input.length; ++i) {
             let answerRaw;
             if (`${parseInt(problemIn.answers[j].text)}` === `${problemIn.answers[j].text}`) {
                 answerRaw = parseInt(problemIn.answers[j].text);
+                Assert(!isNaN(answerRaw), `Bad parse on answer number: ${problemIn.answers[j].text}`);
             } else {
                 try {
                     answerRaw = JSON.parse(problemIn.answers[j].text);
@@ -183,7 +187,7 @@ for (let i = 0; i < input.length; ++i) {
                 }
             }
 
-            Assert(!isNaN(answerRaw) && !(answerRaw === undefined || answerRaw === null), `Bad parse on answer: ${problemIn.answers[j].text}`);
+            Assert(answerRaw !== undefined && answerRaw !== null, `Bad parse on answer: ${problemIn.answers[j].text}`);
             problemOut.answers[j].text = answerRaw;
         }
 

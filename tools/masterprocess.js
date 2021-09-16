@@ -11,6 +11,8 @@ let ProcessExit = process.exit;
 let verbose = false;
 let reset = false;
 let discussion = false;
+let SINGLE_PROBLEM = null;
+let SINGLE_PROBLEM_IDX = null;
 
 const PATH_TO_OUTDIR = './brilliant.parsed/';
 const PATH_TO_OUTPUT_PROBLEMS = PATH_TO_OUTDIR + 'master.problems.json';
@@ -36,6 +38,8 @@ for (let i = 2; i < process.argv.length; ++i) {
         discussion = true;
     } else if (arg === '--reset') {
         reset = true;
+    } else if (arg === '--single-problem') {
+        SINGLE_PROBLEM = process.argv[++i];
     } else {
         console.log(`Unexpected argument: ${arg}`);
         ProcessExit();
@@ -113,7 +117,7 @@ let batchStart = output.processed.length;
 let totalBatches = Math.ceil((rawproblemsList.length - 1) / BATCH_SIZE);
 let BatchesRemaining = totalBatches - batchStart;
 
-if (BatchesRemaining <= 0) {
+if (!SINGLE_PROBLEM && BatchesRemaining <= 0) {
     console.log("Already finished batches! Max: " + totalBatches);
     ProcessExit();
 }
@@ -136,6 +140,10 @@ const ProcessBatch = (batch) => {
             argsStr += ' --problem-list rawproblems';
         }
 
+        if (SINGLE_PROBLEM_IDX) {
+            argsStr += ` --index ${SINGLE_PROBLEM_IDX}`;
+        }
+
         let args = argsStr.split(' ');
 
         console.log(`node ./tools/parseproblem.js ${argsStr}`);
@@ -146,6 +154,10 @@ const ProcessBatch = (batch) => {
         let argsStr = `--input ${batch.parsedOutput} --output ${batch.transportedOutput} --verbose`;
         if (discussion) {
             argsStr += ' --discussion';
+        }
+
+        if (SINGLE_PROBLEM_IDX) {
+            argsStr += ` --index ${SINGLE_PROBLEM_IDX}`;
         }
 
         const args = argsStr.split(' ');
@@ -178,14 +190,20 @@ const ProcessBatch = (batch) => {
 
 const FinishedBatch = (batch) => {
 
+
     output.version = VERSION_MASTERPROCESS;
-    output.processed.push({
-        versionParse: VERSION_PARSEPROBLEM,
-        versionTransport: VERSION_TRANSPORTPROBLEM,
-        batchIdx: batch.batchIdx,
-        parsedList: batch.parsedOutput,
-        transportedList: batch.transportedOutput
-    });
+
+    if (SINGLE_PROBLEM) {
+        BatchesRemaining = 1; // Dec'd below
+    } else {
+        output.processed.push({
+            versionParse: VERSION_PARSEPROBLEM,
+            versionTransport: VERSION_TRANSPORTPROBLEM,
+            batchIdx: batch.batchIdx,
+            parsedList: batch.parsedOutput,
+            transportedList: batch.transportedOutput
+        });
+    }
 
 
     // NOTE: Save on each batch since we may error midway but want to save our point
@@ -199,5 +217,40 @@ const FinishedBatch = (batch) => {
         console.log("Finished all batches");
     }
 };
+
+if (SINGLE_PROBLEM) {
+    let found = false;
+
+    let batchIdx = 0;
+    for (let i = 0; i < rawproblemsList.length; ++i) {
+        if (rawproblemsList[i].indexOf(`problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `) === 0) {
+            batchIdx = Math.floor(i / BATCH_SIZE);
+            SINGLE_PROBLEM_IDX = i - (batchIdx * BATCH_SIZE);
+            console.log(`Found problem in batch ${batchIdx}`);
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        console.error(`Could not find problem: ${SINGLE_PROBLEM}`);
+        process.exit(1);
+    }
+
+    // Confirm we've already processed this batch and its merely an update
+    found = false;
+    for (let i = 0; i < output.processed.length; ++i) {
+        if (output.processed[i].batchIdx === batchIdx) {
+            found = true;
+            batchStart = batchIdx;
+            break;
+        }
+    }
+
+    if (!found) {
+        console.error("Could not find existing batch to update!");
+        process.exit(1);
+    }
+}
 
 ProcessBatch({ stage: 0, batchIdx: batchStart });

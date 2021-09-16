@@ -64,6 +64,7 @@ let SINGLE_PROBLEM = null; // for debugging -- process a single problem
 let verbose = false;
 let OUTPUT = null;
 let DISCUSSION = false; // Parsing discussion, not problem
+let UPDATE_IDX = null;
 
 
 // Parse arguments
@@ -83,6 +84,8 @@ for (let i = 2; i < process.argv.length; ++i) {
         MAX_PROBLEMS = parseInt(process.argv[++i]);
     } else if (arg === '--single-problem') {
         SINGLE_PROBLEM = process.argv[++i];
+    } else if (arg === '--index') {
+        UPDATE_IDX = parseInt(process.argv[++i]);
     } else if (arg === '--discussion') {
         DISCUSSION = true;
     } else {
@@ -177,23 +180,63 @@ const parseDiscussion = (id, env) => {
     outProblem.id = id;
     outProblem.source = filepath;
 
-    const categoryAndLevel = $('.topic-level-info').text();
-
-    // Category / Level
-    let categoryName, categoryLevel;
     if (verbose) {
-        console.log(id + "   " + categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
+        console.log(id + "   " + problemName + "   " + problemFile);
     }
 
-    outProblem.category = categoryName;
-    outProblem.level = categoryLevel;
+    const postContainerEl = $('#cmp_discussions_single_id'),
+        votesContainerEl = $('#cmp_discussions_post_vote_id'),
+        commentsContainerEl = $('#cmp_discussions_comments_id');
+    Assert(postContainerEl.length === 1 && votesContainerEl.length === 1 && commentsContainerEl.length === 1, `Unexpected container els: ${filepath}`);
+
+    const postEl = $('#disc-post-single', postContainerEl),
+        postHeaderEl = $('.nf-content-header', postEl),
+        postBodyEl = $('.body', postEl),
+        postBodyContentEl = $('.content', postBodyEl),
+        postAuthorEl = $('.disc-author', postContainerEl);
+    Assert(postEl.length === 1 && postHeaderEl.length === 1 && postBodyEl.length === 1 && postBodyContentEl.length === 1 && postAuthorEl.length === 1, `Unexpected post els: ${filepath}`);
+
+    const postTagsEl = $('.tags', postBodyEl);
+    if (postTagsEl.length === 1) {
+        // FIXME: Tags
+    }
+
+    // FIXME: #mentions-data
+    // FIXME: Upvotes?
+
+
+    // Author
+    const avatarEl = $('.avatar img', postAuthorEl),
+        userEl = $('.btn-profile', postAuthorEl),
+        userTimeEl = $('.time', postAuthorEl),
+        userId = userEl.attr('data-id');
+    Assert(avatarEl.length === 1 && userEl.length === 1 && userTimeEl.length === 1, `Unexpected author els: ${filepath}`);
+
+    // FIXME: Confirm  "Note by [name] [date]"
+    const avatarSrc = avatarEl.attr('src'),
+        profileLink = userEl.attr('href'),
+        userName    = userEl.text(),
+        postTime    = userTimeEl.attr('title');
+
+
+    outProblem.author = {
+        avatar: avatarSrc,
+        profile: profileLink,
+        name: userName,
+        id: userId,
+    };
+
+    outProblem.date = postTime;
+
+
 
     // Title
-    const titleEl = $('.nf-content-header');
+    const titleEl = $('.nf-content-header', postEl);
     Assert( titleEl.length === 1 , `$(.nf-content-header).length != 1: ${filepath}` );
-    let problemTitle = "";// processText(titleEl.text().trim());
+    let problemTitle = "";
     {
         // Title can contain Katex elements
+        // FIXME: Abstract this for discussion/problem
 
         const titleH1El = titleEl[0].childNodes[1];
         Assert(titleH1El.nodeName === "H1", `Unexpected H1 title child: ${filepath}`);
@@ -213,6 +256,10 @@ const parseDiscussion = (id, env) => {
         }
     }
     outProblem.title = problemTitle;
+
+
+
+    // FIXME: Comments
 
     return outProblem;
 };
@@ -335,7 +382,7 @@ const parseProblem = (id, env) => {
     // Author
     const authorEl = $('.solv-author');
     Assert(authorEl.length === 1, `authorEl !== 1: ${filepath}`);
-    const avatarEl = $('avatar img', authorEl),
+    const avatarEl = $('.avatar img', authorEl),
         userEl = $('.btn-profile', authorEl),
         userId = userEl.attr('data-id');
 
@@ -636,4 +683,48 @@ const parseProblemsBatch = (i) => {
     setTimeout(() => { parseProblemsBatch(i + BATCH_HANDLE); }, BATCH_TIMER);
 };
 
-parseProblemsBatch(PROBLEM_OFFSET);
+if (UPDATE_IDX) {
+    // FIXME: Read output file, then update only this one index
+
+    Assert(OUTPUT);
+
+    let prevParseRaw = fs.readFileSync(OUTPUT);
+    let prevParse = JSON.parse(prevParseRaw);
+
+    let prevProblemParse = prevParse[UPDATE_IDX];
+
+    const offIdx = UPDATE_IDX + PROBLEM_OFFSET; 
+    const problem = rawproblemsList[offIdx];
+    const match = problem.match(/^([^\s]+) (.*)$/),
+                    problemName = match[2],
+                    problemFile = match[1];
+
+    console.log(`Updating: ${prevProblemParse.source} -- ${problemName}`);
+
+
+    const filepath = prevProblemParse.source;
+    const data = fs.readFileSync(filepath, 'utf8');
+    const dom = new JSDOM(data);
+    const $ = jQuery(dom.window);
+
+    const env = {
+        $, filepath, problemName, problemFile
+    };
+
+    let outProblem;
+    if (DISCUSSION) {
+        outProblem = parseDiscussion(offIdx + 1, env);
+    } else {
+        outProblem = parseProblem(offIdx + 1, env);
+    }
+
+    delete $;
+    delete dom;
+    delete data;
+
+    prevParse[UPDATE_IDX] = outProblem;
+    const out = JSON.stringify(prevParse);
+    fs.writeFileSync(OUTPUT, out);
+} else {
+    parseProblemsBatch(PROBLEM_OFFSET);
+}

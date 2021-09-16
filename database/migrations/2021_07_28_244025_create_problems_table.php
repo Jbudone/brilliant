@@ -25,6 +25,8 @@ class CreateProblemsTable extends Migration
             $table->unsignedBigInteger('archive_id')->nullable();
             $table->index('archive_id');
 
+            $table->boolean('discussion');
+
             $table->string('title', 128);
             $table->mediumText('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
             $table->smallInteger('level');
