@@ -263,7 +263,7 @@ $(document).ready(() => {
                                 // FIXME: Inline?
                                 el.content[i] = el.content[i].content[0];
                                 Assert(el.content[i].type === "text");
-                                el.content[i].text = '{{ ' + el.content[i].text + ' }}';
+                                el.content[i].text = '\\( ' + el.content[i].text + ' \\)';
                             } else {
                                 recurseEl(el.content[i]);
                             }

@@ -245,9 +245,9 @@ const parseDiscussion = (id, env) => {
             if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
                 const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
                 Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
-                problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
+                problemTitle += "\\(" + processText(annotationEl[0].textContent) + "\\)";
             } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
-                problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
+                problemTitle += "\\(" + processText(titleH1ChildEl.textContent) + "\\)";
             } else if (titleH1ChildEl.nodeName === "#text") {
                 problemTitle += titleH1ChildEl.textContent;
             } else {
@@ -326,9 +326,9 @@ const parseProblem = (id, env) => {
             if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && (titleH1ChildEl.classList[0] === "katex" || titleH1ChildEl.classList[0] === "katex-display")) {
                 const annotationEl = $('.katex-mathml annotation', titleH1ChildEl);
                 Assert(annotationEl.length === 1, `Katex Title has unexpected annotation element: ${filepath}`);
-                problemTitle += "{{" + processText(annotationEl[0].textContent) + "}}";
+                problemTitle += "\\(" + processText(annotationEl[0].textContent) + "\\)";
             } else if (titleH1ChildEl.nodeName === "SPAN" && titleH1ChildEl.classList.length === 1 && titleH1ChildEl.classList[0] === "katex-error") {
-                problemTitle += "{{" + processText(titleH1ChildEl.textContent) + "}}";
+                problemTitle += "\\(" + processText(titleH1ChildEl.textContent) + "\\)";
             } else if (titleH1ChildEl.nodeName === "#text") {
                 problemTitle += titleH1ChildEl.textContent;
             } else {
