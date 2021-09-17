@@ -32,7 +32,7 @@ class SolveController extends Controller
         Solve::create([
             'solution' => $request->input('solution'),
             'user_id' => Auth::id(),
-            'problem_id' => $request->input('id'),
+            'problem_id' => $problemId,
             'correct' => $correct
         ]);
 
@@ -41,6 +41,24 @@ class SolveController extends Controller
         //return back()->withErrors([
         //    'email' => 'The provided credentials do not match our records.',
         //]);
+
+        return back();
+    }
+
+    public function destroy(Request $request)
+    {
+        $problemId = $request->input('id');
+        $p = Problem::where('id', (int)$problemId)->first();
+
+
+        if (!$p) {
+            throw new ModelNotFoundException();
+        }
+
+        Solve::where([
+            'user_id' => Auth::id(),
+            'problem_id' => $problemId
+        ])->delete();
 
         return back();
     }

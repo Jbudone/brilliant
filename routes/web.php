@@ -196,6 +196,7 @@ Route::post('/edit', [ProblemController::class, 'change'])->middleware(['auth'])
 Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth']);
 Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);
 Route::post('/solve', [SolveController::class, 'store'])->middleware(['auth']);
+Route::post('/unsolve', [SolveController::class, 'destroy'])->middleware(['auth']);
 
 Route::get('/dashboard', function () {
     return view('dashboard');
