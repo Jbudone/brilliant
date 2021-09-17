@@ -34,7 +34,8 @@ class ProblemController extends Controller
             'level' =>       $request->input('level_id'),
             'body' =>        $body,
             'solution' =>    $request->input('solution'),
-            'author_id' =>   Auth::id()
+            'author_id' =>   Auth::id(),
+            'discussion' =>  FALSE
         ]);
 
         // FIXME: Validation checking, successful?
@@ -42,7 +43,7 @@ class ProblemController extends Controller
         //    'email' => 'The provided credentials do not match our records.',
         //]);
 
-        return redirect('/problems');
+        return redirect('/problem/' . $problem->id);
     }
 
     public function edit(Request $request, $problemId)
