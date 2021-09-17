@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
         $calculus = Category::create([ 'name' => "Calculus" ]);
         $logic = Category::create([ 'name' => "Logic" ]);
         Category::create([ 'name' => "Classical Mechanics" ]);
+        Category::create([ 'name' => "Relativistic Mechanics" ]);
         Category::create([ 'name' => "Electricity and Magnetism" ]);
         Category::create([ 'name' => "Computer Science" ]);
         Category::create([ 'name' => "Quantitative Finance" ]);
@@ -41,7 +42,9 @@ class DatabaseSeeder extends Seeder
         Category::create([ 'name' => "Biology" ]);
         Category::create([ 'name' => "Probability" ]);
         Category::create([ 'name' => "Basic Mathematics" ]);
-        Category::create([ 'name' => "SAT® Math" ]);
+        Category::create([ 'name' => "Contest Math" ]);
+        Category::create([ 'name' => "Multi-topic" ]);
+        Category::create([ 'name' => "Others" ]);
 
 
         // Run command for fresh seed
