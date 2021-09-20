@@ -27,7 +27,11 @@
                 <div class="px-4">
                 <div class="prblm-header">
                     <span class="prblm-title" v-html="this.titleHtml"></span>
-                    <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
+                    <template v-if="isDiscussion">
+                        <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
+                    </template><template v-else>
+                        <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
+                    </template>
                     <div class="prblm-topiclevel">
                         <span class="prblm-topic">@{{ this.topic }}</span>
                         <span class="prblm-level">Level @{{ this.level }}</span>
@@ -35,33 +39,70 @@
                 </div>
 
                 <div class="prblm-question md:grid md:grid-cols-7 md:gap-4">
+
+                    <!-- Question Body -->
                     <div class="prblm-question-content md:col-span-5" v-html="this.question"></div>
 
-                    <div class="prblm-question-solution md:col-span-2">
-                        <form method="POST" action="/solve" id="prblm-form-solve">
+                    <!-- Answers -->
+                    <div v-if="!this.isDiscussion" class="prblm-question-solution md:col-span-2 md:px-4">
+                        <form method="POST" action="/solve" id="prblm-form-solve" ref="formSolve">
                         @csrf
-                        <input type="text" id="prblm-solve-selected" name="solution" style="display: none;" />
+                        <input type="text" id="prblm-solve-selected" name="solution" style="display: none;" ref="formAnswer" />
                         <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+
+                        <!-- Multiple Choice -->
                         <template v-if="solutions.length > 1">
                             <template v-for="(solution, idx) in solutions">
                                 <span class="prblm-solution-btn" v-bind:class="[{ active: solution.selected }, { correct: solution.correct }, { disabled: solved }]" @click.prevent="solve(idx)">
-                                    <span class="prblm-solution-bg">@{{ solution.correct ? "✓" : "" }}</span>
+                                    <span v-if="solved" class="prblm-solution-bg">@{{ solution.correct ? "✓" : solution.selected ? "✗" : "" }}</span>
                                     <span v-if="solution.selected" class="prblm-solution-picked"></span>
                                     <span class="prblm-solution-text" v-html="solution.html"></span>
                                 </span>
                             </template>
+                            <template v-if="solved">
+                            <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
+                            </template>
                         </template>
-                        <template v-if="solutions.length == 1">
-                            <span class="text-2xl ml-8">The answer is @{{ solutions[0].text }}.</span>
+
+                        <!-- Single Answer: Solved -->
+                        <template v-else-if="solutions.length == 1 && solved">
+                            <span class="block w-full text-2xl">The answer is @{{ solutions[0].text }}.</span>
+
+                            <template v-if="solved == 1">
+                                <span class="block w-full text-2xl">You answered correctly.</span>
+                            </template>
+                            <template v-else>
+                                <span class="block w-full text-2xl">You guessed @{{ solutions[0].guessed }}.</span>
+                            </template>
+
+                            <a href="" class="block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
+                        </template>
+
+                        <!-- Single Answer: Unsolved -->
+                        <template v-else>
+                            <div class="">
+                                <input class="w-full border border-gray-700 shadow-inner bg-gray-50 bg-opacity-50 px-2 py-1 mb-8" placeholder="Your Answer" ref="solutionInput" />
+
+                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-sky-400 text-white text-center py-1 my-4" @click.prevent="solve()">Submit</a>
+                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="giveup()">View Solutions</a>
+                            </div>
                         </template>
                         </form>
+
+                        <template v-if="solved">
+                            <form method="POST" action="/unsolve" ref="formUnsolve">
+                                @csrf
+                                <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                            </form>
+                        </template>
                     </div>
                 </div>
 
                 <a v-bind:href="editQuestionUrl()" v-if="questionOwner()">Edit</a>
 
-                <div class="prblm-question-footer">
-                    <div class="prblm-question-author">
+                <!-- Footer -->
+                <div class="prblm-question-footer mt-8">
+                    <div class="prblm-question-author flex">
                         <div class="user-avatar">
                             <a href='#' class="avatar">
                                 <img src="/sprites/default-avatar-globe.png" />
@@ -69,27 +110,29 @@
                         </div>
 
                         <div class="user-text">
-                            <span> by </span>
-                            <a href='#' class="author-name">@{{ this.author.name }}</a>
+                            <span class="leading-8"> by </span>
+                            <a href='#' class="author-name leading-8">@{{ this.author.name }}</a>
                             <template v-if="this.author.age">
-                                <span>, </span>
-                                <span class="author-age">@{{ this.author.age }}</span>
+                                <span class="leading-8">, </span>
+                                <span class="author-age leading-8">@{{ this.author.age }}</span>
                             </template>
                             <template v-if="this.author.place">
-                                <span>, </span>
-                                <span class="author-place">@{{ this.author.place }}</span>
+                                <span class="leading-8">, </span>
+                                <span class="author-place leading-8">@{{ this.author.place }}</span>
                             </template>
                         </div>
                     </div>
                 </div>
                 </div>
 
+                <template v-if="isDiscussion || solved">
                 <hr/>
-
                 <div class="prblm-discussions">
                     <div class="mb-4">
-                        <span class="solutions text-xl">@{{ this.discussions.length }} Solutions</span>
-                        <span class="block text-grey-800 text-lg" v-if="this.discussions.length == 0">No explanations have been posted yet. Check back later!</span>
+                        <span v-if="isDiscussion" class="solutions text-xl">@{{ this.discussions.length }} Comments</span>
+                        <span v-else class="solutions text-xl">@{{ this.discussions.length }} Solutions</span>
+
+                        <span class="block text-grey-800 text-lg" v-if="!isDiscussion && this.discussions.length == 0">No explanations have been posted yet. Check back later!</span>
                         <a id='addSolution' href='#'>Add Solution</a>
                     </div>
                     <div id='addSolutionContainer' class='hidden'>
@@ -188,6 +231,7 @@
                         </div>
                     </template>
                 </div>
+                </template>
             </div>
         </div>
     </div>

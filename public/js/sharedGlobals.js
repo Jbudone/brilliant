@@ -263,7 +263,7 @@ const BODY_HTML_TO_INLINE = (list) => {
             elText = el.substr(el.indexOf(':') + 1);
 
         // Unfortunately Brilliant allowed some odd content for solutions; just ignore these
-        const ignoredWhitelist = [META_MAP['horizontalRule'], META_MAP['orderedList'], META_MAP['bulletList'], META_MAP['blockquote'], META_MAP['heading']];
+        const ignoredWhitelist = [META_MAP['horizontalRule'], META_MAP['orderedList'], META_MAP['bulletList'], META_MAP['blockquote'], META_MAP['heading'], META_MAP['listItem']];
 
         Assert(elType === META_MAP['text'] || elType === META_MAP['katex'] || ignoredWhitelist.indexOf(elType) !== -1, `Unexpected elType in: ${el}`);
         if (elType === META_MAP['text']) {
@@ -383,7 +383,7 @@ const PROBLEM_PARSE_BODY = (body, env) => {
                     }
 
 
-                    Assert(imgEl.attributes['src'] && imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
+                    Assert(imgEl.attributes['src'] || imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
                     Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img: ${filepath}`);
                     const imgSrc = imgEl.attributes['src'].value;
 
@@ -423,7 +423,7 @@ const PROBLEM_PARSE_BODY = (body, env) => {
                 json.attrs = [{ profile: el.attributes[3].textContent }];
             } else if ((el.classList.length >= 1 && el.classList[0] === "wiki_link") || el.classList.length === 0) {
                 let isWikiLink = (el.classList.length >= 1 && el.classList[0] === "wiki_link");
-                debugger;
+                console.log("FIXME: Handle wiki_link");
                 //json.type = "text";
                 //json.text = processText(el.textContent);
                 //json.marks = [{ attrs: { href: "", target: "_blank" }, type: "link" }]; // FIXME: Link
@@ -605,6 +605,16 @@ const PROBLEM_PARSE_BODY = (body, env) => {
 
                 json.type = "image";
                 json.attrs = { src: "" };
+            } else if (el.classList.length >= 1 && el.classList[0] === "show-hide-btn-container") {
+                console.log("FIXME: Handle show/hide buttons");
+
+                json.type = "paragraph";
+                json.content = [{type: "#text", text: "FIXME: IMPLEMENT Show/Hide buttons"}];
+            } else if (el.classList.length >= 1 && el.classList[0] === "problem-modal-container") {
+                console.log("FIXME: Handle Problem modal container");
+
+                json.type = "paragraph";
+                json.content = [{type: "#text", text: "FIXME: IMPLEMENT Problem Modal Reference"}];
             }  else {
                 console.log(el.classList[0]);
                 Assert(false, `Unexpected class list for <div>: ${filepath}`);
@@ -641,6 +651,29 @@ const PROBLEM_PARSE_BODY = (body, env) => {
                 const contentChild = recursiveGetInputFromEl(children[i]);
                 json.content.push(contentChild);
             }
+        } else if (el.nodeName === 'IMG') {
+            // NOTE: Discussions -- "zoomable" is attached at runtime
+            const imgEl = el;
+            Assert(imgEl.attributes['src'] || imgEl.attributes['alt'], `unexpected attribute on img: ${filepath}`);
+            Assert(CountElementsIn(['src', 'srcset', 'alt', 'title', 'style'], imgEl.attributes) === Object.keys(imgEl.attributes).length, `unexpected attributes on img [${Object.keys(imgEl.attributes)}]: ${filepath}`);
+            const imgSrc = imgEl.attributes['src'].value;
+
+            json.type = "image";
+
+            let src = imgSrc;
+            if (imgSrc.substr(0, 3) != "htt") {
+                src = '/brilliantexport/' + imgSrc.substr(6); // ../../
+            }
+            json.attrs = { src: src };
+        } else if (el.nodeName === '#comment') {
+            // <!-- comment -->
+            // FIXME: No need for actual element here
+            json.type = "#text";
+            json.text = " ";
+        } else if (el.nodeName === 'IFRAME') {
+            console.log("FIXME: Handle iframe video");
+            json.type = "#text";
+            json.text = "FIXME: Handle iframe video";
         } else {
             Assert(false, `ProcessBody - unexpected nodeName '${el.nodeName}' ${filepath}`);
         }

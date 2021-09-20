@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 use App\Models\Problem;
 use App\Models\Category;
@@ -51,10 +52,29 @@ class UpdateArchive extends Command
             return $userId;
         }
 
-        $userDoc = \App\Models\User::factory()->state([
+        // FIXME: We could be seeding discussions but already seeded problems and run into the same users
+        $existingUser = User::where('archive_id', $user['id'])->first();
+        if ($existingUser) {
+            UpdateArchive::$users[$userProfile] = $existingUser;
+            $userId = UpdateArchive::$users[$userProfile]->id;
+            return $userId;
+        }
+
+
+        // FIXME: Can't use factory since we're may be running after there's already update, so possibly duplicate of email
+        $userDoc = User::create([
             'name' => $user['name'], // FIXME: validation, escape?
-            'archive_id' => $user['id']
-        ])->create();
+            'archive_id' => $user['id'],
+            'email' => $user['profile'] . '@example.com',
+            'email_verified_at' => now(),
+            'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password
+            'remember_token' => Str::random(10),
+        ]);
+
+        //$userDoc = \App\Models\User::factory()->state([
+        //    'name' => $user['name'], // FIXME: validation, escape?
+        //    'archive_id' => $user['id']
+        //])->create();
         //$userDoc['name'] = $user['name'];
         //'profile' => $user['profile']
 
@@ -180,10 +200,47 @@ class UpdateArchive extends Command
         }
     }
 
-    public function addDiscussion($discussion)
+    public function addDiscussion($problem)
     {
-        $source = $discussion['source'];
+        $source = $problem['source'];
         echo "$source\n";
+
+
+        $body = $problem['body'];
+
+        $author = $problem['author'];
+        $authorId = UpdateArchive::addUser($author);
+
+        $problemDoc = Problem::create([
+            'title' => $problem['title'],
+            'body' => $body,
+            'author_id' => $authorId,
+            'source' => $problem['source'],
+            'archive_id' => $problem['id'],
+            'archive_meta' => "", // FIXME: Meta
+            'discussion' => TRUE
+        ]);
+
+
+        // Discussion
+        $discussions = $problem['discussions'];
+        foreach ($discussions as $discussionIdx => &$discussion) {
+            //$discussionReactions = $discussion['reactions'];
+            $discussionAuthorId = UpdateArchive::addUser($discussion['author']);
+
+            $discussionDoc = Comment::create([
+                'author_id' => $discussionAuthorId,
+                'problem_id' => $problemDoc->id,
+                'body' => $discussion['body'],
+                'parent_comment_id' => null,
+                'archive_id' => $discussion['id']
+            ]);
+
+            $discussionComments = $discussion['comments'];
+            foreach ($discussionComments as $commentIdx => &$comment) {
+                UpdateArchive::addComment($comment, $problemDoc->id, $discussionDoc->id);
+            }
+        }
     }
 
     public static function updateProblem($problem)

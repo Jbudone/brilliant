@@ -20,7 +20,8 @@ $(document).ready(() => {
                 discussions: [],
                 users: {},
                 
-                solved: false,
+                isDiscussion: false,
+                solved: 0,
                 showingAddSolutionContainer: false
             };
         },
@@ -30,21 +31,103 @@ $(document).ready(() => {
             editQuestionUrl() { return ('/edit/' + this.id); },
 
             save(el) {
+
+
+                // FIXME: Inject katex in texts w/ {{ }}
+                const recurseEl = (el) => {
+                    if (el.content instanceof Array) {
+                        for (let i = 0; i < el.content.length; ++i) {
+                            if (el.content[i].type === "text") {
+                                let textParts = [];
+                                let textHtml = el.content[i].text;
+
+                                let readFrom = 0;
+                                do {
+                                    let idxStart = textHtml.indexOf('\\(', readFrom),
+                                        idxEnd = textHtml.indexOf('\\)', readFrom);
+
+                                    if (idxStart === -1 || idxEnd <= idxStart) break;
+
+                                    let katexRaw = textHtml.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+                                    // FIXME: Inline?
+
+                                    let start = textHtml.substr(readFrom, idxStart);
+                                    if (start.trim() !== "") {
+                                        textParts.push({
+                                            type: "text",
+                                            text: start
+                                        });
+                                    }
+
+                                    if (katexRaw.trim() !== "") {
+                                        textParts.push({
+                                            type: "katex",
+                                            content: [{ type: "text", text: katexRaw }],
+                                            attrs: { inline: true }
+                                        });
+                                    }
+
+                                    readFrom = idxEnd + 2;
+                                } while (true);
+
+                                let end = textHtml.substr(readFrom);
+                                if (end.trim() !== "") {
+                                    textParts.push({
+                                        type: "text",
+                                        text: end
+                                    });
+                                }
+
+                                if (el.content[i].marks) {
+                                    for (let j = 0; j < textParts.length; ++j) {
+                                        textParts[j].marks = el.content[i].marks;
+                                    }
+                                }
+
+                                if (textParts.length > 0) {
+                                    el.content.splice(i, 1, ...textParts);
+                                }
+                            } else {
+                                recurseEl(el.content[i]);
+                            }
+                        }
+                    }
+                };
+
+
+
+
+
                 if (el === 'replyto') {
                     let body = window['mountedEditor-editorreplyto'].getJSON();
-                    body = JSON.stringify(body);
-                    $('#prblm-replyto-form [name="comment"]').val(body);
+                    recurseEl(body);
+                    let bodyInflatedJson = body;
+                    let { child, elements } = JSON_BODY_TO_HTML(bodyInflatedJson);
+                    let bodyDeflatedHtml = child,
+                        bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
+
+                    $('#prblm-replyto-form [name="comment"]').val(bodyDeflatedJson);
                     $('#prblm-replyto-form').submit();
 
                 } else if (el === 'replyedit') {
                     let body = window['mountedEditor-editorreplyedit'].getJSON();
-                    body = JSON.stringify(body);
-                    $('#prblm-replyedit-form [name="comment"]').val(body);
+                    recurseEl(body);
+                    let bodyInflatedJson = body;
+                    let { child, elements } = JSON_BODY_TO_HTML(bodyInflatedJson);
+                    let bodyDeflatedHtml = child,
+                        bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
+
+                    $('#prblm-replyedit-form [name="comment"]').val(bodyDeflatedJson);
                     $('#prblm-replyedit-form').submit();
                 } else if (el === 'addsolution') {
                     let body = window['mountedEditor-editoraddsolution'].getJSON();
-                    body = JSON.stringify(body);
-                    $('#prblm-addsol-form [name="comment"]').val(body);
+                    recurseEl(body);
+                    let bodyInflatedJson = body;
+                    let { child, elements } = JSON_BODY_TO_HTML(bodyInflatedJson);
+                    let bodyDeflatedHtml = child,
+                        bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
+
+                    $('#prblm-addsol-form [name="comment"]').val(bodyDeflatedJson);
                     $('#prblm-addsol-form').submit();
                 }
             },
@@ -57,8 +140,18 @@ $(document).ready(() => {
             },
 
             solve(idx) {
-                $('#prblm-solve-selected').val(idx);
-                $('#prblm-form-solve').submit();
+                if (this.solutions.length > 1) {
+                    this.$refs.formAnswer.value = idx;
+                } else {
+                    let input = this.$refs.solutionInput.value;
+                    this.$refs.formAnswer.value = input.trim();
+                }
+
+                this.$refs.formSolve.submit();
+            },
+
+            unsolve() {
+                this.$refs.formUnsolve.submit();
             }
         },
         beforeMount: function() {
@@ -74,34 +167,49 @@ $(document).ready(() => {
                 name: this.jsonData.users[this.jsonData.author].name
             };
             this.users = this.jsonData.users;
-            console.log(this.solutions);
+            this.isDiscussion = this.jsonData.discussion;
 
-            const solutionStart = this.jsonData.body.indexOf('{'),
-                solutionLen = parseInt(this.jsonData.body.substr(0, solutionStart)),
-                solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
-                solutionJson = JSON.parse(solutionString);
-            this.solutions = solutionJson.solutions;
 
-            // Hide correct until solved
-            if (!SolveJson) {
-                for (let i = 0; i < this.solutions.length; ++i) {
-                    if (this.solutions[i].correct) {
-                        delete this.solutions[i].correct;
+
+            if (this.isDiscussion) {
+
+                this.question = this.jsonData.body;
+                this.question = ENCODED_TO_JSON(this.question);
+                this.question = JSON_TO_HTML(this.question);
+            } else {
+
+
+
+                console.log(this.solutions);
+
+                const solutionStart = this.jsonData.body.indexOf('{'),
+                    solutionLen = parseInt(this.jsonData.body.substr(0, solutionStart)),
+                    solutionString = this.jsonData.body.substr(solutionStart, solutionLen),
+                    solutionJson = JSON.parse(solutionString);
+                this.solutions = solutionJson.solutions;
+
+                // Hide correct until solved
+                if (!SolveJson) {
+                    for (let i = 0; i < this.solutions.length; ++i) {
+                        if (this.solutions[i].correct) {
+                            delete this.solutions[i].correct;
+                        }
                     }
                 }
-            }
 
-            // JSON -> HTML for solutions ONLY if its multiple choice, since you can't latex/img an input solution
-            if (this.solutions.length > 1) {
-                for (let i = 0; i < this.solutions.length; ++i) {
-                    const solutionJson = INLINE_TO_JSON(this.solutions[i].text);
-                    this.solutions[i].html = JSON_TO_HTML(solutionJson);
+                // JSON -> HTML for solutions ONLY if its multiple choice, since you can't latex/img an input solution
+                if (this.solutions.length > 1) {
+                    for (let i = 0; i < this.solutions.length; ++i) {
+                        const solutionJson = INLINE_TO_JSON(this.solutions[i].text);
+                        this.solutions[i].html = JSON_TO_HTML(solutionJson);
+                    }
                 }
-            }
 
-            this.question = this.jsonData.body.substr(solutionLen + solutionStart);
-            this.question = ENCODED_TO_JSON(this.question);
-            this.question = JSON_TO_HTML(this.question);
+                this.question = this.jsonData.body.substr(solutionLen + solutionStart);
+                this.question = ENCODED_TO_JSON(this.question);
+                this.question = JSON_TO_HTML(this.question);
+
+            }
 
             // Build discussions from flattened comments
             this.discussions = [];
@@ -112,15 +220,9 @@ $(document).ready(() => {
 
                 console.log(comment.body);
                 let commentBody = null;
-                //try {
 
                 commentBody = ENCODED_TO_JSON(comment.body);
                 commentBody = JSON_TO_HTML(commentBody);
-                //} catch(e) {
-                //    debugger;
-                //    // Try again w/ debugger
-                //    commentBody = JSON_TO_HTML(comment.body);
-                //}
                 const discussionComment = {
                     id: comment.id,
                     rawcontent: comment.body,
@@ -146,8 +248,24 @@ $(document).ready(() => {
             }
 
             if (SolveJson) {
-                this.solutions[SolveJson.solution].selected = true;
-                this.solved = true;
+                if (this.solutions.length > 1) {
+                    this.solutions[SolveJson.solution].selected = true;
+
+                    if (this.solutions[SolveJson.solution].correct) {
+                        this.solved = 1;
+                    } else {
+                        this.solved = 2;
+                    }
+                } else {
+                    this.solutions[0].guessed = SolveJson.solution;
+
+                    // FIXME: Should we just keep this as a string always?
+                    if ((""+this.solutions[0].text) === SolveJson.solution) {
+                        this.solved = 1;
+                    } else {
+                        this.solved = 2;
+                    }
+                }
             }
 
             console.log(this.discussions);

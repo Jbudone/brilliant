@@ -16,7 +16,7 @@ class CreateProblemsTable extends Migration
         Schema::create('problems', function (Blueprint $table) {
             $table->id();
 
-            $table->unsignedBigInteger('category_id');
+            $table->unsignedBigInteger('category_id')->nullable();
             $table->foreign('category_id')->references('id')->on('categories');
 
             $table->unsignedBigInteger('author_id');
@@ -26,11 +26,13 @@ class CreateProblemsTable extends Migration
             $table->index('archive_id');
 
             $table->boolean('discussion');
+            $table->index('discussion');
 
-            $table->string('title', 128);
+            $table->string('title', 256); // FIXME: 128 for problems were okay, discussions needed 256 eg. although-i-am-almost-illiterate-mathematically-i
+
             $table->mediumText('body'); // prefix metadata for solution/etc.  (since this could be problem or discussion)
-            $table->smallInteger('level');
-            $table->text('solution'); // index for multiple choice, text for input answer
+            $table->smallInteger('level')->nullable();
+            $table->text('solution')->nullable(); // index for multiple choice, text for input answer
             $table->text('source')->nullable(); // link to source file
             $table->text('archive_meta')->nullable();
 

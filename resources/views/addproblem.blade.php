@@ -1,9 +1,12 @@
 <x-app-layout>
 
     @push('scripts')
-        @if(Route::is('addproblem'))
+        @if($addProblem)
         <script>window['addedit'] = 'add';</script>
         <script type="module" src="{{ asset('addproblem.js') }}"></script>
+        <script>
+            var isDiscussion = {{ $isDiscussion }};
+        </script>
         @else
         <script>window['addedit'] = 'edit';</script>
         <script type="module" src="{{ asset('addproblem.js') }}"></script>
@@ -16,13 +19,14 @@
                 level: "{{ old('level') }}",
                 body: "{{ old('body') }}",
             };
+            var isDiscussion = {{ $isDiscussion }};
         </script>
         @endif
     @endpush
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            @if(Route::is('addproblem'))
+            @if($addProblem)
             {{ __('Add Problem') }}
             @else
             {{ __('Edit Problem') }}
@@ -35,18 +39,28 @@
     <div class="sm:w-3/5 m-auto mt-6 font-serif ctnt-container">
         <div class="pt-6 px-4 pb-4 ctnt-main prblm-container">
             <div class="ctnt-sections">
-                @if(Route::is('addproblem'))
+                @if($addProblem)
                 <div id="app" :type="add">
                 @else
                 <div id="app" :type="edit">
                 @endif
 
-                    @if(Route::is('addproblem'))
-                    <form method="POST" action="/addproblem" ref="form">
+                    @if($addProblem)
+                        @if($isDiscussion)
+                        <form method="POST" action="/adddiscussion" ref="form">
+                        @else
+                        <form method="POST" action="/addproblem" ref="form">
+                        @endif
                     @else
-                    <form method="POST" action="/edit" ref="form">
-                        <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                        @if($isDiscussion)
+                        <form method="POST" action="/editdiscussion" ref="form">
+                            <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                        @else
+                        <form method="POST" action="/editproblem" ref="form">
+                            <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
+                        @endif
                     @endif
+
 
                         <input type=text" name="solution" id="hiddenSolution" style="display: none;" v-bind:value="this.solutionIndex()" />
                         <input type=text" name="body" id="hiddenBody" style="display: none;" ref="formBody" />
@@ -64,7 +78,7 @@
                                 <div class="alert alert-danger">{{ $message }}</div>
                                 @enderror
 
-
+                                @if(!$isDiscussion)
                                 <div class="prblm-edit-topiclevel">
                                     <Dropdown
                                             :options="globals.ProblemCategories"
@@ -93,6 +107,7 @@
                                     <div class="alert alert-danger">{{ $message }}</div>
                                     @enderror
                                 </div>
+                                @endif
 
                                 <span class="prblm-edit-header">Question Body</span>
                                 <tip-tap-form :name="`editor`" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
@@ -100,6 +115,7 @@
                                 <div class="alert alert-danger">{{ $message }}</div>
                                 @enderror
                             </div>
+                            @if(!$isDiscussion)
                             <div class="col-span-2">
                                 <span class="prblm-edit-header">Solutions</span>
                                 <div class="prblm-edit-solutions">
@@ -114,6 +130,7 @@
                                     </template>
                                 </div>
                             </div>
+                            @endif
                         </div>
                     </form>
                     <div>
@@ -124,9 +141,11 @@
                                 <div class="pl-4">
                                     <div ref="previewContent"></div>
                                 </div>
+                                @if(!$isDiscussion)
                                 <div class="" style="width:80%">
                                     <div ref="previewSolutions"></div>
                                 </div>
+                                @endif
                             </div>
                         </div>
 

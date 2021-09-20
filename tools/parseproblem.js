@@ -96,6 +96,18 @@ for (let i = 2; i < process.argv.length; ++i) {
 
 if (MAX_PROBLEMS > 0) MAX_PROBLEMS += PROBLEM_OFFSET;
 
+const Assert = (expr, errOutput) => {
+    if (!expr) {
+        console.error(errOutput);
+        debugger;
+        process.exit(1);
+    }
+
+    if (errOutput === undefined && (typeof expr === "string")) {
+        Assert(false, "Bad use of Assert");
+    }
+};
+
 
 let rawproblemsList = null;
 let SINGLE_PROBLEM_IDX = -1;
@@ -104,8 +116,13 @@ if (SINGLE_PROBLEM) {
     let rawproblems = fs.readFileSync(PROBLEM_LIST_PATH, 'utf8');
     rawproblemsList = rawproblems.split('\n');
 
+    let prefixPath = 'problems';
+    if (DISCUSSION) {
+        prefixPath = 'discussions/thread';
+    }
+
     for (let i = 0; i < rawproblemsList.length; ++i) {
-        if (rawproblemsList[i].indexOf(`problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `) === 0) {
+        if (rawproblemsList[i].indexOf(`${prefixPath}/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `) === 0) {
             SINGLE_PROBLEM_IDX = i;
             rawproblemsList = [rawproblemsList[i]];
             break;
@@ -113,7 +130,7 @@ if (SINGLE_PROBLEM) {
     }
 
     if (SINGLE_PROBLEM_IDX === -1) {
-        Assert(`Couldn't find problem: ${SINGLE_PROBLEM}`);
+        Assert(false, `Couldn't find problem: ${SINGLE_PROBLEM}`);
     }
 
     //rawproblemsList = [
@@ -125,14 +142,6 @@ if (SINGLE_PROBLEM) {
     rawproblemsList = rawproblems.split('\n');
 }
 
-
-const Assert = (expr, errOutput) => {
-    if (!expr) {
-        console.error(errOutput);
-        debugger;
-        process.exit(1);
-    }
-};
 
 const CountElementsIn = (elements, inObj) => {
     let total = 0;
@@ -205,6 +214,11 @@ const parseDiscussion = (id, env) => {
     // FIXME: Upvotes?
 
 
+    // Body
+    const postBody = postBodyContentEl.html().trim('\n');
+    outProblem.body = PROBLEM_PARSE_BODY(postBody, env);
+
+
     // Author
     const avatarEl = $('.avatar img', postAuthorEl),
         userEl = $('.btn-profile', postAuthorEl),
@@ -215,13 +229,14 @@ const parseDiscussion = (id, env) => {
     // FIXME: Confirm  "Note by [name] [date]"
     const avatarSrc = avatarEl.attr('src'),
         profileLink = userEl.attr('href'),
+        profileName = profileLink.match(/\/profile\/([^\/]*)\//)[1],
         userName    = userEl.text(),
         postTime    = userTimeEl.attr('title');
 
 
     outProblem.author = {
         avatar: avatarSrc,
-        profile: profileLink,
+        profile: profileName,
         name: userName,
         id: userId,
     };
@@ -255,11 +270,109 @@ const parseDiscussion = (id, env) => {
             }
         }
     }
-    outProblem.title = problemTitle;
-
+    outProblem.title = problemTitle.trim();
 
 
     // FIXME: Comments
+    // Comments
+    const commentsContainerInnerEl = $('.disc-comments', commentsContainerEl),
+        commentEls = $('.comment-item', commentsContainerInnerEl),
+        comments = [];
+    for (let commentIdx = 0; commentIdx < commentEls.length; ++commentIdx) {
+        const commentEl = commentEls.eq(commentIdx),
+            commentContainerEl = commentEl.parent(),
+            commentId = parseInt(commentEl.attr('data-comment')),
+            commentLevel = commentContainerEl.attr('data-level');
+
+        Assert(commentContainerEl.hasClass('cmmnt-container'), `Comment is not immediately contained inside .cmmnt-container: ${filepath}`);
+        const comment = {
+            el: commentEl,
+            id: commentId,
+            level: parseInt(commentLevel),
+            replies: [],
+            parent: null
+        }
+
+        // Which comment is this a reply to?
+        // NOTE: Need to check from the end -> start to find child-most comment
+        let parentComment = null;
+        for (let parentCommentIdx = comments.length - 1; parentCommentIdx >= 0; --parentCommentIdx) {
+            // comment-level0 [comment-id=6140]
+            // replies
+            //   reply-to .unhide_new_reply_6140
+            //   comment-level1
+            //   replies
+            // comment-level0
+            // comment-level0
+            // ...
+            if(commentEl.siblings(`.unhide_new_reply_${comments[parentCommentIdx].id}`).length > 0) {
+                parentComment = comments[parentCommentIdx];
+
+                // TODO: This assert works on problems but breaks on discussion: http://brilliant.laravel:8000/brilliantexport/discussions/thread/marathi-science-blog/marathi-science-blog.html  (even though the parentComment/child is correct)
+                //Assert(comment.level > parentComment.level, `Wrong comment parent found (level mismatch): ${filepath}`);
+
+                parentComment.replies.push(comment);
+                comment.parent = parentComment;
+
+                break;
+            }
+        }
+
+        // Comment author
+        const commentFooterEl = $('.meta', commentEl);
+        Assert(commentFooterEl.length === 1, `Comment footer el != 1: ${filepath}`);
+
+        const commentNameEl = $('.author', commentFooterEl),
+            commentDateEl = $('.ts', commentFooterEl);
+
+        const commentProfileLink = commentNameEl.attr('href'),
+            commentProfileName = commentProfileLink.match(/\/profile\/([^\/]*)\//)[1],
+            commentUserName = commentNameEl.text(),
+            commentUserId = commentNameEl.attr('data-id'),
+            commentDate = commentDateEl.text();
+
+        comment.author = {
+            profile: commentProfileName,
+            name: commentUserName.trim(),
+            id: commentUserId
+        };
+        comment.date = commentDate.trim();
+
+
+
+        // Comment content
+        // WARNING: We have to process this AFTER the author since we need to remove the .meta el to process the entire block as the comment body
+        //const commentContentContainerEl = commentEl.children('.text', commentEl);
+        const commentContentContainerEl = commentEl.children('.comment-content').children('.comment-text-wrapper').children('.text');
+        Assert(commentContentContainerEl.length === 1, `$(.text, .comment-item).length != 1: ${filepath}`);
+        //const commentContentEl = $('p', commentContentContainerEl).first(); // FIXME: Multiple <p>'s
+        //Assert(commentContentEl.length === 1, `$(p, commentContentContainerEl).length != 1: ${filepath}`);
+        //const commentContent = PROBLEM_PARSE_BODY(commentContentEl.html(), env);
+        $('.meta', commentContentContainerEl).remove();
+        const commentContent = PROBLEM_PARSE_BODY(commentContentContainerEl.html(), env);
+        comment.body = commentContent;
+
+        comments.push(comment);
+    }
+
+    outProblem.discussion = [];
+
+    // Nuke non-JSON parts from comments
+    for (let commentIdx = comments.length - 1; commentIdx >= 0; --commentIdx) {
+        const comment = comments[commentIdx];
+        if (comment.parent) {
+            comments.splice(commentIdx, 1);
+        } else {
+            // FIXME: This is to be in line w/ problems -- this sucks tohugh cleanup better
+            outProblem.discussion.push(comment);
+            comment.comments = comment.replies;
+            delete comment.replies;
+        }
+
+        delete comment.el;
+        delete comment.parent;
+    }
+
 
     return outProblem;
 };
@@ -336,7 +449,7 @@ const parseProblem = (id, env) => {
             }
         }
     }
-    outProblem.title = problemTitle;
+    outProblem.title = problemTitle.trim();
 
     // Question
     const questionBodyEl = $('.question-text');
@@ -388,6 +501,7 @@ const parseProblem = (id, env) => {
 
     const avatarSrc = avatarEl.attr('src'),
         profileLink = userEl.attr('href'),
+        profileName = profileLink.match(/\/profile\/([^\/]*)\//)[1],
         userName    = userEl.text(),
         userText    = userEl.parent().text(),
         userTitle   = userEl.attr('title');
@@ -434,7 +548,7 @@ const parseProblem = (id, env) => {
 
     outProblem.author = {
         avatar: avatarSrc,
-        profile: profileLink,
+        profile: profileName,
         name: userTitle,
         age: userAge,
         id: userId,
@@ -481,6 +595,7 @@ const parseProblem = (id, env) => {
 
             const avatarSrc = avatarEl.attr('src'),
                 profileLink = userEl.attr('href'),
+                profileName = profileLink.match(/\/profile\/([^\/]*)\//)[1],
                 userName    = userEl.text().trim(),
                 userId      = userEl.attr('data-id'),
                 datePosted  = dateEl.attr('title');
@@ -492,7 +607,7 @@ const parseProblem = (id, env) => {
 
             discussionBit.author = {
                 avatar: avatarSrc,
-                profile: profileLink,
+                profile: profileName,
                 name: userName,
                 id: userId
             };
@@ -577,12 +692,13 @@ const parseProblem = (id, env) => {
                     commentDateEl = $('.ts', commentFooterEl);
 
                 const commentProfileLink = commentNameEl.attr('href'),
+                    commentProfileName = commentProfileLink.match(/\/profile\/([^\/]*)\//)[1],
                     commentUserName = commentNameEl.text(),
                     commentUserId = commentNameEl.attr('data-id'),
                     commentDate = commentDateEl.text();
 
                 comment.author = {
-                    profile: commentProfileLink,
+                    profile: commentProfileName,
                     name: commentUserName.trim(),
                     id: commentUserId
                 };

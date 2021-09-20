@@ -126,6 +126,21 @@ for (let i = 0; i < input.length; ++i) {
 
     if (DISCUSSION) {
         //Assert(false, "Dscussion setup");
+
+        // Flatten html bodies
+        let bodyJSON = JSON.parse(problemIn['body']),
+            { child } = JSON_BODY_TO_HTML(bodyJSON),
+            bodyHTML = child;
+        problemOut['body'] = JSON.stringify(bodyHTML);
+
+
+        // Discussion
+        problemOut.discussions = [];
+        problemIn.discussion.forEach((discussion) => {
+            RECURSIVE_ADJUST_DISCUSSION(discussion);
+            problemOut.discussions.push(discussion);
+        });
+        delete problemOut.discussion;
     } else {
 
         // Parse category
@@ -182,8 +197,9 @@ for (let i = 0; i < input.length; ++i) {
 
                 if (answerRaw instanceof Object) {
                     let { child } = JSON_BODY_TO_HTML(answerRaw);
-                    answerRaw = child;
-                    answerRaw = BODY_HTML_TO_INLINE(answerRaw);
+                    let answerRawHtml = child;
+                    let answerRawInline = BODY_HTML_TO_INLINE(answerRawHtml);
+                    answerRaw = answerRawInline;
                 }
             }
 

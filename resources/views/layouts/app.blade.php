@@ -30,7 +30,7 @@
 
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+        <div class="min-h-screen bg-gray-50">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
@@ -41,7 +41,7 @@
             </header>
 
             <!-- Page Content -->
-            <main>
+            <main class="mb-10">
                 {{ $slot }}
             </main>
         </div>

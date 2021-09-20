@@ -122,6 +122,10 @@ Route::get('/brilliantexport/problems/{problemFirst}/{problem}', function ($prob
     return File::get(public_path() . "/brilliantexport/problems/$problemId/$problemId.html");
 })->where('problem', '[A-Za-z0-9_-]+');
 
+Route::get('/brilliantexport/discussions/thread/{problemFirst}/{problem}', function ($problemId) {
+    return File::get(public_path() . "/brilliantexport/discussions/thread/$problemId/$problemId.html");
+})->where('problem', '[A-Za-z0-9_-]+');
+
 Route::get('/problem/{problem}', function ($problemId) {
     $p = Problem::where('id', (int)$problemId)->with(['topic', 'author', 'comments.author:id,name,created_at'])->first();
 
@@ -147,30 +151,52 @@ Route::get('/problem/{problem}', function ($problemId) {
         ];
     }
 
-    $json = ['problem' => [
-        'id' => $p->id,
-        'title' => $p->title,
-        'topic' => $p->topic->name,
-        'body' => $p->body,
-        'level' => $p->level,
-        'author' => $p->author_id,
-        'users' => $users,
-        'comments' => $comments,
-        'source' => $p->source
-    ], 'source' => $p->source,
-    'user' => [
-        'id' => Auth::id()
-    ]];
+
+    $json;
+    if ($p->discussion) {
+
+        $json = ['problem' => [
+            'id' => $p->id,
+            'title' => $p->title,
+            'body' => $p->body,
+            'author' => $p->author_id,
+            'users' => $users,
+            'comments' => $comments,
+            'source' => $p->source,
+            'discussion' => true
+        ], 'source' => $p->source,
+        'user' => [
+            'id' => Auth::id()
+        ]];
+
+    } else {
+
+        $json = ['problem' => [
+            'id' => $p->id,
+            'title' => $p->title,
+            'topic' => $p->topic->name,
+            'body' => $p->body,
+            'level' => $p->level,
+            'author' => $p->author_id,
+            'users' => $users,
+            'comments' => $comments,
+            'source' => $p->source,
+            'discussion' => false
+        ], 'source' => $p->source,
+        'user' => [
+            'id' => Auth::id()
+        ]];
 
 
-    if (Auth::id()) {
-        $solve = Solve::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->first();
-        if ($solve) {
-            $json['solve'] = [
-                'solution' => $solve->solution,
-                'correct' => $solve->correct,
-                'date' => $solve->created_at
-            ];
+        if (Auth::id()) {
+            $solve = Solve::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->first();
+            if ($solve) {
+                $json['solve'] = [
+                    'solution' => $solve->solution,
+                    'correct' => $solve->correct,
+                    'date' => $solve->created_at
+                ];
+            }
         }
     }
 
@@ -180,9 +206,15 @@ Route::get('/problem/{problem}', function ($problemId) {
 })->whereNumber('problem');
 
 
+
 Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['auth'])->name('addproblem');
-//    return view('addproblem');
-//})->middleware(['auth']);
+Route::post('/addproblem', [ProblemController::class, 'store'])->middleware(['auth'])->name('storeproblem');
+Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
+Route::post('/editproblem', [ProblemController::class, 'change'])->middleware(['auth'])->name('changeproblem');
+Route::post('/editdiscussion', [ProblemController::class, 'change'])->middleware(['auth'])->name('changediscussion');
+Route::get('/adddiscussion', [ProblemController::class, 'create'])->middleware(['auth'])->name('adddiscussion');
+Route::post('/adddiscussion', [ProblemController::class, 'store'])->middleware(['auth'])->name('storediscussion');
+
 
 Route::get('/randomproblem', function() {
     $count = intval(Problem::count());
@@ -190,16 +222,18 @@ Route::get('/randomproblem', function() {
     return redirect('/problem/' . $randomIdx);
 })->name('randomproblem');
 
-Route::post('/addproblem', [ProblemController::class, 'store'])->middleware(['auth']);
-Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
-Route::post('/edit', [ProblemController::class, 'change'])->middleware(['auth']);
 Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth']);
 Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);
 Route::post('/solve', [SolveController::class, 'store'])->middleware(['auth']);
 Route::post('/unsolve', [SolveController::class, 'destroy'])->middleware(['auth']);
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+
+    $problems = Problem::where('author_id', Auth::id())->get();
+
+    return view('dashboard', [
+        'authoredProblems' => $problems
+    ]);
 })->middleware(['auth'])->name('dashboard');
 
 require __DIR__.'/auth.php';

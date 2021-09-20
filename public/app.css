@@ -712,10 +712,11 @@ div#wave .dot:nth-child(3) {
     color: #333;
     line-height: 1.2em;
     text-align: left;
+    border: 2px solid #FFFFFF00;
 }
 
 .prblm-solution-btn:hover {
-    border: 2px solid #777;
+    border: 2px solid #DDD;
     cursor: pointer;
 }
 
@@ -774,7 +775,6 @@ div#wave .dot:nth-child(3) {
 }
 
 .prblm-solution-btn.disabled {
-    border-color: #bbb;
     color: #777;
     cursor: default;
     box-shadow: none;
@@ -806,7 +806,8 @@ div#wave .dot:nth-child(3) {
     background: #000;
     border-radius: 16px;
     left: 6px;
-    top: 17px;
+    top: 0px;
+    margin-top: 17px;
 }
 
 
