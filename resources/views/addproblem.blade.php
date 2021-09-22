@@ -5,7 +5,7 @@
         <script>window['addedit'] = 'add';</script>
         <script type="module" src="{{ asset('addproblem.js') }}"></script>
         <script>
-            var isDiscussion = {{ $isDiscussion }};
+            var isDiscussion = {{ $isDiscussion ? "true" : "false" }};
         </script>
         @else
         <script>window['addedit'] = 'edit';</script>
@@ -19,7 +19,7 @@
                 level: "{{ old('level') }}",
                 body: "{{ old('body') }}",
             };
-            var isDiscussion = {{ $isDiscussion }};
+            var isDiscussion = {{ $isDiscussion  ? "true" : "false" }};
         </script>
         @endif
     @endpush
