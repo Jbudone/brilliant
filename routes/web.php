@@ -73,6 +73,8 @@ Route::get('/problemspaginate/{categoryId}/{level}/{offset}', function ($categor
     $query = Problem::orderBy('id', 'desc');
     if ($categoryId > 0) {
         $query = $query->where('category_id', $categoryId);
+    } else {
+        $query = $query->whereNotNull('category_id');
     }
 
     if ($level > 0) {
@@ -100,7 +102,7 @@ Route::get('/problemspaginate/{categoryId}/{level}/{offset}', function ($categor
 })->where(['categoryId' => '[0-9]', 'level' => '[0-9]', 'offset' => '[0-9]+']);
 
 Route::get('/newproblems', function () {
-    $p = Problem::where('created_at', '>=', now()->subWeek())->limit(1000)->get(['id', 'title', 'category_id', 'level']);
+    $p = Problem::where('created_at', '>=', now()->subWeek())->whereNotNull('category_id')->limit(1000)->get(['id', 'title', 'category_id', 'level']);
     $problems = [];
     foreach ($p as $problem) {
         $problems[] = [
