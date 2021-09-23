@@ -36,7 +36,7 @@
 
 
     <!-- Content -->
-    <div class="sm:w-3/5 m-auto mt-6 font-serif ctnt-container">
+    <div class="md:w-9/12 lg:w-8/12 m-auto mt-6 font-serif ctnt-container">
         <div class="pt-6 px-4 pb-4 ctnt-main prblm-container">
             <div class="ctnt-sections">
                 @if($addProblem)

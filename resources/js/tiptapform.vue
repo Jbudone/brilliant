@@ -19,28 +19,28 @@
             </Dropdown>
 -->
 
-            <div class="mx-4 space-x-4">
+            <div class="mx-3 space-x-2 lg:mx-4 lg:space-x-4">
                 <a href="#" class="fas fa-heading hover:text-purple-700" @click.prevent="editor.chain().focus().toggleHeading({ level: 1 }).run()" :class="{ 'text-purple-800': editor.isActive('heading', { level: 1 }) }"></a>
                 <!--<a href="#" class="fas fa-heading hover:text-purple-700" @click.prevent="editor.chain().focus().toggleHeading({ level: 2 }).run()" :class="{ 'text-purple-800': editor.isActive('heading', { level: 2 }) }"></a>
                 <a href="#" class="fas fa-heading hover:text-purple-700" @click.prevent="editor.chain().focus().toggleHeading({ level: 3 }).run()" :class="{ 'text-purple-800': editor.isActive('heading', { level: 3 }) }"></a>-->
             </div>
 
-            <div class="mx-4 space-x-4">
+            <div class="mx-3 space-x-2 lg:mx-4 lg:space-x-4">
                 <a href="#" class="fas fa-bold hover:text-purple-700" @click.prevent="editor.chain().focus().toggleBold().run()" :class="{ 'text-purple-800': editor.isActive('bold') }"></a>
                 <a href="#" class="fas fa-italic hover:text-purple-700" @click.prevent="editor.chain().focus().toggleItalic().run()" :class="{ 'text-purple-800': editor.isActive('italic') }"></a>
                 <a href="#" class="fas fa-underline hover:text-purple-700" @click.prevent="editor.chain().focus().toggleUnderline().run()" :class="{ 'text-purple-800': editor.isActive('underline') }"></a>
             </div>
 
-            <div class="mx-4 space-x-4">
+            <div class="mx-3 space-x-2 lg:mx-4 lg:space-x-4">
                 <a href="#" class="fas fa-list-ul hover:text-purple-700" @click.prevent="editor.chain().focus().toggleBulletList().run()" :class="{ 'text-purple-800': editor.isActive('bulletList') }"></a>
                 <a href="#" class="fas fa-list-ol hover:text-purple-700" @click.prevent="editor.chain().focus().toggleOrderedList().run()" :class="{ 'text-purple-800': editor.isActive('orderedList') }"></a>
             </div>
 
-            <div class="mx-4 space-x-4">
+            <div class="mx-3 space-x-2 lg:mx-4 lg:space-x-4">
                 <a href="#" class="fas fa-slash hover:text-purple-700" style="transform: rotate(322deg);" @click.prevent="editor.chain().focus().setHorizontalRule().run()"></a>
             </div>
 
-            <div class="mx-4 space-x-4">
+            <div class="mx-3 space-x-2 lg:mx-4 lg:space-x-4">
                 <a href="#" class="fas fa-block-quote hover:text-purple-700" @click.prevent="editor.chain().focus().toggleBlockquote().run()"></a>
                 <a href="#" class="fas fa-link hover:text-purple-700"></a>
                 <a href="#" class="fas fa-square-root-alt hover:text-purple-700" @click.prevent="editor.chain().focus().insertContent('\\( \\)').run()"></a>
