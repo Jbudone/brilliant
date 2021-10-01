@@ -47,7 +47,7 @@ class UpdateArchive extends Command
         $userProfile = $user['profile'];
         if (array_key_exists($userProfile, UpdateArchive::$users)) {
             // FIXME: Check if updated (from current value in obj), and update if so
-            $userId = UpdateArchive::$users[$userProfile]->id;
+            $userId = UpdateArchive::$users[$userProfile];
             //echo "    existing id: $userId\n";
             return $userId;
         }
@@ -55,9 +55,14 @@ class UpdateArchive extends Command
         // FIXME: We could be seeding discussions but already seeded problems and run into the same users
         $existingUser = User::where('archive_id', $user['id'])->first();
         if ($existingUser) {
-            UpdateArchive::$users[$userProfile] = $existingUser;
-            $userId = UpdateArchive::$users[$userProfile]->id;
+            UpdateArchive::$users[$userProfile] = $existingUser->id;
+            $userId = UpdateArchive::$users[$userProfile];
             return $userId;
+        }
+
+        if (!$user['id']) {
+            echo "No archive user.id found\n";
+            exit;
         }
 
 
@@ -89,7 +94,7 @@ class UpdateArchive extends Command
              */
 
         $userId = $userDoc->id;
-        UpdateArchive::$users[$userProfile] = $userDoc;
+        UpdateArchive::$users[$userProfile] = $userId;
         return $userId;
     }
 
@@ -97,7 +102,7 @@ class UpdateArchive extends Command
         $userProfile = $user['profile'];
         if (array_key_exists($userProfile, UpdateArchive::$users)) {
             // FIXME: Check if updated (from current value in obj), and update if so
-            $userId = UpdateArchive::$users[$userProfile]->id;
+            $userId = UpdateArchive::$users[$userProfile];
             return;
         }
 
@@ -109,8 +114,9 @@ class UpdateArchive extends Command
             'name' => $userName,
         ])->first();
 
-        UpdateArchive::$users[$userProfile] = $userDoc;
-        return $userDoc->id;
+        $userId = $userDoc->id;
+        UpdateArchive::$users[$userProfile] = $userId;
+        return $userId;
     }
 
     public static function addComment($comment, $problemId, $parentCommentId) {
@@ -119,6 +125,11 @@ class UpdateArchive extends Command
 
         $author = $comment['author'];
         $authorId = UpdateArchive::addUser($author, UpdateArchive::$users);
+
+        if (!$commentId) {
+            echo "No archive comment.id found\n";
+            exit;
+        }
 
         $commentDoc = Comment::create([
             'author_id' => $authorId,
@@ -130,7 +141,7 @@ class UpdateArchive extends Command
 
         $replies = $comment['replies'];
         foreach ($replies as $replyIdx => &$reply) {
-            UpdateArchive::addComment($reply, $problemId, $commentDoc->id, UpdateArchive::$users);
+            UpdateArchive::addComment($reply, $problemId, $commentDoc->id);
         }
 
         return 1;
@@ -149,7 +160,7 @@ class UpdateArchive extends Command
 
         $replies = $comment['replies'];
         foreach ($replies as $replyIdx => &$reply) {
-            UpdateArchive::updateComment($reply, $problemId, $commentDoc->id, UpdateArchive::$users);
+            UpdateArchive::updateComment($reply, $problemId, $commentDoc->id);
         }
     }
 
@@ -158,6 +169,12 @@ class UpdateArchive extends Command
         $source = $problem['source'];
         echo "$source\n";
 
+        if (!$problem['id']) {
+            echo "No archive problem.id found\n";
+            exit;
+        }
+
+        $archiveId = $problem['id'];
         $questionBody = $problem['body'];
         $solutions = json_encode(['solutions' => $problem['answers']]);
         $body = strlen($solutions) . $solutions . $questionBody;
@@ -173,7 +190,7 @@ class UpdateArchive extends Command
             'author_id' => $authorId,
             'solution' => 0, // FIXME: Transport get solution idx
             'source' => $problem['source'],
-            'archive_id' => $problem['id'],
+            'archive_id' => $archiveId,
             'archive_meta' => "", // FIXME: Meta
             'discussion' => FALSE
         ]);
@@ -208,15 +225,22 @@ class UpdateArchive extends Command
 
         $body = $problem['body'];
 
+        $archiveId = $problem['id'] + 100000; // just under 100,000 problems, discussions go after
         $author = $problem['author'];
         $authorId = UpdateArchive::addUser($author);
+
+
+        if (!$problem['id']) {
+            echo "No archive discussion.id found\n";
+            exit;
+        }
 
         $problemDoc = Problem::create([
             'title' => $problem['title'],
             'body' => $body,
             'author_id' => $authorId,
             'source' => $problem['source'],
-            'archive_id' => $problem['id'],
+            'archive_id' => $archiveId,
             'archive_meta' => "", // FIXME: Meta
             'discussion' => TRUE
         ]);
@@ -297,9 +321,48 @@ class UpdateArchive extends Command
         }
     }
 
-    public function updateDiscussion($discussion)
+    public function updateDiscussion($problem)
     {
-        echo "Test test\n";
+        $problemId = $problem['id'];
+        $source = $problem['source'];
+        echo "$source\n";
+
+
+        $body = $problem['body'];
+
+        $author = $problem['author'];
+        $authorId = UpdateArchive::updateUser($author);
+
+        $problemDoc = tap(Problem::where("archive_id", $problemId))->update([
+            'title' => $problem['title'],
+            'body' => $body,
+            'archive_meta' => "", // FIXME: Meta
+        ])->first();
+
+        if (!$problemDoc) {
+            print "Could not find Problem::archive_id=$problemId\n";
+            exit;
+        }
+
+
+        // Discussion
+        $discussions = $problem['discussions'];
+        foreach ($discussions as $discussionIdx => &$discussion) {
+            $discussionId = $discussion['id'];
+            $discussionAuthor = $discussion['author'];
+            $discussionBody = $discussion['body'];
+
+            $discussionAuthorId = UpdateArchive::updateUser($discussion['author']);
+
+            $discussionDoc = tap(Comment::where("archive_id", $discussionId))->update([
+                'body' => $discussionBody,
+            ])->first();
+
+            $discussionComments = $discussion['comments'];
+            foreach ($discussionComments as $commentIdx => &$comment) {
+                UpdateArchive::updateComment($comment, $problemDoc->id, $discussionDoc->id);
+            }
+        }
     }
 
     /**
@@ -328,7 +391,7 @@ class UpdateArchive extends Command
             }
 
             foreach ($problemBatchList as $idx => &$problemBatch) {
-                if ($singleBatchIdx && $singleBatchIdx != $idx) continue;
+                if ($singleBatchIdx != null && $singleBatchIdx != $idx) continue;
 
                 $jsonFile = $problemBatch->transportedList;
                 echo "Loading batch: $jsonFile\n";
@@ -385,6 +448,7 @@ class UpdateArchive extends Command
             }
         }
 
+        $users = []; // Unset so GC can tackle
         return 0;
     }
 }
