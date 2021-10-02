@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Lxndria'),
 
     /*
     |--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://brilliant.local'),
+    'url' => env('APP_URL', 'http://lxndria.local'),
 
     'asset_url' => env('ASSET_URL', null),
 
