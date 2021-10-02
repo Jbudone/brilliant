@@ -223,7 +223,14 @@ if (SINGLE_PROBLEM) {
 
     let batchIdx = 0;
     for (let i = 0; i < rawproblemsList.length; ++i) {
-        if (rawproblemsList[i].indexOf(`problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `) === 0) {
+        let probIdx;
+        if (discussion) {
+            probIdx = rawproblemsList[i].indexOf(`discussions/thread/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `);
+        } else {
+            probIdx = rawproblemsList[i].indexOf(`problems/${SINGLE_PROBLEM}/${SINGLE_PROBLEM} `);
+        }
+
+        if (probIdx === 0) {
             batchIdx = Math.floor(i / BATCH_SIZE);
             SINGLE_PROBLEM_IDX = i - (batchIdx * BATCH_SIZE);
             console.log(`Found problem in batch ${batchIdx}`);

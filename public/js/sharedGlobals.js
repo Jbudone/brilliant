@@ -24,6 +24,7 @@ const META_MAP = {
     'em': 'Em',
     'strong': 'St',
     'a': 'Ah',
+    'code': 'Co',
 
     // attributes
     'inline': 'i',
@@ -44,6 +45,7 @@ for (const key in META_MAP) {
     META_MAP_REVERSE[val] = key;
 }
 
+// Inflated JSON -> Deflated
 const JSON_BODY_TO_HTML = (json) => {
 
     if (json.type === "doc") {
@@ -77,12 +79,8 @@ const JSON_BODY_TO_HTML = (json) => {
                 if (mark.type === "link") {
                     meta += META_MAP['link'];
                     postMeta += ":" + mark.attrs.href;
-                } else if (mark.type === "italic") {
-                    meta += META_MAP['italic'];
-                } else if (mark.type === "bold") {
-                    meta += META_MAP['bold'];
-                } else if (mark.type === "underline") {
-                    meta += META_MAP['underline'];
+                } else if (['italic', 'bold', 'underline', 'code'].indexOf(mark.type) >= 0) {
+                    meta += META_MAP[mark.type];
                 } else {
                     Assert(false, `Unexpected mark type for text: ${mark.type}`);
                 }
@@ -157,9 +155,9 @@ const JSON_BODY_TO_HTML = (json) => {
     } else if (json.type === "horizontalRule" || json.type === "hardBreak") {
         let meta = META_MAP[json.type];
         return { child: `${meta}`, elements: 1 };
-    } else if (["em", "strong", "a"].indexOf(json.type) >= 0) {
+    } else if (["em", "strong", "code", "a"].indexOf(json.type) >= 0) {
 
-        // Leave out em/strong/a tag since those are set in Marks on text elements
+        // Leave out em/strong/code/a tag since those are set in Marks on text elements
         let contents = [];
         let immediateChildren = 0;
         for (let i = 0; i < json.content.length; ++i) {
@@ -176,7 +174,7 @@ const JSON_BODY_TO_HTML = (json) => {
             }
         }
         return { child: contents, elements: immediateChildren };
-    } else if (["paragraph","bulletList", "orderedList", "blockquote", "heading", "codeBlock", "table", "tableRow", "em", "strong", "a", "listItem", "tableCell"].indexOf(json.type) >= 0) {
+    } else if (["paragraph","bulletList", "orderedList", "blockquote", "heading", "codeBlock", "table", "tableRow", "listItem", "tableCell"].indexOf(json.type) >= 0) {
         let meta = META_MAP[json.type];
 
         if (json.type === "heading") {
@@ -254,6 +252,7 @@ const JSON_BODY_TO_HTML = (json) => {
     }
 };
 
+// Deflated w/ separated katex -> raw text w/ inlined katex \( \)
 const BODY_HTML_TO_INLINE = (list) => {
 
     let inline = "";
@@ -269,6 +268,7 @@ const BODY_HTML_TO_INLINE = (list) => {
         if (elType === META_MAP['text']) {
             inline += elText.trim();
         } else if (elType === META_MAP['katex']) {
+            // FIXME: Block? \[ \] otherwise inline \( \)
             inline += " \\(" + elText.trim() + "\\) ";
         }
     }
@@ -276,8 +276,54 @@ const BODY_HTML_TO_INLINE = (list) => {
     return inline.trim();
 };
 
+// Take raw text -> split to text/katex
+const SPLIT_TEXT_AND_KATEX = (text) => {
+    let parts = [];
+    let html = text;
 
-// Reverse generated html -> markdown/latex
+    const delimiters = [
+        [ '\\[', '\\]', false ], // block
+        [ '\\(', '\\)', true ],  // inline
+    ];
+
+    do {
+        let idxStart = null, delim;
+        for (let i = 0; i < delimiters.length; ++i) {
+            let idx = html.indexOf(delimiters[i][0]);
+            if (idx >= 0 && (idxStart === null || idx < idxStart)) {
+                idxStart = idx;
+                delim = delimiters[i];
+            }
+        }
+
+        if (!delim) break;
+
+        let idxEnd = html.indexOf(delim[1]);
+        if (idxStart === -1 || idxEnd <= idxStart) break;
+
+        // add left (raw text)
+        let start = html.substr(0, idxStart);
+        if (start.trim() !== "") {
+            parts.push({ type: "text", text: start });
+        }
+
+        // add katex
+        let katexRaw = html.substr(idxStart + 2, (idxEnd - idxStart) - 2);
+        parts.push({ type: "katex", text: katexRaw, inline: delim[2] });
+
+        // update html to right-onward
+        html = html.substr(idxEnd + 2);
+    } while (true);
+
+    if (html.trim() !== "") {
+        parts.push({ type: "text", text: html });
+    }
+
+    return parts;
+};
+
+
+// Reverse pregenerated html -> inflated json
 const PROBLEM_PARSE_BODY = (body, env) => {
     const { filepath, $ } = env;
     const html = $.parseHTML(body);
@@ -315,8 +361,34 @@ const PROBLEM_PARSE_BODY = (body, env) => {
             }
         } else if (el.nodeName === "#text") {
             // text fragment
-            json.type = "text";
-            json.text = processText(el.textContent);
+            // FIXME: Some places exports aren't pre-rendered from KaTex (eg. http://brilliant.laravel:8000/brilliantexport/discussions/thread/12-13-15-17-111-113/12-13-15-17-111-113.html) -- have to search and separate those katex nodes out manually
+            const rawText = processText(el.textContent);
+            const textParts = SPLIT_TEXT_AND_KATEX(rawText);
+
+            if (textParts.length <= 1) {
+                json.type = "text";
+                json.text = processText(el.textContent);
+            } else {
+                json.type = "paragraph";
+                json.content = [];
+                for (let i = 0; i < textParts.length; ++i) {
+
+                    const textPart = textParts[i];
+                    if (textPart.type === "text") {
+                        json.content.push({
+                            type: "text",
+                            text: processText(textPart.text)
+                        });
+                    } else {
+                        json.content.push({
+                            type: "katex",
+                            attrs: { inline: textPart.inline },
+                            content: [{ type: "text", text: processText(textPart.text) }]
+                        });
+                    }
+                }
+            }
+
         } else if (el.nodeName === "SPAN") {
 
             let isInlineKatex = true;
@@ -389,9 +461,14 @@ const PROBLEM_PARSE_BODY = (body, env) => {
 
                     json.type = "image";
 
-                    let src = imgSrc;
-                    if (imgSrc.substr(0, 3) != "htt") {
-                        src = '/brilliantexport/' + imgSrc.substr(6); // ../../
+                    let src;
+                    if (imgSrc.indexOf('http') === 0) {
+                        // outside src
+                        src = imgSrc;
+                    } else {
+                        let srcMatch = imgSrc.match(/(https?(\:\/\/)?)?(\.\.\/)*([^?]*)/);
+                        Assert(srcMatch.length === 5 && srcMatch[4].length, `Unexpected imgSrc '${imgSrc}': ${filepath}`);
+                        src = '/brilliantexport/' + srcMatch[4];
                     }
                     json.attrs = { src: src };
 
@@ -471,7 +548,7 @@ const PROBLEM_PARSE_BODY = (body, env) => {
                     json.content.push(contentChild);
                 }
             }
-        } else if (["EM", "STRONG"].indexOf(el.nodeName) >= 0) {
+        } else if (["EM", "STRONG", "CODE"].indexOf(el.nodeName) >= 0) {
             Assert(el.classList.length === 0, `Unexpected class in <${el.nodeName}>: ${filepath}`);
             json.type = el.nodeName.toLowerCase();
             json.content = [];
@@ -492,6 +569,8 @@ const PROBLEM_PARSE_BODY = (body, env) => {
                         child.marks.push({ type: "italic" });
                     } else if (json.type === "strong") {
                         child.marks.push({ type: "bold" });
+                    } else if (json.type === "code") {
+                        child.marks.push({ type: "code" });
                     }
                 }
             });
@@ -502,12 +581,6 @@ const PROBLEM_PARSE_BODY = (body, env) => {
             json.type = "codeBlock";
             json.content = [{ type: "text", text: processText(el.textContent) }];
             json.attrs = [{ text: codeEl.textContent, language: null }]; // FIXME: Get language?
-        } else if (el.nodeName === "CODE") {
-            // inline code block
-            Assert(el.classList.length === 0, `Unexpected class list for <code>: ${filepath}`);
-            json.type = "codeBlock";
-            json.content = [{ type: "text", text: processText(el.textContent) }];
-            json.attrs = [{ text: el.textContent, language: null }];
         } else if (el.nodeName === "BLOCKQUOTE") {
             json.type = "blockquote";
             json.content = [];
@@ -660,9 +733,14 @@ const PROBLEM_PARSE_BODY = (body, env) => {
 
             json.type = "image";
 
-            let src = imgSrc;
-            if (imgSrc.substr(0, 3) != "htt") {
-                src = '/brilliantexport/' + imgSrc.substr(6); // ../../
+            let src;
+            if (imgSrc.indexOf('http') === 0) {
+                // outside src
+                src = imgSrc;
+            } else {
+                let srcMatch = imgSrc.match(/(https?(\:\/\/)?)?(\.\.\/)*([^?]*)/);
+                Assert(srcMatch.length === 5 && srcMatch[4].length, `Unexpected imgSrc '${imgSrc}': ${filepath}`);
+                src = '/brilliantexport/' + srcMatch[4];
             }
             json.attrs = { src: src };
         } else if (el.nodeName === '#comment') {

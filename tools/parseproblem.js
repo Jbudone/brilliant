@@ -802,7 +802,7 @@ const parseProblemsBatch = (i) => {
 if (UPDATE_IDX) {
     // FIXME: Read output file, then update only this one index
 
-    Assert(OUTPUT);
+    Assert(OUTPUT, "Output expected");
 
     let prevParseRaw = fs.readFileSync(OUTPUT);
     let prevParse = JSON.parse(prevParseRaw);

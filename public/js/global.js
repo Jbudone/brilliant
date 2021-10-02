@@ -34,8 +34,8 @@ window['Assert'] = (expr, msg) => {
     }
 };
 
+// Deflated -> Inflated
 window['ENCODED_TO_JSON'] = (deflatedStr) => {
-    // Inflate encoded body -> json
     const deflatedJson = JSON.parse(deflatedStr),
         inflatedJson = {
             type: "doc",
@@ -101,6 +101,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         return { metaList, metaObj: postMetaObj, metaLength: last-1 };
     };
 
+    // Deflated item -> json
     const DEFLATED_PARSE = (deflatedStr) => {
         //const endOfMeta = deflatedStr.indexOf(':'),
         //    meta = deflatedStr.substr(0, endOfMeta),
@@ -139,16 +140,21 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
             inflated.type = "mention";
             inflated.profile = metaObj['profile'];
             inflated.body = body;
-        } else if (metaType === 'blockquote') {
-            inflated.type = "blockquote";
+        } else if (['blockquote', 'codeBlock', 'heading', 'bulletList', 'listItem', 'orderedList', 'table', 'tableRow', 'tableCell', 'paragraph'].indexOf(metaType) >= 0) {
+            inflated.type = metaType;
             inflated.count = parseInt(body);
-        } else if (metaType === 'codeBlock') {
-            inflated.type = "codeBlock";
-            inflated.count = parseInt(body);
-        } else if (metaType === "heading") {
-            inflated.type = "heading";
-            inflated.level = metaObj['level'];
-            inflated.count = parseInt(body);
+
+            if (metaType === 'heading') {
+                inflated.level = metaObj['level'];
+            } else if (metaType === 'codeBlock') {
+                inflated.inline = metaList.indexOf('inline') > 0;
+            }
+
+        // FIXME: Confirm tableCell above
+        //} else if (metaType === "tableCell") {
+        //    inflated.type = "tableCell";
+        //    inflated.body = body;
+
         } else if (metaType === "image") {
             inflated.type = "image";
             inflated.src = body;
@@ -156,27 +162,6 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
             inflated.type = "horizontalRule";
         } else if (metaType === "hardBreak") {
             inflated.type = "hardBreak";
-        } else if (metaType === "bulletList") {
-            inflated.type = "bulletList";
-            inflated.count = parseInt(body);
-        } else if (metaType === "orderedList") {
-            inflated.type = "orderedList";
-            inflated.count = parseInt(body);
-        } else if (metaType === "listItem") {
-            inflated.type = "listItem";
-            inflated.count = parseInt(body);
-        } else if (metaType === "table") {
-            inflated.type = "table";
-            inflated.count = parseInt(body);
-        } else if (metaType === "tableRow") {
-            inflated.type = "tableRow";
-            inflated.count = parseInt(body);
-        } else if (metaType === "tableCell") {
-            inflated.type = "tableCell";
-            inflated.body = body;
-        } else if (metaType === "paragraph") {
-            inflated.type = "paragraph";
-            inflated.count = parseInt(body);
         } else {
             Assert(false, `Unexpected deflated meta type: ${metaType}`);
         }
@@ -271,17 +256,16 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
             pushChildEl(el);
             elStack.push(el);
         } else if (inflated.type === "codeBlock") {
+
+            // auto wrapped in <pre> by tiptap
             const el = {
-                type: "pre",
-                content: [{
-                    type: "codeBlock",
-                    content: []
-                }]
+                type: "codeBlock",
+                content: []
             };
 
             childCount.push(inflated.count);
-            pushChildEl(el.content[0]);
-            elStack.push(el.content[0]);
+            pushChildEl(el);
+            elStack.push(el);
         } else if (inflated.type === "heading") {
             const el = {
                 type: "heading",
@@ -337,6 +321,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
 };
 
 // Same as encoded, but stripped down (for title, solutions, one-liners)
+// Deflated -> Inflated
 window['INLINE_TO_JSON'] = (raw) => {
     // abc {{ katex }} abc
 
@@ -387,8 +372,8 @@ window['INLINE_TO_JSON'] = (raw) => {
     return inflatedJson;
 };
 
+// Inflated JSON -> HTML
 window['JSON_TO_HTML'] = (json) => {
-    // FIXME: Temp for switching to json
     if (json instanceof Object) {
         return GenerateHTML(json, VueHTMLExtensions);
     } else {
@@ -470,12 +455,12 @@ window['JSON_TRANSLATE_INLINE_KATEX'] = (json) => {
 };
 
 window['TITLE_TO_HTML'] = (title) => {
-    // title with {{ katex }} elements {{ katex }} involved
+    // title with \( katex \) elements \( katex \) involved
     let html = "";
     let runningEl = "";
     let inKatex = false;
     for (let i = 0; i < title.length; ++i) {
-        if (!inKatex && i < (title.length - 1) && title[i] === '{' && title[i+1] === '{') {
+        if (!inKatex && i < (title.length - 1) && title[i] === '\\' && title[i+1] === '(') {
             inKatex = true;
             if (runningEl.length > 0) html += `<span>${runningEl}</span>`;
             runningEl = "";
@@ -483,7 +468,7 @@ window['TITLE_TO_HTML'] = (title) => {
             continue;
         }
 
-        if (inKatex && i < (title.length - 1) && title[i] === '}' && title[i+1] === '}') {
+        if (inKatex && i < (title.length - 1) && title[i] === '\\' && title[i+1] === ')') {
             inKatex = false;
             if (runningEl.length > 0) html += `<katex inline>${runningEl}</katex>`;
             runningEl = "";
