@@ -14,7 +14,7 @@
         "@vue/compiler-sfc": "^3.1.5",
         "alpinejs": "^2.7.3",
         "autoprefixer": "^10.3.1",
-        "axios": "^0.21",
+        "axios": "^0.21.4",
         "laravel-mix": "^6.0.6",
         "lodash": "^4.17.19",
         "postcss": "^8.3.6",
@@ -25,6 +25,7 @@
     },
     "dependencies": {
         "@tiptap/extension-bold": "^2.0.0-beta.15",
+        "@tiptap/extension-code": "^2.0.0-beta.16",
         "@tiptap/extension-code-block-lowlight": "^2.0.0-beta.33",
         "@tiptap/extension-document": "^2.0.0-beta.13",
         "@tiptap/extension-heading": "^2.0.0-beta.15",
