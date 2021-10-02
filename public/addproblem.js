@@ -86,6 +86,7 @@ $(document).ready(() => {
                         let katexRaw = html.substr(idxStart + 2, (idxEnd - idxStart) - 2);
                         let katexHtml = Katex.renderToString(katexRaw, {
                             displayMode: false, // inline
+                            throwOnError: false
                         });
 
                         let end = html.substr(idxEnd + 2);

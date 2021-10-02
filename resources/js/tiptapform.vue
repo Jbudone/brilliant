@@ -121,7 +121,8 @@ export default {
             $('katex', this.$refs.previewContent).each((idx, el) => {
                 let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
                 el.innerHTML = Katex.renderToString(el.textContent, {
-                    displayMode: !isInline
+                    displayMode: !isInline,
+                    throwOnError: false
                 });
             });
         },
