@@ -13,9 +13,11 @@ class SolveController extends Controller
 
     public function store(Request $request)
     {
-        $attributes = $request->validate([
-            'solution' => 'required', // FIXME: Validate problem_id
-        ]);
+        // No solution implies we gave up
+
+        //$attributes = $request->validate([
+        //    'solution' => 'required', // FIXME: Validate problem_id
+        //]);
 
         $problemId = $request->input('id');
         $p = Problem::where('id', (int)$problemId)->first();

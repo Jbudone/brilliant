@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
 
         // Run command for fresh seed
         Artisan::call('archive:update --seed');
+        gc_collect_cycles(); // Force garbage collector
+        Artisan::call('archive:update --seed --discussion');
     }
 }
 

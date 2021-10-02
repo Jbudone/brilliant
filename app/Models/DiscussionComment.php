@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Comment extends Model
+class DiscussionComment extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['body', 'problem_id', 'author_id', 'parent_comment_id', 'archive_id'];
+    protected $fillable = ['body', 'problem_id', 'author_id', 'parent_comment_id'];
 
     public function author()
     {

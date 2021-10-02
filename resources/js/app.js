@@ -12,6 +12,8 @@ require('alpinejs');
 
 const Katex = require('katex');
 
+const axios = require('axios').default;
+
 
 
 const Vue = require('vue');
@@ -24,7 +26,7 @@ window['KatexView'] = TipTapKatex;
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
 window['VueNodeViewRenderer'] = VueNodeViewRenderer;
 
-
+import Vote from './vote.vue';
 import Dropdown from './dropdown.vue';
 import EditableSolutions from './editablesolutions.vue';
 import TipTapForm from './tiptapform.vue';
@@ -50,6 +52,7 @@ import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableCell from '@tiptap/extension-table-cell'
 import TableHeader from '@tiptap/extension-table-header'
+import Code from '@tiptap/extension-code'
 
 import StarterKit from '@tiptap/starter-kit'
 
@@ -72,7 +75,7 @@ window['VueComponents'] = {
     Dropdown,
     EditableSolutions,
     TipTapForm,
-
+    Vote
 };
 window['VueHTMLExtensions'] = [
     Document,
@@ -92,6 +95,7 @@ window['VueHTMLExtensions'] = [
     OrderedList,
     ListItem,
     Table, TableRow, TableCell, TableHeader,
+    Code,
 
     ExtKatex,
     ExtMention,
@@ -117,6 +121,7 @@ window['TipTapExtensions'] = [
     OrderedList,
     ListItem,
     Table, TableRow, TableCell, TableHeader,
+    Code,
 
     ExtKatex,
     ExtMention,
@@ -124,5 +129,6 @@ window['TipTapExtensions'] = [
 window['GenerateHTML'] = generateHTML;
 window['GenerateJSON'] = generateJSON;
 window['Katex'] = Katex;
+window['axios'] = axios;
 
 // FIXME: export default from app.js so we can  import { Dropdown } from '/js/app.js'  instead of window export

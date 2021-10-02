@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <link rel="icon" type="image/png" href="/icon32.png">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
@@ -25,7 +26,15 @@
         <script src="https://kit.fontawesome.com/f418b2b042.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script type="module" src="{{ asset('js/global.js') }}"></script>
+        <script src="{{ asset('js/manifest.js') }}"></script>
+        <script src="{{ asset('js/vendor.js') }}"></script>
         <script src="{{ asset('js/app.js') }}"></script>
+        <script>
+            //axios.defaults.headers.common['Authorization'] = "{{ csrf_token() }}";// AUTH_TOKEN;
+
+            window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+            window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";// AUTH_TOKEN;
+        </script>
         @stack('scripts')
 
     </head>

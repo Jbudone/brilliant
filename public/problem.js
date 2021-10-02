@@ -1,9 +1,14 @@
-const { TipTapForm } = VueComponents;
+const { TipTapForm, Vote } = VueComponents;
 
 $(document).ready(() => {
+
+    // FIXME: Use Vuex to avoid this
+    let onCommentVote;
+
+
     const ProblemApp = Vue.createApp({
         components: {
-            TipTapForm
+            TipTapForm, Vote
         },
         data: function() {
             return {
@@ -22,7 +27,10 @@ $(document).ready(() => {
                 
                 isDiscussion: false,
                 solved: 0,
-                showingAddSolutionContainer: false
+                showingAddSolutionContainer: false,
+
+                points: 0,
+                voted: 0
             };
         },
         methods: {
@@ -152,7 +160,47 @@ $(document).ready(() => {
 
             unsolve() {
                 this.$refs.formUnsolve.submit();
-            }
+            },
+
+            giveup() {
+                let post = '/giveup';
+                let req = {
+                    problem_id: ProblemJson.id
+                };
+
+                axios.post(post, req)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+
+            vote(prev, next, commentId) {
+                let upvote = (next === 1);
+                let post = '/vote';
+                let req = {
+                    problem_id: ProblemJson.id,
+                    comment_id: commentId,
+                    upvote: upvote
+                };
+
+
+                let unvote = (next === 0);
+                if (unvote) {
+                    post = '/unvote';
+                    delete req.upvote;
+                }
+
+                axios.post(post, req)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
         },
         beforeMount: function() {
             this.jsonData = ProblemJson;
@@ -169,6 +217,24 @@ $(document).ready(() => {
             this.users = this.jsonData.users;
             this.isDiscussion = this.jsonData.discussion;
 
+
+            this.points = this.jsonData.points;
+            this.voted = 0;
+            if (VoteJson) {
+
+                // Setup VoteJson as map { comment_id: upvote }
+                let tmp = {};
+                for (let i = 0; i < VoteJson.length; ++i) {
+                    const vote = VoteJson[i];
+                    let voteId = vote.comment_id || 0;
+                    tmp[voteId] = vote.upvote;
+                }
+                VoteJson = tmp;
+
+                this.voted = (0 in VoteJson) ? (VoteJson[0] ? 1 : 2) : 0;
+            }
+
+            onCommentVote = this.vote;
 
 
             if (this.isDiscussion) {
@@ -228,6 +294,8 @@ $(document).ready(() => {
                     rawcontent: comment.body,
                     content: commentBody,
                     author: comment.author,
+                    points: comment.points,
+                    coins: comment.coins,
                     date: (new Date(comment.date)).toDateString(),
 
                     showReplyButton: function(){ return(UserJson.id && UserJson.id != comment.author); },
@@ -336,13 +404,17 @@ $(document).ready(() => {
             $('katex').each((idx, el) => {
                 let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
                 el.innerHTML = Katex.renderToString(el.textContent, {
-                    displayMode: !isInline
+                    displayMode: !isInline,
+                    throwOnError: false
                 });
             });
         },
     });
 
     ProblemApp.component('reply', {
+        components: {
+            Vote
+        },
         props: {
             reply: Object
         },
@@ -351,11 +423,18 @@ $(document).ready(() => {
                 id: 0,
                 text: "",
                 author: {},
-                textRaw: ""
+                textRaw: "",
+                voted: 0,
+                points: 0
+            }
+        },
+        methods: {
+            vote: (prev, next, id) => {
+                onCommentVote(prev, next, id);
             }
         },
         beforeMount: function() {
-            this.id = this.id;
+            this.id = this.reply.id;
             this.text = JSON_TO_HTML(this.reply.content);
             this.rawcontent = this.reply.content;
             this.author = ProblemJson.users[this.reply.author];
@@ -363,9 +442,13 @@ $(document).ready(() => {
 
             this.showReplyButton = function(){ return(UserJson.id && UserJson.id != this.reply.author); };
             this.showEditButton = function(){ return(UserJson.id && UserJson.id === this.reply.author); };
+
+            this.voted = (this.id in VoteJson) ? (VoteJson[this.id] ? 1 : 2) : 0;
+            this.points = this.reply.points;
         },
         template: `
         <div class="prblm-discussion-reply">
+            <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="this.id" v-on:vote="this.vote"></Vote>
             <div class="prblm-discussion-reply-content" v-html="reply.content" v-bind:rawcontent="reply.rawcontent"></div>
             <div class="reply-author">
                 <span class="reply-author-name">{{ author.name }}</span>

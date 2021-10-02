@@ -9,7 +9,7 @@ class Problem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'category_id', 'level', 'body', 'author_id', 'solution', 'source', 'discussion'];
+    protected $fillable = ['title', 'category_id', 'level', 'body', 'author_id', 'solution', 'source', 'discussion', 'archive_id', 'votes', 'points'];
 
     public function topic()
     {

@@ -4,9 +4,24 @@ use Illuminate\Support\Facades\Route;
 
 use App\Models\Problem;
 use App\Models\Solve;
+use App\Models\Comment;
+use App\Models\Vote;
+use App\Models\Star;
+use App\Models\Coin;
+use App\Models\Report;
+use App\Models\AdminEvent;
+use App\Models\ActivityEvent;
+
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SolveController;
+use App\Http\Controllers\VoteController;
+use App\Http\Controllers\StarController;
+use App\Http\Controllers\CoinController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AdminEventController;
+use App\Http\Controllers\ActivityEventController;
+
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /*
@@ -128,6 +143,8 @@ Route::get('/brilliantexport/discussions/thread/{problemFirst}/{problem}', funct
     return File::get(public_path() . "/brilliantexport/discussions/thread/$problemId/$problemId.html");
 })->where('problem', '[A-Za-z0-9_-]+');
 
+
+// FIXME: Put this in ProblemController::index
 Route::get('/problem/{problem}', function ($problemId) {
     $p = Problem::where('id', (int)$problemId)->with(['topic', 'author', 'comments.author:id,name,created_at'])->first();
 
@@ -149,7 +166,11 @@ Route::get('/problem/{problem}', function ($problemId) {
             'author' => $comment->author_id,
             'body' => $comment->body,
             'parent_comment_id' => $comment->parent_comment_id,
-            'date' => $comment->created_at
+            'date' => $comment->created_at,
+
+            'points' => $comment->points,
+            'votes' => $comment->votes,
+            'coins' => $comment->coins,
         ];
     }
 
@@ -165,7 +186,12 @@ Route::get('/problem/{problem}', function ($problemId) {
             'users' => $users,
             'comments' => $comments,
             'source' => $p->source,
-            'discussion' => true
+            'discussion' => true,
+
+            'points' => $p->points,
+            'votes' => $p->votes,
+            'coins' => $p->coins,
+            'stars' => $p->stars,
         ], 'source' => $p->source,
         'user' => [
             'id' => Auth::id()
@@ -183,7 +209,12 @@ Route::get('/problem/{problem}', function ($problemId) {
             'users' => $users,
             'comments' => $comments,
             'source' => $p->source,
-            'discussion' => false
+            'discussion' => false,
+
+            'points' => $p->points,
+            'votes' => $p->votes,
+            'coins' => $p->coins,
+            'stars' => $p->stars,
         ], 'source' => $p->source,
         'user' => [
             'id' => Auth::id()
@@ -198,6 +229,11 @@ Route::get('/problem/{problem}', function ($problemId) {
                     'correct' => $solve->correct,
                     'date' => $solve->created_at
                 ];
+            }
+
+            $vote = Vote::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('upvote', 'comment_id')->get();
+            if ($vote) {
+                $json['vote'] = $vote;
             }
         }
     }
@@ -228,6 +264,7 @@ Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth'
 Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);
 Route::post('/solve', [SolveController::class, 'store'])->middleware(['auth']);
 Route::post('/unsolve', [SolveController::class, 'destroy'])->middleware(['auth']);
+Route::post('/giveup', [SolveController::class, 'store'])->middleware(['auth']);
 
 Route::get('/dashboard', function () {
 
@@ -237,5 +274,28 @@ Route::get('/dashboard', function () {
         'authoredProblems' => $problems
     ]);
 })->middleware(['auth'])->name('dashboard');
+
+Route::get('/admin', function() {
+    if (!Gate::allows('moderate')) {
+        return redirect('/');
+    }
+
+    return view('admin');
+})->middleware(['auth'])->name('admin');
+
+Route::post('/vote', [VoteController::class, 'store'])->middleware(['auth']);
+Route::post('/unvote', [VoteController::class, 'destroy'])->middleware(['auth']);
+
+Route::post('/star', [StarController::class, 'store'])->middleware(['auth']);
+Route::post('/unstar', [StarController::class, 'destroy'])->middleware(['auth']);
+
+Route::post('/coin', [CoinController::class, 'store'])->middleware(['auth']);
+Route::post('/uncoin', [CoinController::class, 'destroy'])->middleware(['auth']);
+
+Route::post('/report', [ReportController::class, 'store'])->middleware(['auth']);
+Route::post('/unreport', [ReportController::class, 'destroy'])->middleware(['auth']);
+
+
+
 
 require __DIR__.'/auth.php';

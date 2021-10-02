@@ -11,6 +11,12 @@
             @else
                 var SolveJson = null;
             @endisset
+
+            @isset($vote)
+                var VoteJson = @json($vote, JSON_PRETTY_PRINT);
+            @else
+                var VoteJson = null;
+            @endisset
         </script>
     @endpush
 
@@ -36,6 +42,8 @@
                         <span class="prblm-topic">@{{ this.topic }}</span>
                         <span class="prblm-level">Level @{{ this.level }}</span>
                     </div>
+
+                    <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="0" v-on:vote="this.vote"></Vote>
                 </div>
 
                 <div class="prblm-question md:grid md:grid-cols-7 md:gap-4">
@@ -59,9 +67,11 @@
                                     <span class="prblm-solution-text" v-html="solution.html"></span>
                                 </span>
                             </template>
+@can('moderate')
                             <template v-if="solved">
                             <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
                             </template>
+@endcan
                         </template>
 
                         <!-- Single Answer: Solved -->
