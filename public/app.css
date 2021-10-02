@@ -973,3 +973,12 @@ ul {
     color: #88D;
     font-weight: 800;
 }
+
+:not(pre) > code {
+    display: inline-block;
+    /* background: #000; */
+    padding: 2px 4px;
+    color: #666;
+    background-color: #f7f7f9;
+    border: 1px solid #e1e1e8;
+}
