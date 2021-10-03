@@ -1,21 +1,23 @@
-const { TipTapForm, Vote } = VueComponents;
+const { TipTapForm, Vote, Mention, Report } = VueComponents;
 
 $(document).ready(() => {
 
     // FIXME: Use Vuex to avoid this
-    let onCommentVote;
+    let onCommentVote, onCommentReport, onCommentUnreport, onAdminAction;
 
 
     const ProblemApp = Vue.createApp({
         components: {
-            TipTapForm, Vote
+            TipTapForm, Vote, Mention, Report
         },
         data: function() {
             return {
                 globals: window.globals,
+                global: window,
                 jsonData: [],
 
                 id: 0,
+                archived: false,
                 title: "",
                 topic: "",
                 level: 0,
@@ -26,11 +28,13 @@ $(document).ready(() => {
                 users: {},
                 
                 isDiscussion: false,
+                isHidden: false,
                 solved: 0,
                 showingAddSolutionContainer: false,
 
                 points: 0,
-                voted: 0
+                voted: 0,
+                reported: false
             };
         },
         methods: {
@@ -165,7 +169,7 @@ $(document).ready(() => {
             giveup() {
                 let post = '/giveup';
                 let req = {
-                    problem_id: ProblemJson.id
+                    id: ProblemJson.id
                 };
 
                 axios.post(post, req)
@@ -175,6 +179,8 @@ $(document).ready(() => {
                     .catch(function (error) {
                         console.log(error);
                     });
+
+                location.reload();
             },
 
             vote(prev, next, commentId) {
@@ -182,7 +188,7 @@ $(document).ready(() => {
                 let post = '/vote';
                 let req = {
                     problem_id: ProblemJson.id,
-                    comment_id: commentId,
+                    comment_id: commentId ? commentId : null,
                     upvote: upvote
                 };
 
@@ -201,6 +207,57 @@ $(document).ready(() => {
                         console.log(error);
                     });
             },
+
+            report(commentId) {
+                let post = '/report';
+                let req = {
+                    problem_id: ProblemJson.id,
+                    comment_id: commentId ? commentId : null,
+                };
+
+                axios.post(post, req)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+
+            unreport(commentId) {
+                let post = '/unreport';
+                let req = {
+                    problem_id: ProblemJson.id,
+                    comment_id: commentId ? commentId : null,
+                };
+
+                axios.post(post, req)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+
+            adminAction(action, commentId) {
+                let post = '/adminaction';
+                let req = {
+                    problem_id: ProblemJson.id,
+                    comment_id: commentId ? commentId : null,
+                    action: action
+                };
+
+                axios.post(post, req)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+
+                location.reload();
+            }
         },
         beforeMount: function() {
             this.jsonData = ProblemJson;
@@ -209,14 +266,15 @@ $(document).ready(() => {
             this.title = this.jsonData.title;
             this.titleHtml = TITLE_TO_HTML(this.title);
             this.topic = this.jsonData.topic;
-            this.level = this.jsonData.level;
+            this.level = this.jsonData.level || 1;
             this.author = {
                 id: this.jsonData.author,
                 name: this.jsonData.users[this.jsonData.author].name
             };
             this.users = this.jsonData.users;
             this.isDiscussion = this.jsonData.discussion;
-
+            this.isHidden = this.jsonData.hidden;
+            this.archived = !!this.jsonData.source;
 
             this.points = this.jsonData.points;
             this.voted = 0;
@@ -234,7 +292,39 @@ $(document).ready(() => {
                 this.voted = (0 in VoteJson) ? (VoteJson[0] ? 1 : 2) : 0;
             }
 
+            this.reported = false;
+            if (ReportJson) {
+
+                // Setup ReportJson as map { comment_id }
+                let tmp = {};
+                for (let i = 0; i < ReportJson.length; ++i) {
+                    const report = ReportJson[i];
+                    let reportId = report.comment_id || 0;
+                    tmp[reportId] = true;
+                }
+                ReportJson = tmp;
+
+                this.reported = (0 in ReportJson) ? true : false;
+            }
+
+            if (window['AllReportJson']) {
+
+                // Setup ReportJson as map { comment_id }
+                let tmp = {};
+                for (let i = 0; i < AllReportJson.length; ++i) {
+                    const report = AllReportJson[i];
+                    let reportId = report.comment_id || 0;
+                    tmp[reportId] = true;
+                }
+                AllReportJson = tmp;
+
+                this.hasReport = (0 in AllReportJson) ? true : false;
+            }
+
             onCommentVote = this.vote;
+            onCommentReport = this.report;
+            onCommentUnreport = this.unreport;
+            onAdminAction = this.adminAction;
 
 
             if (this.isDiscussion) {
@@ -296,10 +386,11 @@ $(document).ready(() => {
                     author: comment.author,
                     points: comment.points,
                     coins: comment.coins,
+                    hidden: comment.hidden,
                     date: (new Date(comment.date)).toDateString(),
 
-                    showReplyButton: function(){ return(UserJson.id && UserJson.id != comment.author); },
-                    showEditButton: function(){ return(UserJson.id && UserJson.id === comment.author); },
+                    showReplyButton: function(){ return(!ProblemJson.source && UserJson.id && UserJson.id != comment.author); },
+                    showEditButton: function(){ return(!ProblemJson.source && UserJson.id && UserJson.id === comment.author); },
                 };
 
                 discussionComments[comment.id] = discussionComment;
@@ -316,22 +407,27 @@ $(document).ready(() => {
             }
 
             if (SolveJson) {
-                if (this.solutions.length > 1) {
-                    this.solutions[SolveJson.solution].selected = true;
-
-                    if (this.solutions[SolveJson.solution].correct) {
-                        this.solved = 1;
-                    } else {
-                        this.solved = 2;
-                    }
+                if (SolveJson.solution === null) {
+                    // User gave up
+                    this.solved = 2;
                 } else {
-                    this.solutions[0].guessed = SolveJson.solution;
+                    if (this.solutions.length > 1) {
+                        this.solutions[SolveJson.solution].selected = true;
 
-                    // FIXME: Should we just keep this as a string always?
-                    if ((""+this.solutions[0].text) === SolveJson.solution) {
-                        this.solved = 1;
+                        if (this.solutions[SolveJson.solution].correct) {
+                            this.solved = 1;
+                        } else {
+                            this.solved = 2;
+                        }
                     } else {
-                        this.solved = 2;
+                        this.solutions[0].guessed = SolveJson.solution;
+
+                        // FIXME: Should we just keep this as a string always?
+                        if ((""+this.solutions[0].text) === SolveJson.solution) {
+                            this.solved = 1;
+                        } else {
+                            this.solved = 2;
+                        }
                     }
                 }
             }
@@ -401,6 +497,7 @@ $(document).ready(() => {
                 return false;
             });
 
+            // FIXME: Is there a way to automate this by making a katex.vue and reactively converting?
             $('katex').each((idx, el) => {
                 let isInline = el.attributes.length > 0 && el.attributes[0].nodeName === "inline";
                 el.innerHTML = Katex.renderToString(el.textContent, {
@@ -408,12 +505,19 @@ $(document).ready(() => {
                     throwOnError: false
                 });
             });
+
+            // FIXME: This is disgusting
+            $('mention').each((idx, el) => {
+                el.innerHTML = el.innerText;
+                const aEl = $('a', $(el));
+                aEl.attr('href', '#');
+            });
         },
     });
 
     ProblemApp.component('reply', {
         components: {
-            Vote
+            Vote, Report
         },
         props: {
             reply: Object
@@ -425,12 +529,27 @@ $(document).ready(() => {
                 author: {},
                 textRaw: "",
                 voted: 0,
-                points: 0
+                points: 0,
+                reported: false,
+                hidden: false,
+                globals: window // FIXME: Need to access window from template for this
             }
         },
         methods: {
             vote: (prev, next, id) => {
                 onCommentVote(prev, next, id);
+            },
+
+            report: (id) => {
+                onCommentReport(id);
+            },
+
+            unreport: (id) => {
+                onCommentUnreport(id);
+            },
+
+            adminaction: (action, id) => {
+                onAdminAction(action, id);
             }
         },
         beforeMount: function() {
@@ -440,19 +559,32 @@ $(document).ready(() => {
             this.author = ProblemJson.users[this.reply.author];
             this.date = this.reply.date;
 
-            this.showReplyButton = function(){ return(UserJson.id && UserJson.id != this.reply.author); };
-            this.showEditButton = function(){ return(UserJson.id && UserJson.id === this.reply.author); };
+            this.showReplyButton = function(){ return(!ProblemJson.source && UserJson.id && UserJson.id != this.reply.author); };
+            this.showEditButton = function(){ return(!ProblemJson.source && UserJson.id && UserJson.id === this.reply.author); };
 
             this.voted = (this.id in VoteJson) ? (VoteJson[this.id] ? 1 : 2) : 0;
             this.points = this.reply.points;
+            this.reported = (this.id in ReportJson) ? true : false;
+            this.hasReport = (this.id in AllReportJson) ? true : false;
+
+            this.hidden = this.reply.hidden;
+            if (this.hidden) {
+                this.reply.content = "<em>Comment has been hidden</em>";
+            }
         },
         template: `
         <div class="prblm-discussion-reply">
-            <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="this.id" v-on:vote="this.vote"></Vote>
             <div class="prblm-discussion-reply-content" v-html="reply.content" v-bind:rawcontent="reply.rawcontent"></div>
             <div class="reply-author">
                 <span class="reply-author-name">{{ author.name }}</span>
                 <span class="reply-author-date"> - {{ date }}</span>
+                <div class="inline ml-8">
+                    <Vote ref="vote" :inline="true" :initialvote="this.voted" :initialpoints="this.points" :id="this.id" v-on:vote="this.vote"></Vote>
+                    <Report :inline="true" :initialreport="this.reported" :id="this.id" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
+                    <template v-if="globals.UserJson.canmoderate">
+                        <a href="" class="inline-block"  v-bind:class="[{ 'text-red-500': this.hasReport }]" @click.prevent="adminaction(this.hidden ? 'unhide' : 'hide', this.id)">{{ this.hidden ? "👁" : this.hasReport ? "👁⨂" : "👁" }}</a>
+                    </template>
+                </div>
             </div>
             <div class="reply-to">
                 <a href="#" class='reply-to-link' v-bind:comment-id="reply.id" v-if="reply.showReplyButton()">Reply</a>

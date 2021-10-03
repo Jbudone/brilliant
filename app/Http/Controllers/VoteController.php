@@ -56,7 +56,6 @@ class VoteController extends Controller
             $comment->timestamps = false;
             $comment->increment('votes', $addVotes);
             $comment->increment('points', $addPoints);
-            dd($comment);
             $comment->save();
         } else {
             $problem = Problem::find($problemId);
