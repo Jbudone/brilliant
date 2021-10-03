@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comment;
+use App\Models\Problem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,12 +17,19 @@ class CommentController extends Controller
             'comment' => 'required|max:255|min:3', // FIXME: Validate problem_id
         ]);
 
+        // Confirm post is NOT archived
+        $problemId = $request->input('id');
+        $problem = Problem::where('id', (int)$problemId)->first();
+        if (!$problem || $problem->archive_id > 0) {
+            return back();
+        }
+
         // FIXME: Check parent comment under same post
 
         Comment::create([
             'body' =>     $request->input('comment'),
             'author_id' =>   Auth::id(),
-            'problem_id' => $request->input('id'),
+            'problem_id' => $problemId,
             'parent_comment_id' => $request->input('parent_comment_id')
         ]);
 
