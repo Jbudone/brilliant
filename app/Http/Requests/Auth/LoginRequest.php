@@ -45,7 +45,9 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $input = $this->only('email', 'password');
+        $input['status'] = 1; // Cannot log in to archived user
+        if (! Auth::attempt($input, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

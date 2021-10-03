@@ -24,6 +24,7 @@ class Initial extends Migration
 
             $table->string('archive_id')->nullable();
             $table->index('archive_id');
+            $table->boolean('status')->default(1);
 
             $table->string('role')->nullable();
 
@@ -88,6 +89,7 @@ class Initial extends Migration
             $table->text('solution')->nullable(); // index for multiple choice, text for input answer
             $table->text('source')->nullable(); // link to source file
             $table->text('archive_meta')->nullable();
+            $table->boolean('hidden')->default(false);
 
             $table->smallInteger('votes')->default(0);  // == upvotes + downvotes
             $table->smallInteger('points')->default(0); // == upvotes - downvotes
@@ -114,6 +116,8 @@ class Initial extends Migration
             $table->unsignedBigInteger('archive_id')->nullable();
             $table->index('archive_id');
 
+            $table->boolean('hidden')->default(false);
+
             $table->smallInteger('votes')->default(0);  // == upvotes + downvotes
             $table->smallInteger('points')->default(0); // == upvotes - downvotes
             $table->smallInteger('coins')->default(0);
@@ -128,7 +132,7 @@ class Initial extends Migration
             $table->unsignedBigInteger('problem_id');
             $table->foreign('problem_id')->references('id')->on('problems')->onUpdate('cascade')->onDelete('cascade');
 
-            $table->text('solution'); // metadata JSON of solution
+            $table->text('solution')->nullable(); // metadata JSON of solution; null indicates user gave up
             $table->boolean('correct');
 
             $table->timestamps();
