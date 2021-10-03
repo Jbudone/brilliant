@@ -26,6 +26,8 @@ window['KatexView'] = TipTapKatex;
 import { VueNodeViewRenderer } from '@tiptap/vue-3'
 window['VueNodeViewRenderer'] = VueNodeViewRenderer;
 
+import Mention from './mention.vue';
+import Report from './report.vue';
 import Vote from './vote.vue';
 import Dropdown from './dropdown.vue';
 import EditableSolutions from './editablesolutions.vue';
@@ -75,7 +77,9 @@ window['VueComponents'] = {
     Dropdown,
     EditableSolutions,
     TipTapForm,
-    Vote
+    Vote,
+    Report,
+    Mention
 };
 window['VueHTMLExtensions'] = [
     Document,

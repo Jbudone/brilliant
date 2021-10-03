@@ -1,7 +1,9 @@
 <template>
-    <a ref="upvote" href="#" v-bind:class="[{ 'bg-green-100': this.vote === 1 }]" @click.prevent="doVote(true)">Upvote</a>
-    <a ref="downvote" href="#" v-bind:class="[{ 'bg-green-100': this.vote === 2 }]" @click.prevent="doVote(false)">Downvote</a>
-    <span ref="votes">{{ this.points }} Points</span>
+    <div class="h-6 w-12" v-bind:class="[{ 'inline': this.inline, 'grid grid-cols-3': !this.inline }]">
+        <a ref="upvote" href="#" class="text-xl h-4" v-bind:class="[{ 'text-green-600': this.vote === 1 }]" @click.prevent="doVote(true)"><span class="inline-block transform -rotate-90">➜</span></a>
+        <span class="text-center h-4 pt-1" ref="votes">{{ this.points }}</span>
+        <a ref="downvote" href="#" class="text-xl h-4" v-bind:class="[{ 'text-red-600': this.vote === 2 }]" @click.prevent="doVote(false)"><span class="inline-block transform rotate-90">➜</span></a>
+    </div>
 </template>
 
 <script>
@@ -13,6 +15,11 @@ export default {
     props: {
         name: {
             type: String,
+        },
+        inline: {
+            type: Boolean,
+            required: false,
+            default: false,
         },
         disabled: {
             type: Boolean,

@@ -1,7 +1,8 @@
 <x-app-layout>
 
+    @section('pageTitle', $problem['title'])
     @push('scripts')
-        <script type="text/javascript" src="{{ asset('problem.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('problem.js?' . Str::random(40)) }}"></script>
         <script>
             var ProblemJson = @json($problem, JSON_PRETTY_PRINT);
             var UserJson = @json($user, JSON_PRETTY_PRINT);
@@ -16,6 +17,16 @@
                 var VoteJson = @json($vote, JSON_PRETTY_PRINT);
             @else
                 var VoteJson = null;
+            @endisset
+
+            @isset($report)
+                var ReportJson = @json($report, JSON_PRETTY_PRINT);
+            @else
+                var ReportJson = null;
+            @endisset
+
+            @isset($allReports)
+                var AllReportJson = @json($allReports, JSON_PRETTY_PRINT);
             @endisset
         </script>
     @endpush
@@ -32,24 +43,49 @@
             <div class="ctnt-sections">
                 <div class="px-4">
                 <div class="prblm-header">
+                    <div class="block text-red-500 text-2xl text-center">
+                        <template v-if="isHidden">
+                            PROBLEM HAS BEEN HIDDEN
+                        </template>
+                        <template v-else-if="hasReport && global.UserJson.canmoderate">
+                            PROBLEM HAS BEEN REPORTED
+                        </template>
+
+                        <template v-if="archived">
+                            THIS IS AN ARCHIVED PROBLEM
+                        </template>
+                    </div>
+
                     <span class="prblm-title" v-html="this.titleHtml"></span>
+
+                    @if($source)
                     <template v-if="isDiscussion">
-                        <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
+                        <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
                     </template><template v-else>
-                        <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
+                        <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
                     </template>
+                    <br/>
+                    @endif
+                    </template>
+                    <div class="float-right text-right -mt-6">
+                        <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="0" v-on:vote="this.vote"></Vote>
+                        <Report ref="report" :inline="true" :initialreport="this.reported" :id="0" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
+@can('moderate')
+                        <div class="inline">
+                            <a href="" class="" v-bind:class="[{ 'text-red-600': this.isHidden }]" @click.prevent="adminAction(this.isHidden ? 'unhide' : 'hide', 0)">@{{ this.isHidden ? "👁":  this.hasReport ? "👁⨂" : "👁" }}</a>
+                        </div>
+@endcan
+                    </div>
                     <div class="prblm-topiclevel">
                         <span class="prblm-topic">@{{ this.topic }}</span>
                         <span class="prblm-level">Level @{{ this.level }}</span>
                     </div>
-
-                    <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="0" v-on:vote="this.vote"></Vote>
                 </div>
 
                 <div class="prblm-question md:grid md:grid-cols-7 md:gap-4">
 
                     <!-- Question Body -->
-                    <div class="prblm-question-content md:col-span-5" v-html="this.question"></div>
+                    <div class="prblm-question-content md:col-span-5" v-bind:class="[{ 'md:col-span-7': this.isDiscussion }]" v-html="this.question"></div>
 
                     <!-- Answers -->
                     <div v-if="!this.isDiscussion" class="prblm-question-solution md:col-span-2 md:px-4">
@@ -69,9 +105,12 @@
                             </template>
 @can('moderate')
                             <template v-if="solved">
-                            <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
+                            <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-black text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
                             </template>
 @endcan
+                            <template v-if="!solved">
+                            <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-black text-center py-1 my-4" @click.prevent="giveup()">View Solutions</a>
+                            </template>
                         </template>
 
                         <!-- Single Answer: Solved -->
@@ -85,7 +124,9 @@
                                 <span class="block w-full text-2xl">You guessed @{{ solutions[0].guessed }}.</span>
                             </template>
 
-                            <a href="" class="block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
+@can('moderate')
+                            <a href="" class="inline-block w-full border border-gray-700 rounded shadow bg-gray-100 text-black text-center py-1 my-4" @click.prevent="unsolve()">Unsolve</a>
+@endcan
                         </template>
 
                         <!-- Single Answer: Unsolved -->
@@ -93,8 +134,8 @@
                             <div class="">
                                 <input class="w-full border border-gray-700 shadow-inner bg-gray-50 bg-opacity-50 px-2 py-1 mb-8" placeholder="Your Answer" ref="solutionInput" />
 
-                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-sky-400 text-white text-center py-1 my-4" @click.prevent="solve()">Submit</a>
-                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-gray-100 text-white text-center py-1 my-4" @click.prevent="giveup()">View Solutions</a>
+                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-sky-400 text-black text-center py-1 my-4" @click.prevent="solve()">Submit</a>
+                                <a href="" class="block w-full border border-gray-700 rounded shadow bg-gray-100 text-black text-center py-1 my-4" @click.prevent="giveup()">View Solutions</a>
                             </div>
                         </template>
                         </form>
@@ -143,7 +184,7 @@
                         <span v-else class="solutions text-xl">@{{ this.discussions.length }} Solutions</span>
 
                         <span class="block text-grey-800 text-lg" v-if="!isDiscussion && this.discussions.length == 0">No explanations have been posted yet. Check back later!</span>
-                        <a id='addSolution' href='#'>Add Solution</a>
+                        <a v-if="!archived" id='addSolution' href='#'>Add Solution</a>
                     </div>
                     <div id='addSolutionContainer' class='hidden'>
                         <form method="POST" id="prblm-addsol-form" action="/comment">
@@ -215,13 +256,21 @@
                                     </a>
                                 </div>
 
+                                <div class="float-right text-right -mt-2">
+                                    <Vote ref="vote" :initialvote="(discussion.id in global.VoteJson) ? global.VoteJson[discussion.id] ? 1 : 2 : 0" :initialpoints="discussion.points" :id="discussion.id" v-on:vote="this.vote"></Vote>
+                                    <Report :initialreport="global.ReportJson[discussion.id] ? true : false" :id="discussion.id" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
+                                    <template v-if="global.UserJson.canmoderate">
+                                        <a href="" class="inline-block" v-bind:class="[{ 'text-red-500': global.AllReportJson[discussion.id] }]" @click.prevent="this.adminAction(discussion.hidden ? 'unhide' : 'hide', discussion.id)">@{{ discussion.hidden ? "👁" : global.AllReportJson[discussion.id] ? "👁⨂" : "👁" }}</a>
+                                    </template>
+                                </div>
+
                                 <div class="user-text">
                                     <a href='#' class="author-name">@{{ this.users[discussion.author].name }}</a>
                                     <span class="author-date">@{{ discussion.date }}</span>
                                 </div>
                             </div>
 
-                            <div class="prblm-discussion-content" v-html="discussion.content" v-bind:rawcontent="discussion.rawcontent"></div>
+                            <div class="prblm-discussion-content" v-html="discussion.hidden ? '<em>Solution has been hidden</em>' : discussion.content" v-bind:rawcontent="discussion.rawcontent"></div>
 
                             <div class="prblm-discussion-reactions">
                                 <span class="prblm-discussion-reaction reaction-helpful">@{{ discussion.reactions[0] }} Helpful</span>
