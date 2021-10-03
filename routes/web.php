@@ -21,6 +21,7 @@ use App\Http\Controllers\CoinController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AdminEventController;
 use App\Http\Controllers\ActivityEventController;
+use App\Http\Controllers\AdminActionController;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -71,11 +72,11 @@ Route::get('/allproblems', function () {
 Route::get('/problemspaginatecount/{categoryId}/{level}', function ($categoryId, $level) {
     // FIXME: There's gotta be a cleaner way to do this
     if ($categoryId > 0 && $level > 0) {
-        $count = Problem::where('category_id', $categoryId)->where('level', $level)->count();
+        $count = Problem::where('category_id', $categoryId)->where('level', $level)->where('hidden', false)->count();
     } else if ($categoryId > 0) {
-        $count = Problem::where('category_id', $categoryId)->count();
+        $count = Problem::where('category_id', $categoryId)->where('hidden', false)->count();
     } else if ($level > 0) {
-        $count = Problem::where('level', $level)->count();
+        $count = Problem::where('level', $level)->where('hidden', false)->count();
     } else {
         $count = Problem::count();
     }
@@ -117,7 +118,7 @@ Route::get('/problemspaginate/{categoryId}/{level}/{offset}', function ($categor
 })->where(['categoryId' => '[0-9]', 'level' => '[0-9]', 'offset' => '[0-9]+']);
 
 Route::get('/newproblems', function () {
-    $p = Problem::where('created_at', '>=', now()->subWeek())->whereNotNull('category_id')->limit(1000)->get(['id', 'title', 'category_id', 'level']);
+    $p = Problem::where('created_at', '>=', now()->subWeek())->whereNotNull('category_id')->where('hidden', false)->limit(1000)->orderBy('created_at', 'DESC')->get(['id', 'title', 'category_id', 'level']);
     $problems = [];
     foreach ($p as $problem) {
         $problems[] = [
@@ -171,6 +172,7 @@ Route::get('/problem/{problem}', function ($problemId) {
             'points' => $comment->points,
             'votes' => $comment->votes,
             'coins' => $comment->coins,
+            'hidden' => $comment->hidden
         ];
     }
 
@@ -187,6 +189,7 @@ Route::get('/problem/{problem}', function ($problemId) {
             'comments' => $comments,
             'source' => $p->source,
             'discussion' => true,
+            'hidden' => $p->hidden,
 
             'points' => $p->points,
             'votes' => $p->votes,
@@ -194,7 +197,8 @@ Route::get('/problem/{problem}', function ($problemId) {
             'stars' => $p->stars,
         ], 'source' => $p->source,
         'user' => [
-            'id' => Auth::id()
+            'id' => Auth::id(),
+            'canmoderate' => Gate::allows('moderate')
         ]];
 
     } else {
@@ -210,6 +214,7 @@ Route::get('/problem/{problem}', function ($problemId) {
             'comments' => $comments,
             'source' => $p->source,
             'discussion' => false,
+            'hidden' => $p->hidden,
 
             'points' => $p->points,
             'votes' => $p->votes,
@@ -217,7 +222,8 @@ Route::get('/problem/{problem}', function ($problemId) {
             'stars' => $p->stars,
         ], 'source' => $p->source,
         'user' => [
-            'id' => Auth::id()
+            'id' => Auth::id(),
+            'canmoderate' => Gate::allows('moderate')
         ]];
 
 
@@ -234,6 +240,19 @@ Route::get('/problem/{problem}', function ($problemId) {
             $vote = Vote::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('upvote', 'comment_id')->get();
             if ($vote) {
                 $json['vote'] = $vote;
+            }
+
+            $report = Report::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('comment_id')->get();
+            if ($report) {
+                $json['report'] = $report;
+            }
+
+            if (Gate::allows('moderate')) {
+                // Include all reports in problem
+                $allReports = Report::where('problem_id', (int)$problemId)->select('comment_id')->groupBy('comment_id')->get();
+                if ($allReports) {
+                    $json['allReports'] = $allReports;
+                }
             }
         }
     }
@@ -280,7 +299,12 @@ Route::get('/admin', function() {
         return redirect('/');
     }
 
-    return view('admin');
+    $reports = Report::select('user_id', 'problem_id', 'comment_id')->get();
+    $hiddenProblems = Problem::where('hidden', true)->select('id', 'title')->get();
+    $hiddenComments = Comment::where('hidden', true)->select('id', 'author_id', 'problem_id', 'body')->get();
+
+    $json = ['reports' => $reports, 'hiddenProblems' => $hiddenProblems, 'hiddenComments' => $hiddenComments];
+    return view('admin', $json);
 })->middleware(['auth'])->name('admin');
 
 Route::post('/vote', [VoteController::class, 'store'])->middleware(['auth']);
@@ -295,7 +319,7 @@ Route::post('/uncoin', [CoinController::class, 'destroy'])->middleware(['auth'])
 Route::post('/report', [ReportController::class, 'store'])->middleware(['auth']);
 Route::post('/unreport', [ReportController::class, 'destroy'])->middleware(['auth']);
 
-
+Route::post('/adminaction', [AdminActionController::class, 'store'])->middleware(['auth']);
 
 
 require __DIR__.'/auth.php';
