@@ -1,7 +1,8 @@
 <x-app-layout>
 
+    @section('pageTitle', 'Dashboard')
     @push('scripts')
-    <script type="module" src="{{ asset('profile.js') }}"></script>
+    <script type="module" src="{{ asset('profile.js?' . Str::random(40)) }}"></script>
     <script>
         var ProblemsJson = @json($authoredProblems, JSON_PRETTY_PRINT);
     </script>

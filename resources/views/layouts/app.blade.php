@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <link rel="icon" type="image/png" href="/icon48.png">
 
-        <title>{{ config('app.name', 'Lxndria') }}</title>
+        <title>@yield('pageTitle') | {{ config('app.name', 'Lxndria') }}</title>
 
         <!-- Fonts -->
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap">
@@ -25,7 +25,7 @@
         <!-- Scripts -->
         <script src="https://kit.fontawesome.com/f418b2b042.js" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" integrity="sha512-894YE6QWD5I59HgZOGReFYm4dnWc1Qt5NtvYSaNcOP+u1T9qYdvdihz0PPSiiqn/+/3e7Jo4EaG7TubfWGUrMQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-        <script type="module" src="{{ asset('js/global.js') }}"></script>
+        <script type="module" src="{{ asset('js/global.js?' . Str::random(40)) }}"></script>
         <script src="{{ asset('js/manifest.js') }}"></script>
         <script src="{{ asset('js/vendor.js') }}"></script>
         <script src="{{ asset('js/app.js') }}"></script>

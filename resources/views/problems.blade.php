@@ -1,7 +1,8 @@
 <x-app-layout>
 
+    @section('pageTitle', 'Front Page')
     @push('scripts')
-        <script type="text/javascript" src="{{ asset('problems.js') }}"></script>
+        <script type="text/javascript" src="{{ asset('problems.js?' . Str::random(40)) }}"></script>
     @endpush
 
     <x-slot name="header">

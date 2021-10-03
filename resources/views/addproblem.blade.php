@@ -1,9 +1,10 @@
 <x-app-layout>
 
+    @section('pageTitle', 'Add Problem')
     @push('scripts')
         @if($addProblem)
         <script>window['addedit'] = 'add';</script>
-        <script type="module" src="{{ asset('addproblem.js') }}"></script>
+        <script type="module" src="{{ asset('addproblem.js?' . Str::random(40)) }}"></script>
         <script>
             var isDiscussion = {{ $isDiscussion ? "true" : "false" }};
         </script>
