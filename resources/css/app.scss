@@ -1,0 +1,27 @@
+
+// Post AND Comments
+.prblm-question-content, .prblm-discussion-content, .prblm-discussion-reply-content {
+    > hr {
+        margin: 20px 0;
+        border: 0;
+        border-top: 1px solid #bbb;
+        border-bottom: 1px solid #fff;
+    }
+
+    a[href] {
+        color: #55D;
+        font-weight: 800;
+    }
+
+    a[href]:hover {
+        color: #88D;
+        font-weight: 800;
+    }
+}
+
+// Post NOT Comments
+.prblm-question-content, .prblm-discussion-content {
+    > p {
+        margin: 0 0 15px;
+    }
+}

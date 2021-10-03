@@ -697,6 +697,7 @@ div#wave .dot:nth-child(3) {
 
 .prblm-discussion-content {
     padding: 10px;
+    overflow-x: auto;
 }
 
 .prblm-solution-btn {
@@ -922,14 +923,6 @@ h3 {
     line-height: 1.2em;
 }
 
-hr {
-    border-top-width: 1px;
-    border-color: #000;
-    border-bottom-width: 1px;
-    width: 94%;
-    margin: auto auto;
-}
-
 blockquote {
     margin: 0 0 1.6em;
     padding: 16px;
@@ -962,16 +955,6 @@ ol {
 ul {
     list-style-type: disc;
     margin-left: 1rem;
-}
-
-#app a[href] {
-    color: #55D;
-    font-weight: 800;
-}
-
-#app a[href]:hover {
-    color: #88D;
-    font-weight: 800;
 }
 
 :not(pre) > code {

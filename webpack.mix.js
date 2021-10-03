@@ -15,4 +15,4 @@ mix.js('resources/js/app.js', 'public/js').vue({ version: 3 }).extract().postCss
     require('postcss-import'),
     require('tailwindcss'),
     require('autoprefixer'),
-]).extract().version();
+]).sass('resources/css/app.scss', 'public/css').extract().version();
