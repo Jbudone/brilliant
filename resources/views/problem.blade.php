@@ -27,6 +27,8 @@
 
             @isset($allReports)
                 var AllReportJson = @json($allReports, JSON_PRETTY_PRINT);
+            @else
+                var AllReportJson = null;
             @endisset
         </script>
     @endpush
@@ -257,10 +259,10 @@
                                 </div>
 
                                 <div class="float-right text-right -mt-2">
-                                    <Vote ref="vote" :initialvote="(discussion.id in global.VoteJson) ? global.VoteJson[discussion.id] ? 1 : 2 : 0" :initialpoints="discussion.points" :id="discussion.id" v-on:vote="this.vote"></Vote>
-                                    <Report :initialreport="global.ReportJson[discussion.id] ? true : false" :id="discussion.id" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
+                                    <Vote ref="vote" :initialvote="(global.VoteJson ? discussion.id in global.VoteJson : 0) ? global.VoteJson[discussion.id] ? 1 : 2 : 0" :initialpoints="discussion.points" :id="discussion.id" v-on:vote="this.vote"></Vote>
+                                    <Report :initialreport="global.ReportJson && global.ReportJson[discussion.id] ? true : false" :id="discussion.id" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
                                     <template v-if="global.UserJson.canmoderate">
-                                        <a href="" class="inline-block" v-bind:class="[{ 'text-red-500': global.AllReportJson[discussion.id] }]" @click.prevent="this.adminAction(discussion.hidden ? 'unhide' : 'hide', discussion.id)">@{{ discussion.hidden ? "👁" : global.AllReportJson[discussion.id] ? "👁⨂" : "👁" }}</a>
+                                        <a href="" class="inline-block" v-bind:class="[{ 'text-red-500': global.AllReportJson && global.AllReportJson[discussion.id] }]" @click.prevent="this.adminAction(discussion.hidden ? 'unhide' : 'hide', discussion.id)">@{{ discussion.hidden ? "👁":  global.AllReportJson && global.AllReportJson[discussion.id] ? "👁⨂" : "👁" }}</a>
                                     </template>
                                 </div>
 

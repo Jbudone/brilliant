@@ -307,6 +307,7 @@ $(document).ready(() => {
                 this.reported = (0 in ReportJson) ? true : false;
             }
 
+            this.hasReport = false;
             if (window['AllReportJson']) {
 
                 // Setup ReportJson as map { comment_id }
@@ -562,10 +563,10 @@ $(document).ready(() => {
             this.showReplyButton = function(){ return(!ProblemJson.source && UserJson.id && UserJson.id != this.reply.author); };
             this.showEditButton = function(){ return(!ProblemJson.source && UserJson.id && UserJson.id === this.reply.author); };
 
-            this.voted = (this.id in VoteJson) ? (VoteJson[this.id] ? 1 : 2) : 0;
+            this.voted = (VoteJson && this.id in VoteJson) ? (VoteJson[this.id] ? 1 : 2) : 0;
             this.points = this.reply.points;
-            this.reported = (this.id in ReportJson) ? true : false;
-            this.hasReport = (this.id in AllReportJson) ? true : false;
+            this.reported = (ReportJson && this.id in ReportJson) ? true : false;
+            this.hasReport = (AllReportJson && this.id in AllReportJson) ? true : false;
 
             this.hidden = this.reply.hidden;
             if (this.hidden) {
