@@ -14,7 +14,7 @@ class CommentController extends Controller
     public function store(Request $request)
     {
         $attributes = $request->validate([
-            'comment' => 'required|max:255|min:3', // FIXME: Validate problem_id
+            'comment' => 'required|min:3', // FIXME: Validate problem_id
         ]);
 
         // Confirm post is NOT archived
@@ -42,7 +42,7 @@ class CommentController extends Controller
     public function change(Request $request)
     {
         $attributes = $request->validate([
-            'comment' => 'required|max:255|min:3',
+            'comment' => 'required|min:3',
         ]);
 
         $commentId = $request->input('id');
