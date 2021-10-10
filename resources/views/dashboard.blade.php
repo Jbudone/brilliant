@@ -27,7 +27,7 @@
                         <h3>Your Problems and Discussions:</h3>
                         <template v-if="ProblemsJson.length > 0">
                             <template v-for="(problem, idx) in ProblemsJson">
-                                <a v-bind:href="'/problem/' + problem.id" class="">@{{ problem.title }}</a>
+                                <a v-bind:href="'/problem/' + problem.id" class="">@{{ problem.title }}</a> <br/>
                             </template>
                         </template>
 
