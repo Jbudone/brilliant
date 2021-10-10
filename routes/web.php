@@ -263,14 +263,16 @@ Route::get('/problem/{problem}', function ($problemId) {
 })->whereNumber('problem');
 
 
-
 Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['auth'])->name('addproblem');
-Route::post('/addproblem', [ProblemController::class, 'store'])->middleware(['auth'])->name('storeproblem');
 Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
-Route::post('/editproblem', [ProblemController::class, 'change'])->middleware(['auth'])->name('changeproblem');
-Route::post('/editdiscussion', [ProblemController::class, 'change'])->middleware(['auth'])->name('changediscussion');
 Route::get('/adddiscussion', [ProblemController::class, 'create'])->middleware(['auth'])->name('adddiscussion');
-Route::post('/adddiscussion', [ProblemController::class, 'store'])->middleware(['auth'])->name('storediscussion');
+
+Route::middleware(['auth', 'throttle:post'])->group(function(){
+    Route::post('/addproblem', [ProblemController::class, 'store'])->name('storeproblem');
+    Route::post('/editproblem', [ProblemController::class, 'change'])->name('changeproblem');
+    Route::post('/editdiscussion', [ProblemController::class, 'change'])->name('changediscussion');
+    Route::post('/adddiscussion', [ProblemController::class, 'store'])->name('storediscussion');
+});
 
 
 Route::get('/randomproblem', function() {
@@ -279,11 +281,16 @@ Route::get('/randomproblem', function() {
     return redirect('/problem/' . $randomIdx);
 })->name('randomproblem');
 
-Route::post('/comment', [CommentController::class, 'store'])->middleware(['auth']);
-Route::post('/editcomment', [CommentController::class, 'change'])->middleware(['auth']);
-Route::post('/solve', [SolveController::class, 'store'])->middleware(['auth']);
-Route::post('/unsolve', [SolveController::class, 'destroy'])->middleware(['auth']);
-Route::post('/giveup', [SolveController::class, 'store'])->middleware(['auth']);
+Route::middleware(['auth', 'throttle:comment'])->group(function(){
+    Route::post('/comment', [CommentController::class, 'store']);
+    Route::post('/editcomment', [CommentController::class, 'change']);
+});
+
+Route::middleware(['auth', 'throttle:solve'])->group(function(){
+    Route::post('/solve', [SolveController::class, 'store']);
+    Route::post('/unsolve', [SolveController::class, 'destroy']);
+    Route::post('/giveup', [SolveController::class, 'store']);
+});
 
 Route::get('/dashboard', function () {
 
@@ -307,19 +314,22 @@ Route::get('/admin', function() {
     return view('admin', $json);
 })->middleware(['auth'])->name('admin');
 
-Route::post('/vote', [VoteController::class, 'store'])->middleware(['auth']);
-Route::post('/unvote', [VoteController::class, 'destroy'])->middleware(['auth']);
 
-Route::post('/star', [StarController::class, 'store'])->middleware(['auth']);
-Route::post('/unstar', [StarController::class, 'destroy'])->middleware(['auth']);
+Route::middleware(['auth', 'throttle:interaction'])->group(function(){
+    Route::post('/vote', [VoteController::class, 'store']);
+    Route::post('/unvote', [VoteController::class, 'destroy']);
 
-Route::post('/coin', [CoinController::class, 'store'])->middleware(['auth']);
-Route::post('/uncoin', [CoinController::class, 'destroy'])->middleware(['auth']);
+    Route::post('/star', [StarController::class, 'store']);
+    Route::post('/unstar', [StarController::class, 'destroy']);
 
-Route::post('/report', [ReportController::class, 'store'])->middleware(['auth']);
-Route::post('/unreport', [ReportController::class, 'destroy'])->middleware(['auth']);
+    Route::post('/coin', [CoinController::class, 'store']);
+    Route::post('/uncoin', [CoinController::class, 'destroy']);
 
-Route::post('/adminaction', [AdminActionController::class, 'store'])->middleware(['auth']);
+    Route::post('/report', [ReportController::class, 'store']);
+    Route::post('/unreport', [ReportController::class, 'destroy']);
+
+    Route::post('/adminaction', [AdminActionController::class, 'store']);
+});
 
 
 require __DIR__.'/auth.php';
