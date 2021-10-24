@@ -19,7 +19,8 @@ $(document).ready(() => {
                 level: 0,
                 question: "",
                 solutions: [],
-                checked: ''
+                checked: '',
+                errors: {}
             };
         },
         methods: {
@@ -217,7 +218,13 @@ $(document).ready(() => {
                 let bodyDeflatedHtml = child,
                     bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
 
-                let body;
+                const req = {};
+                req[this.$refs.form_title.name] = this.$refs.form_title.value;
+                req['body'] = bodyDeflatedJson;
+                req['category_id'] = this.topic;
+                req['level_id'] = this.level;
+                req['solution'] = this.solutionIndex();
+
                 if (!isDiscussion) {
                     let solutions = [];
                     for (let i = 0; i < this.solutions.length; ++i) {
@@ -229,17 +236,33 @@ $(document).ready(() => {
                         }
                         solutions.push(solution);
                     }
+
                     let solutionsStr = JSON.stringify({solutions: solutions});
-                    body = solutionsStr.length + solutionsStr + bodyDeflatedJson;
-                    console.log(body);
-                }
-                else {
-                    body = bodyDeflatedJson;
-                    console.log(body);
+                    req['solutions'] = solutionsStr;
                 }
 
-                this.$refs.formBody.value = body;
-                this.$refs.form.submit();
+                if (isEdit) {
+                    req['id'] = this.id;
+                }
+
+                let action = this.$refs.form.action;
+                axios.post(action, req)
+                    .then((response) => {
+                        if (response.data.id) {
+                            window.location = `/problem/${response.data.id}`;
+                        } else {
+                            this.errors = response.data.errors;
+                            console.log(response);
+                        }
+                    })
+                    .catch((err) => {
+                        // This happens if we return non-successful status code
+                        console.error(err);
+                    });
+            },
+
+            error(name) {
+                return this.errors[name];
             }
         },
         computed: {

@@ -73,11 +73,17 @@
                         <div class="md:grid md:grid-cols-7 md:gap-4">
                             <div class="col-span-5 pl-2">
 
+                                <div v-if="errors" class="alert alert-danger">
+                                    <ul>
+                                        <template v-for="(errList, name) in errors"><template v-for="error in errList">
+                                        <li>@{{ error }}</li>
+                                        </template></template>
+                                    </ul>
+                                </div>
+
                                 <span class="prblm-edit-header">Title</span>
-                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-model="this.title" placeholder="Title" autocomplete="off" @input="updatePreview()" />
-                                @error('title')
-                                <div class="alert alert-danger">{{ $message }}</div>
-                                @enderror
+                                <input class="prblm-edit-title form-edit-input" type="text" name="title" v-model="this.title" placeholder="Title" autocomplete="off" @input="updatePreview()" ref="form_title" />
+                                <div v-if="error('title')" class="alert alert-danger" >@{{ error('title')[0] }}</div>
 
                                 @if(!$isDiscussion)
                                 <div class="prblm-edit-topiclevel">
@@ -90,9 +96,6 @@
                                             v-on:selected="selectCategory"
                                     >
                                     </Dropdown>
-                                    @error('category_id')
-                                    <div class="alert alert-danger">{{ $message }}</div>
-                                    @enderror
 
 
                                     <Dropdown
@@ -104,17 +107,14 @@
                                             v-on:selected="selectLevel"
                                     >
                                     </Dropdown>
-                                    @error('level')
-                                    <div class="alert alert-danger">{{ $message }}</div>
-                                    @enderror
                                 </div>
+                                <div v-if="error('category_id')" class="alert alert-danger" >@{{ error('category_id')[0] }}</div>
+                                <div v-if="error('level_id')" class="alert alert-danger" >@{{ error('level_id')[0] }}</div>
                                 @endif
 
                                 <span class="prblm-edit-header">Question Body</span>
                                 <tip-tap-form :name="`editor`" :value="getQuestionBody()" ref="editor" v-on:update="setQuestionBody"></tip-tap-form>
-                                @error('body')
-                                <div class="alert alert-danger">{{ $message }}</div>
-                                @enderror
+                                <div v-if="error('body')" class="alert alert-danger" >@{{ error('body')[0] }}</div>
                             </div>
                             @if(!$isDiscussion)
                             <div class="col-span-2">
@@ -130,6 +130,7 @@
                                         </p>
                                     </template>
                                 </div>
+                                <div v-if="error('solutions')" class="alert alert-danger" >@{{ error('solutions')[0] }}</div>
                             </div>
                             @endif
                         </div>
