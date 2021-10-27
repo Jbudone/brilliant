@@ -106,7 +106,7 @@ class ProblemController extends Controller
             }
         }
 
-        $postDetails = [
+        $postDoc = [
             'title'      => $validated['title'],
             'body'       => $validated['body'],
             'author_id'  => Auth::id(),
@@ -114,14 +114,14 @@ class ProblemController extends Controller
         ];
 
         if (!$isDiscussion) {
-            $postDetails = array_merge($postDetails, [
+            $postDoc = array_merge($postDoc, [
                 'category_id' => $validated['category_id'],
                 'level'       => $validated['level_id'],
                 'solution'    => $validated['solution']
             ]);
         }
 
-        $problem = Problem::create($postDetails);
+        $problem = Problem::create($postDoc);
         if (!$problem->id) {
             // Failed to created
             return response()->json(['errors' => ['server' => 'unexpected error']], 418);

@@ -6,66 +6,91 @@ use App\Models\Comment;
 use App\Models\Problem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CommentController extends Controller
 {
-    //
+    public function getRules()
+    {
+        $rules = [
+            'comment' => 'required|min:12',
+        ];
+        return $rules;
+    }
 
     public function store(Request $request)
     {
-        $attributes = $request->validate([
-            'comment' => 'required|min:3', // FIXME: Validate problem_id
-        ]);
-
-        // Confirm post is NOT archived
-        $problemId = $request->input('id');
-        $problem = Problem::where('id', (int)$problemId)->first();
-        if (!$problem || $problem->archive_id > 0) {
-            return back();
+        $rules = self::getRules();
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->messages()]);
         }
 
-        // FIXME: Check parent comment under same post
+        $validated = $validator->validated();
 
-        Comment::create([
-            'body' =>     $request->input('comment'),
-            'author_id' =>   Auth::id(),
+        // Confirm post is NOT archived
+        $problemId = (int)$request['problem_id'];
+        $problem = Problem::where('id', $problemId)->first();
+        if (!$problem || $problem->archive_id > 0) {
+            return response()->json(['errors' => ['server' => 'unexpected error']], 418);
+        }
+
+        // Confirm parent comment under same post
+        $parentId = (int)$request['parent_comment_id'];
+        if ($parentId) {
+            $parentComment = Comment::where('id', $parentId)->first();
+            if (!$parentComment || $parentComment->problem_id != $problem->id) {
+                return response()->json(['errors' => ['server' => 'unexpected error']], 418);
+            }
+        }
+
+        $commentDoc = [
+            'body'       => $validated['comment'],
+            'author_id'  => Auth::id(),
             'problem_id' => $problemId,
-            'parent_comment_id' => $request->input('parent_comment_id')
-        ]);
+        ];
 
-        return back();
-        //return back()->withErrors([
-        //    'email' => 'The provided credentials do not match our records.',
-        //]);
+        if ($parentId) {
+            $commentDoc['parent_comment_id'] = $parentId;
+        }
+
+        $comment = Comment::create($commentDoc);
+        if (!$comment->id) {
+            // Failed to created
+            return response()->json(['errors' => ['server' => 'unexpected error']], 418);
+        }
+
+        return response()->json(['id' => $comment->id]);
     }
 
     public function change(Request $request)
     {
-        $attributes = $request->validate([
-            'comment' => 'required|min:3',
-        ]);
-
-        $commentId = $request->input('id');
-
-        $comment = Comment::where('id', (int)$commentId)->get()[0];
-
-        if ($comment->author_id !== Auth::id())
+        $commentId = (int)$request->input('id');
+        $comment = Comment::where('id', $commentId)->get()[0];
+        if (!$comment || $comment->author_id !== Auth::id())
         {
-            return back();
+            return response()->json(['errors' => ['server' => 'unexpected error']], 418);
         }
 
-        $comment->body = $request->input('comment');
-        $comment->save();
 
-        if ($comment->wasChanged())
+        $rules = self::getRules();
+        $validator = Validator::make($request->all(), $rules);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->messages()]);
+        }
+
+        $validated = $validator->validated();
+
+        $comment->body = $validated['comment'];
+        $saved = $comment->save();
+        if ($saved)
         {
-            return back();
+            return response()->json(['id' => $comment->id]);
         }
         else
         {
-            return back()->withErrors([
-                'email' => 'The provided credentials do not match our records.',
-            ]);
+            return response()->json(['errors' => ['server' => 'unexpected error']], 418);
         }
     }
 }

@@ -111,7 +111,6 @@ export default {
         updatePreview(editor) {
             // Get JSON -> find text nodes -> run KaTex renders
             let json = editor.getJSON();
-            //json = JSON.parse(JSON.stringify(json)); // FIXME: Ref to editor?
             JSON_TRANSLATE_INLINE_KATEX(json);
             let html = JSON_TO_HTML(json);
 
@@ -147,6 +146,28 @@ export default {
 
         setHeading({id}) {
             this.editor.chain().focus().toggleHeading({ level: id }).run()
+        },
+
+        val() {
+            let json = this.editor.getJSON();
+            //json = JSON.parse(JSON.stringify(json)); // FIXME: Ref to editor?
+            JSON_TRANSLATE_INLINE_KATEX(json);
+            let html = JSON_TO_HTML(json);
+
+            return(html);
+        },
+
+        json() {
+            let json = this.editor.getJSON();
+            return(json);
+        },
+
+        deflated() {
+            let json = this.editor.getJSON();
+            JSON_TRANSLATE_INLINE_KATEX(json);
+            let { child, elements } = JSON_BODY_TO_HTML(json);
+
+            return JSON.stringify(child);
         }
     },
     mounted() {

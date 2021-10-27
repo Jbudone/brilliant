@@ -4,32 +4,15 @@
     @push('scripts')
         <script type="text/javascript" src="{{ asset('problem.js?' . Str::random(40)) }}"></script>
         <script>
-            var ProblemJson = @json($problem, JSON_PRETTY_PRINT);
-            var UserJson = @json($user, JSON_PRETTY_PRINT);
+            window.BladeGlobals = {
+                ProblemJson: @json($problem, JSON_PRETTY_PRINT),
+                UserJson: @json($user, JSON_PRETTY_PRINT),
 
-            @isset($solve)
-                var SolveJson = @json($solve, JSON_PRETTY_PRINT);
-            @else
-                var SolveJson = null;
-            @endisset
-
-            @isset($vote)
-                var VoteJson = @json($vote, JSON_PRETTY_PRINT);
-            @else
-                var VoteJson = null;
-            @endisset
-
-            @isset($report)
-                var ReportJson = @json($report, JSON_PRETTY_PRINT);
-            @else
-                var ReportJson = null;
-            @endisset
-
-            @isset($allReports)
-                var AllReportJson = @json($allReports, JSON_PRETTY_PRINT);
-            @else
-                var AllReportJson = null;
-            @endisset
+                SolveJson:     @isset($solve)      @json($solve, JSON_PRETTY_PRINT) @else null @endisset ,
+                VoteJson:      @isset($vote)       @json($vote, JSON_PRETTY_PRINT) @else null @endisset ,
+                ReportJson:    @isset($report)     @json($report, JSON_PRETTY_PRINT) @else null @endisset ,
+                AllReportJson: @isset($allReports) @json($allReports, JSON_PRETTY_PRINT) @else null @endisset ,
+            };
         </script>
     @endpush
 
@@ -49,7 +32,7 @@
                         <template v-if="isHidden">
                             PROBLEM HAS BEEN HIDDEN
                         </template>
-                        <template v-else-if="hasReport && global.UserJson.canmoderate">
+                        <template v-else-if="hasReport && Global.UserJson.canmoderate">
                             PROBLEM HAS BEEN REPORTED
                         </template>
 
@@ -61,7 +44,7 @@
                     <span class="prblm-title" v-html="this.titleHtml"></span>
 
                     @if($source)
-                    <template v-if="isDiscussion">
+                    <template v-if="Global.isDiscussion">
                         <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
                     </template><template v-else>
                         <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
@@ -87,10 +70,10 @@
                 <div class="prblm-question md:grid md:grid-cols-7 md:gap-4">
 
                     <!-- Question Body -->
-                    <div class="prblm-question-content md:col-span-5" v-bind:class="[{ 'md:col-span-7': this.isDiscussion }]" v-html="this.question"></div>
+                    <div class="prblm-question-content md:col-span-5" v-bind:class="[{ 'md:col-span-7': Global.isDiscussion }]" v-html="this.question"></div>
 
                     <!-- Answers -->
-                    <div v-if="!this.isDiscussion" class="prblm-question-solution md:col-span-2 md:px-4">
+                    <div v-if="!Global.isDiscussion" class="prblm-question-solution md:col-span-2 md:px-4">
                         <form method="POST" action="/solve" id="prblm-form-solve" ref="formSolve">
                         @csrf
                         <input type="text" id="prblm-solve-selected" name="solution" style="display: none;" ref="formAnswer" />
@@ -178,121 +161,12 @@
                 </div>
                 </div>
 
-                <template v-if="isDiscussion || solved">
+                <template v-if="Global.isDiscussion || solved">
                 <hr/>
-                <div class="prblm-discussions">
-                    <div class="mb-4">
-                        <span v-if="isDiscussion" class="solutions text-xl">@{{ this.discussions.length }} Comments</span>
-                        <span v-else class="solutions text-xl">@{{ this.discussions.length }} Solutions</span>
 
-                        <span class="block text-grey-800 text-lg" v-if="!isDiscussion && this.discussions.length == 0">No explanations have been posted yet. Check back later!</span>
-                        <a v-if="!archived" id='addSolution' href='#'>Add Solution</a>
-                    </div>
-                    <div id='addSolutionContainer' class='hidden'>
-                        <form method="POST" id="prblm-addsol-form" action="/comment">
-                            @csrf
-                            <input type="text" name="comment" style="display: none;" />
-
-                            <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
-                            <input type="text" name="parent_comment_id" value="" style="display: none;" />
-
-                            <tip-tap-form :name="`editoraddsolution`" :namepreview="`prevaddsolution`" :haspreview="true"></tip-tap-form>
-                            @error('comment')
-                            <div class="alert alert-danger">{{ $message }}</div>
-                            @enderror
-
-                            <div class="prblm-edit-footer">
-                                <a href="#" class="prblm-edit-cancel" @click.prevent="cancel()">Cancel</a>
-                                <a href="#" class="prblm-edit-save" @click.prevent="save('addsolution')">Save</a>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div id='replyToContainer' class='hidden'>
-                        <form method="POST" id="prblm-replyto-form" action="/comment">
-                            @csrf
-
-                            <input type="text" name="comment" style="display: none;" />
-                            <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
-                            <input type="text" name="parent_comment_id" value="" style="display: none;" />
-
-                            <tip-tap-form :name="`editorreplyto`" :namepreview="`prevreplyto`" :haspreview="true"></tip-tap-form>
-                            @error('comment')
-                            <div class="alert alert-danger">{{ $message }}</div>
-                            @enderror
-
-                            <div class="prblm-edit-footer">
-                                <a href="#" class="prblm-edit-cancel" @click.prevent="cancel()">Cancel</a>
-                                <a href="#" class="prblm-edit-save" @click.prevent="save('replyto')">Save</a>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div id='replyEditContainer' class='hidden'>
-                        <form method="POST" id="prblm-replyedit-form" action="/editcomment">
-                            @csrf
-
-                            <input type="text" name="comment" style="display: none;" />
-                            <input type="text" name="id" v-bind:value="this.id" style="display: none;" />
-
-                            <tip-tap-form :name="`editorreplyedit`" :namepreview="`prevreplyedit`" :haspreview="true"></tip-tap-form>
-                            @error('comment')
-                            <div class="alert alert-danger">{{ $message }}</div>
-                            @enderror
-
-                            <div class="prblm-edit-footer">
-                                <a href="#" class="prblm-edit-cancel" @click.prevent="cancel()">Cancel</a>
-                                <a href="#" class="prblm-edit-save" @click.prevent="save('replyedit')">Save</a>
-                            </div>
-                        </form>
-                    </div>
-
-
-
-                    <template v-for="discussion in discussions">
-                        <div class="prblm-discussion">
-                            <div class="prblm-discussion-author">
-                                <div class="user-avatar">
-                                    <a href='#' class="avatar">
-                                        <img src="/sprites/default-avatar-globe.png" />
-                                    </a>
-                                </div>
-
-                                <div class="float-right text-right -mt-2">
-                                    <Vote ref="vote" :initialvote="(global.VoteJson ? discussion.id in global.VoteJson : 0) ? global.VoteJson[discussion.id] ? 1 : 2 : 0" :initialpoints="discussion.points" :id="discussion.id" v-on:vote="this.vote"></Vote>
-                                    <Report :initialreport="global.ReportJson && global.ReportJson[discussion.id] ? true : false" :id="discussion.id" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
-                                    <template v-if="global.UserJson.canmoderate">
-                                        <a href="" class="inline-block" v-bind:class="[{ 'text-red-500': global.AllReportJson && global.AllReportJson[discussion.id] }]" @click.prevent="this.adminAction(discussion.hidden ? 'unhide' : 'hide', discussion.id)">@{{ discussion.hidden ? "👁":  global.AllReportJson && global.AllReportJson[discussion.id] ? "👁⨂" : "👁" }}</a>
-                                    </template>
-                                </div>
-
-                                <div class="user-text">
-                                    <a href='#' class="author-name">@{{ this.users[discussion.author].name }}</a>
-                                    <span class="author-date">@{{ discussion.date }}</span>
-                                </div>
-                            </div>
-
-                            <div class="prblm-discussion-content" v-html="discussion.hidden ? '<em>Solution has been hidden</em>' : discussion.content" v-bind:rawcontent="discussion.rawcontent"></div>
-
-                            <div class="prblm-discussion-reactions">
-                                <span class="prblm-discussion-reaction reaction-helpful">@{{ discussion.reactions[0] }} Helpful</span>
-                                <span class="prblm-discussion-reaction reaction-interesting">@{{ discussion.reactions[1] }} Interesting</span>
-                                <span class="prblm-discussion-reaction reaction-brilliant">@{{ discussion.reactions[2] }} Brilliant</span>
-                                <span class="prblm-discussion-reaction reaction-confused">@{{ discussion.reactions[3] }} Confused</span>
-                            </div>
-
-                            <div class="reply-to">
-                                <a href="#" class='reply-to-link' v-bind:comment-id="discussion.id" v-if="discussion.showReplyButton()">Reply</a>
-                                <a href="#" class='reply-edit-link' v-bind:comment-id="discussion.id" v-if="discussion.showEditButton()">Edit</a>
-                            </div>
-
-                            <div class="prblm-discussion-replies" v-if="discussion.replies">
-                                <reply class="prblm-discussion-reply" v-for="reply in discussion.replies" :reply="reply"></reply>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-                </template>
+                <DiscussionSection
+                    :discussions="this.discussions"
+                ></DiscussionSection>
             </div>
         </div>
     </div>
