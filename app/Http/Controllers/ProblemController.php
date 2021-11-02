@@ -22,7 +22,7 @@ class ProblemController extends Controller
     {
         // TODO: Fix max length to specify MEDIUMTEXT length
         $rules = [
-            'title' => 'required|unique:app\models\problem,title|max:255|min:3',
+            'title' => 'required|unique:App\Models\Problem,title|max:255|min:3',
             'body' => 'required|min:3|max:16000000'
         ];
 
@@ -34,8 +34,8 @@ class ProblemController extends Controller
 
         if (!$isDiscussion) {
             $rules = array_merge($rules, [
-                'category_id' => 'required|integer|between:1,10',
-                'level_id' => 'required|integer|between:1,4',
+                'category_id' => 'required|integer|between:1,14',
+                'level_id' => 'required|integer|between:1,5',
                 'solution' => 'required',
                 'solutions' => 'required|max:777000'
             ]);
