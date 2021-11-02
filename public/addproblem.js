@@ -147,80 +147,11 @@ $(document).ready(() => {
 
             save() {
 
-                let questionJson = this.question;
-
-                // FIXME: Inject katex in texts w/ {{ }}
-                const recurseEl = (el) => {
-                    if (el.content instanceof Array) {
-                        for (let i = 0; i < el.content.length; ++i) {
-                            if (el.content[i].type === "text") {
-                                let textParts = [];
-                                let textHtml = el.content[i].text;
-
-                                let readFrom = 0;
-                                do {
-                                    let idxStart = textHtml.indexOf('\\(', readFrom),
-                                        idxEnd = textHtml.indexOf('\\)', readFrom);
-
-                                    if (idxStart === -1 || idxEnd <= idxStart) break;
-
-                                    let katexRaw = textHtml.substr(idxStart + 2, (idxEnd - idxStart) - 2);
-                                    // FIXME: Inline?
-
-                                    let start = textHtml.substr(readFrom, idxStart);
-                                    if (start.trim() !== "") {
-                                        textParts.push({
-                                            type: "text",
-                                            text: start
-                                        });
-                                    }
-
-                                    if (katexRaw.trim() !== "") {
-                                        textParts.push({
-                                            type: "katex",
-                                            content: [{ type: "text", text: katexRaw }],
-                                            attrs: { inline: true }
-                                        });
-                                    }
-
-                                    readFrom = idxEnd + 2;
-                                } while (true);
-
-                                let end = textHtml.substr(readFrom);
-                                if (end.trim() !== "") {
-                                    textParts.push({
-                                        type: "text",
-                                        text: end
-                                    });
-                                }
-
-                                if (el.content[i].marks) {
-                                    for (let j = 0; j < textParts.length; ++j) {
-                                        textParts[j].marks = el.content[i].marks;
-                                    }
-                                }
-
-                                if (textParts.length > 0) {
-                                    el.content.splice(i, 1, ...textParts);
-                                }
-                            } else {
-                                recurseEl(el.content[i]);
-                            }
-                        }
-                    }
-                };
-
-                recurseEl(questionJson);
-
-
-                let bodyInflatedJson = questionJson;
-                let { child, elements } = JSON_BODY_TO_HTML(bodyInflatedJson);
-                let bodyDeflatedHtml = child,
-                    bodyDeflatedJson = JSON.stringify(bodyDeflatedHtml);
+                let bodyDeflated = this.$refs.editor.deflated();
 
                 const req = {};
                 req[this.$refs.form_title.name] = this.$refs.form_title.value;
-                req['body'] = bodyDeflatedJson;
+                req['body'] = bodyDeflated;
                 req['category_id'] = this.topic;
                 req['level_id'] = this.level;
                 req['solution'] = this.solutionIndex();
