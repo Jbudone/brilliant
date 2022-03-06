@@ -25,6 +25,7 @@
         "vue-template-compiler": "^2.6.14"
     },
     "dependencies": {
+        "@babel/runtime": "^7.15.4",
         "@tiptap/extension-bold": "^2.0.0-beta.15",
         "@tiptap/extension-code": "^2.0.0-beta.16",
         "@tiptap/extension-code-block-lowlight": "^2.0.0-beta.33",
@@ -46,6 +47,7 @@
         "katex": "^0.13.13",
         "sass": "^1.37.0",
         "sass-loader": "^12.1.0",
+        "typesense": "^0.15.0",
         "vue-simple-search-dropdown": "^1.0.1"
     }
 }
