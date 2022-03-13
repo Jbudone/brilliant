@@ -1,33 +1,113 @@
-WEEKEND
- - Discussion parse
- - Re-parse all (<p> tag)
- - CSS
- - Finish text editor:  inline vs. full ; code ; link
+TODO (archive-only)
+ - get online w/out :8080
+ - Remove non-archive things (adding new questions/etc.)
+ - Problems / Needs Solutions / Discussions
+ - Typesearch
+ - Faster startup
+
+   - Cache busting include css/js
+   - Serve css/js -> public/ folder, SASS, Babylon
+   - Production: strip out parts of css/js that aren't needed, tree shaking
+   - Laravel caching  https://laracasts.com/series/laravel-8-from-scratch/episodes/10
+   - Template sections of html (header file, footer file, etc.) for shared html
+   - Hover question to see preview
+
+
+
+OLD TODO
+ - Finish text editor:  code ; link
  - Think about popularity -- score field on problem document?  Can run a worker to mass-update when we update equation
- - Profile page
- - Ideas/Roadmap page, upvote ideas/suggestions/features to order better
- - BUG: Preview -- ul/ol  off screen
+ - CSS Links, buttons
+ - Text CSS cleanup: http://brilliant.laravel:8000/brilliantexport/discussions/thread/recursive-subsets-of-mathbbn-and-finite-model/recursive-subsets-of-mathbbn-and-finite-model.html
+ - Merge/zip/unzip discussions for faster scp -> server
+ - Webworkers for parsing?
+ - Microsoft Edge rendering issue on buttons
+ - Webpack cleanup: cache busting css/js, strip vendor, tree shaking, etc.
+    - cache busting: need to store all js/css in resources and specify for building?
+ - Problem JSON -> HTML -> inject Tailwind classes into elements rather than using app.css
+ - Laravel packages: Fortify (authentication)? Socialite (OAuth); Sanctum; Telescope
+ - FIXME: Check tableCell rework (as container) is fine
+ - FIXME: external img src http://brilliant.laravel:8000/problem/106736 
+ - BUG: "View Solutions" -- don't say "YOu guessed ."
+ - BUG: Adding empty problem
+ - BUG: Forget to set title/category/level on problem and it goes back w/out putting solution/text back
+ - BUG: \[ \] and \{ \} don't work for text editor
+ - Use events/listeners to split logic for votes/reports
+ - @mentions use search service for searching users names
+    - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
+    - Update Typesense driver when ready: https://github.com/typesense/laravel-scout-typesense-driver
+    - Only include necessary parts of documents (user name/created, problem title/created)
+    - InstantSearch.js?
+    - Typesense command to create/seed from database; start Typesense service?
+    - API search request from routes/web.php
+    - Tiptap @mentions extension + modify for this
+ - ReCaptcha v3
+ - Interactable check response from server (Throttled -> show error popup?)
+ - Security
+    - <form>  includes non-input elements (are those getting sent over?)
+    - XSS attack via manual submission?  -- titles/solutions?
+ - Throttling posts on success vs. failed  (eg. post -> fail validation -> try to fix -> fail again -> repeat until throttled)
+ - AJAX request throttled -> dialog
+
+ * Comment Rework
+    - Can reply multiple times
+    - Can add solutions multiple times
+    - Nuke jquery
+    - Interactions
+    - CSRF axios
+
+ - Search posts (by title)
+ - List discussions, problems, unsolved (check?), hot/popular
+
+ - Admin
+    - Reports/etc. notifications show up here for approval
+    - Answered reports/etc. show up (readonly)
+    - Notifcations of new report
+    - Blade @admin  or  @level(3)
+    - Admin: view profile -> change role (or ban/silence)
+    - Admin Page: see activity
+    - Auto level up users
+    - Admins
+        - Level 0: delete/edit posts + comments; admin page; add "Admin note"; undo admin changes    (personally added)    @admin   @auth('admin')
+        - Level 1: simulate delete/edit posts + comments, undo admin changes, give badges   (moderator, requested for mod, all simulates approved/committed by admins)    @moderator   @auth('moderator')
+        - Level 2: flag/report; admin page, bounties (spend points on questions), mark solution as correct (limited access), add new tag    (power user, min points gained -- marked as correct OR badges; can be taken away)     @poweruser   @auth('poweruser')
+        - Level 3: upvote/downvote    (basic user 2, min points gained)       @usernormal
+        - Level 4: ask question, add comment      (basic user, time based)    @userbasic
+        - Level 5: silenced/suspended
+
+ - Interactions
+    - Upvote/Downvote (comment, problem)
+    - Star (problem), Bounty (problem), Silver/Gold coin (on comment/problem), Badges (user), Follow (user, tag)
+    - Flag/Report (problem, comment)
+    - Admin: hide comment/problem, suspend user
+
+    DB Schema
+    votes { user, post, isupvote, comment (nullable) }  # upvote/downvote  either problem or comment
+    admin_events { issue_id,  ..... }   # events that you can reverse (eg. editing problem) ; issue_id is for multiple events on the same issue
+    stars { user, post }
+    coins { user, post, comment (nullable), coin }
+    users { ..., badges: largeint-bitfield, stars, coins, points }  # stars/coins are how many you have
+    problems { ..., has_stars, has_coins }  # has_stars/coins for fast first-pass check
+    follows ????
+    reports { user, post, comment (nullable), reason }
+    activity_events { .... }  # simple events that happened (star, coin, answer problem, new problem, etc.)  -- shows in front-page feed
+
+    
 
 
-TODO
- - Priority
+
+Markdown, Katex, Quill
+ - Markdown: easier to do weird stuff  eg.  \(  before a list or paragraph, and whole block turns into a latex -- not sure how to do this with html
+ - HTML: drag/drop images; interactive components; select text -> toolbar options; fonts, emojis, special items that could be given w/ points
+
+
    - Email verification
-   - Materialize -> Tailwind
+   - Materialize+CSS -> Tailwind
    - Mobile view, responsive
-   - Transport problems: solution/title wrap in {{ }} for KaTex parts, use raw for remaining
    - Delete question
-   - BUG: Add problem -- set category/level resets title
+   - Slow cold boot load (app.js + app.css getting beefy)
    - Text editor
-        - Save (deflate); Edit
-            - Katex -> {{ }}
-        - Preview answers/title (in case of Katex)
-        - TipTap components
-            - horizontalBreak, hardBreak
-            - link
-        - inline vs. full
-        - code
-
-
+        - Link component
         - Image extension  drag/drop, move around
         - Table extension
         - KaTex extension
@@ -56,18 +136,13 @@ TODO
    - Hide solutions/discussion until question answered
    - BUG: Comment validation fail -- doesn't show validation fail from laravel (hidden element)   need to restore state
    - BUG: large solutions http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
-   - BUG: Elements being inlined http://brilliant.laravel:8000/problem/41980  (first comment) ; http://brilliant.laravel:8000/brilliantexport/problems/00-5/00-5.html (question) ; http://brilliant.jbud.me/problem/280 (comment + question)
    - Inflate/Deflate
         - Merge sequential text paragraphs w/ \n
-    - BUG: http://brilliant.laravel:8000/problem/81303  katex solution (centered vs. left)
-    - BUG: blockquote next to pre/code gets merged http://brilliant.jbud.me/brilliantexport/problems/very-easy-2/very-easy-2.html
-    - BUG: line breaks http://brilliant.laravel:8000/problem/10
+    - BUG: Heading level: http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html
     - Add question -> go to question page rather than /problems
+    - BUG: Katex spacing  http://brilliant.laravel:8000/problem/280
+    - BUG: Submit question w/ no solutions or category/level set
 
-    DOUBLE CHECK FROM LATEST
-   - BUG: Links not showing properly http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html
-   - BUG: link *inside* heading/italics/strong: http://brilliant.jbud.me/brilliantexport/problems/2015-countdown-problem-20-a-cubic-expansion-in-a/2015-countdown-problem-20-a-cubic-expansion-in-a.html ; http://brilliant.jbud.me/brilliantexport/problems/10th-problem-2016/10th-problem-2016.html
-   - BUG: orderedList/bulletList http://brilliant.laravel:8000/problem/10
 
 
 
@@ -86,83 +161,96 @@ TODO
     - Report component
     - Archived view: disallow commenting on archived questions (question owners can unarchive?)
     - Prizes: emojis, gold coins, components (thematic horizontal rule), fonts
-
+    - Competitions (team based? similar to CTF)
+    - TODO / Tasks page -- cards of tasks/ideas that can be upvotes/starred/coined to raise priorities; users can submit suggestion tasks
+    - Points based around subject: "you're now level 5 in Calculus! You should be ready to tackle double integrals" -- show branches of problems in your area (based off tags? moderators add "high quality" questions to particular branch?)
+    - "High quality" question  (set by moderators)
 
 
 
 
         == Install ==
 
-        # Setup Composer
-        php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-        php -r "if (hash_file('sha384', 'composer-setup.php') === '756890a4488ce9024fc62c56153228907f1545c228516cbf63f885e036d37e9a59d27d63f46af1d4d07ee0f76181c7d3') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-        php composer-setup.php
-        php -r "unlink('composer-setup.php');" composer
+            # Setup Composer
+            php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+            php -r "if (hash_file('sha384', 'composer-setup.php') === '906a84df04cea2aa72f40b5f787e49f22d4c2f19492ac310e8cba5b96ac8b64115ac402c8cd292b8a03482574915d1a8') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+            php composer-setup.php
+            php -r "unlink('composer-setup.php');" composer
 
-        # Install laravel
-        composer create-project laravel/laravel brilliant
+            # Install laravel, typesense
+            # NOTE: You may need `php composer.phar` instead
+            composer create-project laravel/laravel brilliant
+            cd brilliant
+            composer require laravel/scout php-http/curl-client typesense/typesense-php typesense/laravel-scout-typesense-driver nesbot/carbon
+            #composer require devloopsnet/laravel-typesense
 
-        # Git clone
-        git clone https://github.com/Jbudone/brilliant brilliant.temp
-        rsync -a brilliant.temp/ brilliant
-        rm -r brilliant.temp
+            # Install nvm/npm
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.3/install.sh | bash
+            source ~/.bashrc
+            nvm use v12.18.3
+            nvm alias default 12.18.3
 
-        # Setup env
-        create database: brilliant
-        npm install
-        vim .env
+            # Git clone
+            git clone https://github.com/Jbudone/brilliant brilliant.temp
+            rsync -a brilliant.temp/ ./
+            rm -r brilliant.temp
 
-        # Build DB, seed
-        php artisan migrate:fresh --seed
+            # Setup env
+            create database: brilliant
+            npm install
+            vim .env
 
-        # Mix assets
-        npm run dev
+            composer update
 
-        # localserver server host
-        php artisan server --host=brilliant.local
+            # Build DB, seed
+            php artisan migrate:fresh --seed
 
-        # live server, edit .htaccess to redirect to public
-            RewriteEngine on
-            RewriteCond %{REQUEST_URI} !^public
-            RewriteRule ^(.*)$ public/$1 [L]
+            # Mix assets
+            npm run dev
 
+            # localserver server host
+            php artisan serve --host=brilliant.local
+
+            # live server, edit .htaccess to redirect to public
+                RewriteEngine on
+                RewriteCond %{REQUEST_URI} !^public
+                RewriteRule ^(.*)$ public/$1 [L]
+
+            # Typesense
+            TODO: Turn on Typesense service???
+            php artisan scout:import App\\Models\\User
+
+
+        == Local Startup ==
+            php artisan server --host=brilliant.local
+            npm run watch
+
+            export TYPESENSE_API_KEY=xyz
+            mkdir /tmp/typesense-data
+            cd typesense
+            ./typesense-server --data-dir=/tmp/typesense-data --api-key=$TYPESENSE_API_KEY --enable-cors
 
 
 
         == Update ==
-        git pull
+            scp -R [/local/path/to/brilliant.parsed] [login]:~/brilliant/
 
-        source ~/.bashrc
-        npm install
-        # FIXME: migrate/seed but w/out deleting current docs
-        npm run dev
+            git pull
 
-        php artisan migrate:fresh --seed
-
-
+            source ~/.bashrc
+            npm install
+            # FIXME: migrate/seed but w/out deleting current docs
+            npm run dev
 
 
+            # NOTE FRESH INSTALL ONLY BELOW
+            rm nohup.out
+            nohup php artisan migrate:fresh --seed &
 
 
-   - Look into Vuex or data store model for cross-component communication
-   - Profile page
-   - Cache busting include css/js
-   - Serve css/js -> public/ folder, SASS, Babylon
-   - Production: strip out parts of css/js that aren't needed, tree shaking
-   - Laravel caching  https://laracasts.com/series/laravel-8-from-scratch/episodes/10
-   - Template sections of html (header file, footer file, etc.) for shared html
-   - Notifications (someone replied to your comment)
-   - Security, timer on question adding / commenting
-   - Report questions, solutions, etc. ; Admin block users, questions, etc.
-   - Question status:  verified, unsolved
-   - Cleanup REST url, and naming conventions  show, index, create, store, edit, update, destory
-   - Home/welcome page
-   - Show discussions
-   - Show unsolved problems
-   - Hide solutions (until you solve)
-   - Hover question to see preview
-   - Cleanup page / blank space
-   - CSS test across browsers, cleanup
+
+
+
 
 
 
@@ -181,6 +269,7 @@ http://brilliant.local/problems/100-gold-coins/100-gold-coins.html
 http://brilliant.local/problems/11-is-really-lovely-well-bring-it-everywhere/11-is-really-lovely-well-bring-it-everywhere.html
 http://brilliant.local/problems/0-and-1-in-exponents/0-and-1-in-exponents.html
 http://jbud.me/playground/brilliant/problems/0-and-1-in-exponents/0-and-1-in-exponents.html
+http://brilliant.local:8000/problem/41242
 
 
 References
