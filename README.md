@@ -1,3 +1,4 @@
+JBud, could we chat here? I can't use Discord
 WEEKEND
  - Discussion parse
  - Re-parse all (<p> tag)
