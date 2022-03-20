@@ -7,22 +7,69 @@ const Mention = core.Node.create({
 
   defaultOptions: {
     HTMLAttributes: {},
+    renderLabel({ options, node }) {
+      return `${options.suggestion.char}${node.attrs.label ?? node.attrs.id}`
+    },
+    suggestion: {
+      char: '@',
+    },
   },
 
-  group: 'block',
-  //group: 'inline',
+  group: 'inline',
 
-    //inline: true,
-  content: 'inline*',
+  inline: true,
+
+  selectable: false,
+
+  atom: true,
+
+  addAttributes() {
+    return {
+      id: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-id'),
+        renderHTML: attributes => {
+          if (!attributes.id) {
+            return {}
+          }
+
+          return {
+            'data-id': attributes.id,
+          }
+        },
+      },
+
+      label: {
+        default: null,
+        parseHTML: element => element.getAttribute('data-label'),
+        renderHTML: attributes => {
+          if (!attributes.label) {
+            return {}
+          }
+
+          return {
+            'data-label': attributes.label,
+          }
+        },
+      },
+    }
+  },
 
   parseHTML() {
     return [
-      { tag: 'mention' },
+      { tag: 'mention[data-mention]' },
     ]
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ['mention', core.mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  renderHTML({ node, HTMLAttributes }) {
+    return ['mention', core.mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), this.options.renderLabel({ options: this.options, node })]
+  },
+
+  renderText({ node }) {
+    return this.options.renderLabel({
+      options: this.options,
+      node,
+    })
   },
 
   addCommands() {

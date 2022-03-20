@@ -236,7 +236,7 @@ window['ENCODED_TO_JSON'] = (deflatedStr) => {
         } else if (inflated.type === "mention") {
             const el = {
                 type: "mention",
-                attrs: { profile: inflated.profile },
+                attrs: { profile: inflated.profile, 'id': inflated.profile, 'label': inflated.body },
                 content: []
             };
 

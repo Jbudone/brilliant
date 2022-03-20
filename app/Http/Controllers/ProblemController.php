@@ -10,8 +10,9 @@ use Illuminate\Validation\Rule;
 
 class ProblemController extends Controller
 {
-    //
-
+    /*
+     * DISABLED FOR ARCHIVE ONLY SITE
+     *
     public function create(Request $request)
     {
         $isDiscussion = $request->route()->named('adddiscussion');
@@ -217,4 +218,5 @@ class ProblemController extends Controller
             return response()->json(['errors' => ['server' => 'unexpected error']], 418);
         }
     }
+     */
 }

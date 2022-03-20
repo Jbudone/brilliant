@@ -29,8 +29,6 @@ class Initial extends Migration
             $table->string('role')->nullable();
 
             $table->unsignedBigInteger('badges')->default(0); // bitfield of badges
-            $table->smallInteger('stars')->default(0);
-            $table->smallInteger('coins')->default(0);
             $table->smallInteger('points')->default(0);
             $table->smallInteger('stars_awarded')->default(0);
 
@@ -91,10 +89,7 @@ class Initial extends Migration
             $table->text('archive_meta')->nullable();
             $table->boolean('hidden')->default(false);
 
-            $table->smallInteger('votes')->default(0);  // == upvotes + downvotes
             $table->smallInteger('points')->default(0); // == upvotes - downvotes
-            $table->smallInteger('coins')->default(0);
-            $table->smallInteger('stars')->default(0);
 
             $table->timestamps();
         });
@@ -118,9 +113,7 @@ class Initial extends Migration
 
             $table->boolean('hidden')->default(false);
 
-            $table->smallInteger('votes')->default(0);  // == upvotes + downvotes
             $table->smallInteger('points')->default(0); // == upvotes - downvotes
-            $table->smallInteger('coins')->default(0);
 
             $table->timestamps();
         });
@@ -141,50 +134,6 @@ class Initial extends Migration
 
         // =========================================================== //
 
-        Schema::create('votes', function (Blueprint $table) {
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('problem_id');
-            $table->foreign('problem_id')->references('id')->on('problems')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('comment_id')->nullable();
-            $table->foreign('comment_id')->references('id')->on('comments')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->boolean('upvote');
-        });
-
-        Schema::create('admin_events', function (Blueprint $table) {
-
-            $table->unsignedBigInteger('issue_id');
-            $table->index('issue_id');
-
-            $table->text('event'); // metadata JSON
-            $table->timestamps();
-        });
-
-        Schema::create('stars', function (Blueprint $table) {
-
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('problem_id');
-            $table->foreign('problem_id')->references('id')->on('problems')->onUpdate('cascade')->onDelete('cascade');
-        });
-
-        Schema::create('coins', function (Blueprint $table) {
-
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('problem_id');
-            $table->foreign('problem_id')->references('id')->on('problems')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('comment_id')->nullable();
-            $table->foreign('comment_id')->references('id')->on('comments')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->smallInteger('coin');
-        });
 
         Schema::create('reports', function (Blueprint $table) {
             $table->id();
@@ -201,21 +150,6 @@ class Initial extends Migration
             $table->string('reason');
             $table->timestamps();
         });
-
-        Schema::create('activity', function (Blueprint $table) {
-
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('problem_id')->nullable();
-            $table->foreign('problem_id')->references('id')->on('problems')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->unsignedBigInteger('comment_id')->nullable();
-            $table->foreign('comment_id')->references('id')->on('comments')->onUpdate('cascade')->onDelete('cascade');
-
-            $table->string('event');
-            $table->timestamps();
-        });
     }
 
     /**
@@ -226,12 +160,7 @@ class Initial extends Migration
     public function down()
     {
         //
-        Schema::dropIfExists('activity');
-        Schema::dropIfExists('admin_events');
         Schema::dropIfExists('reports');
-        Schema::dropIfExists('votes');
-        Schema::dropIfExists('stars');
-        Schema::dropIfExists('coins');
 
         Schema::dropIfExists('solves');
         Schema::dropIfExists('comments');

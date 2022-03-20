@@ -23,12 +23,6 @@
                     <x-nav-link :href="route('problems')" :active="request()->routeIs('problems')">
                         {{ __('Problems') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('addproblem')" :active="request()->routeIs('addproblem')">
-                        {{ __('Add Problem') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('adddiscussion')" :active="request()->routeIs('adddiscussion')">
-                        {{ __('Add Discussion') }}
-                    </x-nav-link>
                     <x-nav-link :href="route('randomproblem')">
                         {{ __('Random Problem') }}
                     </x-nav-link>

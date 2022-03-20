@@ -4,26 +4,15 @@ use Illuminate\Support\Facades\Route;
 
 use App\Models\Problem;
 use App\Models\Solve;
-use App\Models\Comment;
-use App\Models\Vote;
-use App\Models\Star;
-use App\Models\Coin;
 use App\Models\Report;
-use App\Models\AdminEvent;
-use App\Models\ActivityEvent;
 
 use App\Http\Controllers\ProblemController;
-use App\Http\Controllers\CommentController;
 use App\Http\Controllers\SolveController;
-use App\Http\Controllers\VoteController;
-use App\Http\Controllers\StarController;
-use App\Http\Controllers\CoinController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\AdminEventController;
-use App\Http\Controllers\ActivityEventController;
-use App\Http\Controllers\AdminActionController;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+
+//use Typesense\Client;
 
 /*
 |--------------------------------------------------------------------------
@@ -237,11 +226,6 @@ Route::get('/problem/{problem}', function ($problemId) {
                 ];
             }
 
-            $vote = Vote::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('upvote', 'comment_id')->get();
-            if ($vote) {
-                $json['vote'] = $vote;
-            }
-
             $report = Report::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('comment_id')->get();
             if ($report) {
                 $json['report'] = $report;
@@ -263,28 +247,11 @@ Route::get('/problem/{problem}', function ($problemId) {
 })->whereNumber('problem');
 
 
-Route::get('/addproblem', [ProblemController::class, 'create'])->middleware(['auth'])->name('addproblem');
-Route::get('/edit/{problem}', [ProblemController::class, 'edit'])->middleware(['auth'])->whereNumber('problem')->name('editproblem');
-Route::get('/adddiscussion', [ProblemController::class, 'create'])->middleware(['auth'])->name('adddiscussion');
-
-Route::middleware(['auth', 'throttle:post'])->group(function(){
-    Route::post('/addproblem', [ProblemController::class, 'store'])->name('storeproblem');
-    Route::post('/editproblem', [ProblemController::class, 'change'])->name('changeproblem');
-    Route::post('/editdiscussion', [ProblemController::class, 'change'])->name('changediscussion');
-    Route::post('/adddiscussion', [ProblemController::class, 'store'])->name('storediscussion');
-});
-
-
 Route::get('/randomproblem', function() {
     $count = intval(Problem::count());
     $randomIdx = rand(1, $count);
     return redirect('/problem/' . $randomIdx);
 })->name('randomproblem');
-
-Route::middleware(['auth', 'throttle:comment'])->group(function(){
-    Route::post('/comment', [CommentController::class, 'store']);
-    Route::post('/editcomment', [CommentController::class, 'change']);
-});
 
 Route::middleware(['auth', 'throttle:solve'])->group(function(){
     Route::post('/solve', [SolveController::class, 'store']);
@@ -316,20 +283,72 @@ Route::get('/admin', function() {
 
 
 Route::middleware(['auth', 'throttle:interaction'])->group(function(){
-    Route::post('/vote', [VoteController::class, 'store']);
-    Route::post('/unvote', [VoteController::class, 'destroy']);
-
-    Route::post('/star', [StarController::class, 'store']);
-    Route::post('/unstar', [StarController::class, 'destroy']);
-
-    Route::post('/coin', [CoinController::class, 'store']);
-    Route::post('/uncoin', [CoinController::class, 'destroy']);
-
     Route::post('/report', [ReportController::class, 'store']);
     Route::post('/unreport', [ReportController::class, 'destroy']);
-
-    Route::post('/adminaction', [AdminActionController::class, 'store']);
 });
+
+
+
+/*
+Route::get('/typesense/setup', function(){
+
+    $client = new Client(
+        [
+            'api_key'         => 'xyz',
+            'nodes'           => [
+                [
+                    'host'     => 'XXXXXXXXXXXX', // For Typesense Cloud use xxx.a1.typesense.net
+                    'port'     => '8108',      // For Typesense Cloud use 443
+                    'protocol' => 'http',      // For Typesense Cloud use https
+                ],
+            ],
+            'connection_timeout_seconds' => 2,
+        ]
+    );
+
+    $booksSchema = [
+        'name' => 'books',
+        'fields' => [
+            ['name' => 'title', 'type' => 'string'],
+            ['name' => 'authors', 'type' => 'string[]', 'facet' => true],
+            ['name' => 'image_url', 'type' => 'string'],
+
+            ['name' => 'publication_year', 'type' => 'int32', 'facet' => true],
+            ['name' => 'ratings_count', 'type' => 'int32'],
+            ['name' => 'average_rating', 'type' => 'float']
+        ],
+        'default_sorting_field' => 'ratings_count'
+    ];
+
+    $client->collections->create($booksSchema);
+});
+
+Route::get('/typesense/users', function(){
+
+    $client = new Client(
+        [
+            'api_key'         => 'xyz',
+            'nodes'           => [
+                [
+                    'host'     => 'localhost', // For Typesense Cloud use xxx.a1.typesense.net
+                    'port'     => '8108',      // For Typesense Cloud use 443
+                    'protocol' => 'http',      // For Typesense Cloud use https
+                ],
+            ],
+            'connection_timeout_seconds' => 2,
+        ]
+    );
+
+    $searchParameters = [
+        'q'         => 'harry potter',
+        'query_by'  => 'title',
+        'sort_by'   => 'ratings_count:desc'
+    ];
+
+    $response = $client->collections['books']->documents->search($searchParameters);
+    return $response;
+});
+ */
 
 
 require __DIR__.'/auth.php';
