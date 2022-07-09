@@ -5,15 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-//use Typesense\LaravelTypesense\Interfaces\TypesenseDocument;
-//use Laravel\Scout\Searchable;
-//use Carbon\Carbon;
+use Typesense\LaravelTypesense\Interfaces\TypesenseDocument;
+use Laravel\Scout\Searchable;
+use Carbon\Carbon;
 
-//class Problem extends Model implements TypesenseDocument
-class Problem extends Model
+class Problem extends Model implements TypesenseDocument
 {
-    use HasFactory;
-    //use HasFactory, Searchable;
+    use HasFactory, Searchable;
 
     protected $fillable = ['title', 'category_id', 'level', 'body', 'author_id', 'solution', 'source', 'discussion', 'archive_id', 'votes', 'points'];
 
@@ -37,20 +35,19 @@ class Problem extends Model
         return $this->hasMany(Solves::class);
     }
 
+    public function searchableAs()
+    {
+        return 'title';
+    }
 
-/*
     public function toSearchableArray()
     {
-        $array = $this->toArray();
-
-        // Customize array...
-        //unset($array['created_at']); // FIXME: hide all but name?
-
-        // Typesense restrictions
-        $array['id'] = (string)$array['id'];
-        $array['created_at'] = (integer)Carbon::parse($array['created_at'])->timestamp;
-
-        return $array;
+        return [
+            'id' => (string)$this->id,
+            'created_at' => (integer)Carbon::parse($this->created_at)->timestamp,
+            'name' => $this->title,
+            'body' => $this->body
+        ];
     }
 
     public function getCollectionSchema(): array {
@@ -58,7 +55,7 @@ class Problem extends Model
             'name' => $this->searchableAs(),
             'fields' => [
             [
-                'name' => 'title',
+                'name' => 'name',
                 'type' => 'string',
             ],
             [
@@ -75,5 +72,4 @@ class Problem extends Model
             'name',
         ];
     }
-*/
 }

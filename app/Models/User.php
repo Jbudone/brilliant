@@ -7,15 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-//use Typesense\LaravelTypesense\Interfaces\TypesenseDocument;
-//use Laravel\Scout\Searchable;
-//use Carbon\Carbon;
+use Typesense\LaravelTypesense\Interfaces\TypesenseDocument;
+use Laravel\Scout\Searchable;
+use Carbon\Carbon;
 
-//class User extends Authenticatable implements TypesenseDocument
-class User extends Authenticatable
+class User extends Authenticatable implements TypesenseDocument
 {
-    //use HasFactory, Notifiable, Searchable;
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, Searchable;
 
     /**
      * The attributes that are mass assignable.
@@ -52,19 +50,13 @@ class User extends Authenticatable
     ];
 
 
-/*
     public function toSearchableArray()
     {
-        $array = $this->toArray();
-
-        // Customize array...
-        //unset($array['created_at']); // FIXME: hide all but name?
-
-        // Typesense restrictions
-        $array['id'] = (string)$array['id'];
-        $array['created_at'] = (integer)Carbon::parse($array['created_at'])->timestamp;
-
-        return $array;
+        return [
+            'id' => (string)$this->id,
+            'created_at' => (integer)Carbon::parse($this->created_at)->timestamp,
+            'name' => $this->name
+        ];
     }
 
     public function getCollectionSchema(): array {
@@ -89,5 +81,4 @@ class User extends Authenticatable
             'name',
         ];
     }
- */
 }

@@ -1,6 +1,19 @@
     == TODO ==
+        - Typesense
+            - Limit searching (max # searches / minute for user)
+            - Prevent Typesense access outside of Dreamhost server?
+            - Paginate
+            - Where clause
+            - Reasonable configs (API key/etc. in .env rather than scout.php)
+            - InstantSearch.js?   https://github.com/typesense/typesense-instantsearch-adapter  or   https://github.com/algolia/instantsearch.js/
+                Good looking search:
+                    http://blog.archive.org/2016/10/24/beta-wayback-machine-now-with-site-search/
+                    https://blog.archive.org/2016/10/26/searching-through-everything/
+            - API search request from routes/web.php
+            - Search bar in toolbar (for now)
+            - Compare Scout driver against Database (instead of Typesense) to see if its just as fast (maybe typesense not necessary)
+            - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
 
-        - Typesense (currently fails to startup on server, and can't use docker)
         - Faster startup
         - Cleanup for Archive: Admin, DB schema, interactions, editing/adding, text editor
         - Weekly problems
@@ -24,13 +37,6 @@
         - FIXME: Check tableCell rework (as container) is fine
         - FIXME: external img src http://brilliant.laravel:8000/problem/106736 
         - BUG: "View Solutions" -- don't say "YOu guessed ."
-        - Typesense
-           - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
-           - Update Typesense driver when ready: https://github.com/typesense/laravel-scout-typesense-driver
-           - Only include necessary parts of documents (user name/created, problem title/created)
-           - InstantSearch.js?
-           - Typesense command to create/seed from database; start Typesense service?
-           - API search request from routes/web.php
         - ReCaptcha v3
         - Interactable check response from server (Throttled -> show error popup?)
         - Security
@@ -114,10 +120,12 @@
         php artisan server --host=brilliant.local
         npm run watch
 
-        export TYPESENSE_API_KEY=xyz
-        mkdir /tmp/typesense-data
-        cd typesense
-        ./typesense-server --data-dir=/tmp/typesense-data --api-key=$TYPESENSE_API_KEY --enable-cors
+        # Startup Typesense on AWS
+        # If you need to startup AWS then you'll need to adjust IP in config/scout.php
+        #export TYPESENSE_API_KEY=xyz
+        #mkdir /tmp/typesense-data
+        #cd typesense
+        #./typesense-server --data-dir=/tmp/typesense-data --api-key=$TYPESENSE_API_KEY --enable-cors
 
 
 

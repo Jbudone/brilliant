@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Models\Problem;
+use App\Models\User;
 use App\Models\Solve;
 use App\Models\Report;
 
@@ -12,7 +13,7 @@ use App\Http\Controllers\ReportController;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-//use Typesense\Client;
+use Typesense\Client;
 
 /*
 |--------------------------------------------------------------------------
@@ -288,67 +289,15 @@ Route::middleware(['auth', 'throttle:interaction'])->group(function(){
 });
 
 
-
-/*
-Route::get('/typesense/setup', function(){
-
-    $client = new Client(
-        [
-            'api_key'         => 'xyz',
-            'nodes'           => [
-                [
-                    'host'     => 'XXXXXXXXXXXX', // For Typesense Cloud use xxx.a1.typesense.net
-                    'port'     => '8108',      // For Typesense Cloud use 443
-                    'protocol' => 'http',      // For Typesense Cloud use https
-                ],
-            ],
-            'connection_timeout_seconds' => 2,
-        ]
-    );
-
-    $booksSchema = [
-        'name' => 'books',
-        'fields' => [
-            ['name' => 'title', 'type' => 'string'],
-            ['name' => 'authors', 'type' => 'string[]', 'facet' => true],
-            ['name' => 'image_url', 'type' => 'string'],
-
-            ['name' => 'publication_year', 'type' => 'int32', 'facet' => true],
-            ['name' => 'ratings_count', 'type' => 'int32'],
-            ['name' => 'average_rating', 'type' => 'float']
-        ],
-        'default_sorting_field' => 'ratings_count'
-    ];
-
-    $client->collections->create($booksSchema);
+Route::get('/typesense/problems', function(){
+    // FIXME: Find a better way than makeHidden all (we only want to return certain values since this is for search)
+    return Problem::search('Test')->get()->makeHidden(['created_at','author_id','archive_id','discussion','body','level','solution','source','archive_meta','hidden','votes','points','coins','stars','updated_at']);
 });
 
-Route::get('/typesense/users', function(){
 
-    $client = new Client(
-        [
-            'api_key'         => 'xyz',
-            'nodes'           => [
-                [
-                    'host'     => 'localhost', // For Typesense Cloud use xxx.a1.typesense.net
-                    'port'     => '8108',      // For Typesense Cloud use 443
-                    'protocol' => 'http',      // For Typesense Cloud use https
-                ],
-            ],
-            'connection_timeout_seconds' => 2,
-        ]
-    );
-
-    $searchParameters = [
-        'q'         => 'harry potter',
-        'query_by'  => 'title',
-        'sort_by'   => 'ratings_count:desc'
-    ];
-
-    $response = $client->collections['books']->documents->search($searchParameters);
-    return $response;
+Route::get('/typesense/user', function(){
+    // FIXME: Find a better way than makeHidden all (we only want to return certain values since this is for search)
+    return User::search('Test')->get()->makeHidden(['created_at','email','email_verified_at','archive_id','status','role','badges','stars','coins','points','stars_awarded','age','location','avatar','blurb','created_at','updated_at']);
 });
- */
-
 
 require __DIR__.'/auth.php';

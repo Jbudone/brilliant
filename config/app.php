@@ -165,8 +165,7 @@ return [
         /*
          * Package Service Providers...
          */
-        //Typesense\LaravelTypesense\TypesenseServiceProvider::class,
-        //Devloops\LaravelTypesense\TypesenseServiceProvider::class,
+        Typesense\LaravelTypesense\TypesenseServiceProvider::class,
         Laravel\Scout\ScoutServiceProvider::class,
 
         /*
