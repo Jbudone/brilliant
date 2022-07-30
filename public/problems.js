@@ -3,268 +3,135 @@ $(document).ready(() => {
     const ProblemsApp = Vue.createApp({
         data: function() {
             return {
-                jsonData: [],
-                page: 1,
                 dropdownFilter: '', // which filter dropdown is open
 
-                filter: {
-                    difficulty: 0, // 0 all, 1 easy [1], 2 medium [2,3], 3 hard [4,5]
-                    category: 0, // 0 all, 1 algebra, 2 geometry, 3 number theory, 4 calculus,
-                                 // 5 discrete, 6 logic, 7 mechanics, 8 electricity, 9 compsci,
-                                 // 10 finance, 11 chemistry
-                },
-
-                // FIXME: move these into filter
                 filteredProblems: null, // problem list from filter
-                filteredProblemsCount: null, // count of problem list for filter
                 curDisplayedPosts: [],
 
-                maxPages: 1,
-                loadingProblems: true,
+                filterCategoriesActiveTitle: 'Topic',
+                filterCategories: [],
+                filterLevelsActiveTitle: 'Difficulty',
+                filterLevels: [],
 
-                // FIXME: Hardcoded -- does this belong in props?
-                filterCategories: [
-                    "All",
-                    "Algebra",
-                    "Geometry",
-                    "Number Theory",
-                    "Calculus",
-                    //"Discrete Math", // FIXME: Where is this?
-                    "Logic",
-                    "Classical Mechanics",
-                    "Electricity and Magnetism",
-                    "Computer Science",
-                    "Quantitative Finance",
-                    "Chemistry"
-                ],
+                pagesCur: [],
+                isFirstPage: false,
+                isLastPage: false,
+                pagesTotal: 0,
+                pagesHits: 0,
+                pageIdx: 0,
 
-                filterDifficulties: [
-                    "All",
-                    "Easy",
-                    "Medium",
-                    "Hard"
-                ]
+                filterProblemsCount: 0,
+                filterDiscussionCount: 0,
+                filterDiscussion: false
             };
         },
 
         methods: {
-            async getProblems() {
 
-                /*
-                // For debugging, only seeded questions
-                let res = await fetch('/newproblems'),
-                    data = await res.json();
-                for (let i = 0; i < data.length; ++i) {
-                    const catId = data[i].c,
-                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
-                    data[i].c = catEl.name;
-                }
-                this.jsonData = data;
-                this.applyFilters();
-                this.loadingProblems = false;
-                */
+            filterCategoriesCb() {},
+            filterLevelsCb() {},
+            setPageCb() {},
+            filterDiscussionCb() {},
 
+            showPaginationEllipses() { false; },
+            setPage(page) { this.setPageCb(page); },
+            setCategory(cat) { this.filterCategoriesCb("" + cat.id); },
+            setLevel(diff) { this.filterLevelsCb("" + diff.id); },
+            setDiscussion(disc) { this.filterDiscussion = disc; this.setFilterDiscussionCb({ isRefined: !disc }); },
 
-
-                // Async new problems in background
-                let res = await fetch('/newproblems'),
-                    data = await res.json();
-                this.jsonData = [];
-                const existingProblems = {};
-                for (let i = 0; i < data.length; ++i) {
-                    const catId = data[i].c,
-                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
-                    data[i].c = catEl.name;
-
-                    this.jsonData.push(data[i]);
-                    existingProblems[data[i].title] = true;
-                }
-                this.applyFilters();
-
-
-                /*
-                // Fetch larger/common problem set
-                res = await fetch('/initialproblems');
-                data = await res.json();
-
-                for (let i = 0; i < data.length; ++i) {
-                    const catId = data[i].c,
-                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
-                    data[i].c = catEl.name;
-
-                    if (!existingProblems[data[i].title]) {
-                        this.jsonData.push(data[i]);
-                        existingProblems[data[i].title] = true;
-                    }
-                }
-                this.applyFilters();
-
-
-                // Async all problems in background
-                res = await fetch('/allproblems');
-                data = await res.json();
-
-                for (let i = 0; i < data.length; ++i) {
-                    const catId = data[i].c,
-                        catEl = globals.ProblemCategories.find((el) => el.id === catId);
-                    data[i].c = catEl.name;
-
-                    if (!existingProblems[data[i].title]) {
-                        this.jsonData.push(data[i]);
-                    }
-                }
-
-                this.applyFilters();
-                */
-                this.loadingProblems = false;
-            },
-
-            showPaginationEllipses() { let pages = this.getPages(); return(this.loadingProblems && (pages[pages.length-1] === this.maxPages)); },
-            setPage(page) { this.page = page; this.paginate(); },
-            setCategory(cat) { this.filter.category = cat; this.applyFilters(true); },
-            setDifficulty(diff) { this.filter.difficulty = diff; this.applyFilters(true); },
-
-            applyFilters(resetPage) {
-
-                this.filteredProblems = null;
-                this.filteredProblemsCount = null;
+            setProblems(problems) {
+                this.filteredProblems = [];
                 this.curDisplayedPosts = [];
 
-                // No filter? Just use entire problem list
-                if (this.filter.difficulty === 0 && this.filter.category === 0) {
-                    this.filteredProblems = this.jsonData;
-                    this.maxPages = Math.ceil(this.filteredProblems.length / 15);
+                for (let i = 0; i < problems.length; ++i) {
+                    const problem = problems[i],
+                        categoryName = globals.ProblemCategories.find((a) => a.id == problem.category)?.name || "Misc",
+                        levelName = globals.ProblemLevels.find((a) => a.id == problem.level)?.name || "Level 0";
 
-                    if (resetPage) this.setPage(1);
-                    else this.paginate();
-                    return;
+                    this.filteredProblems.push({
+                        c: categoryName,
+                        l: levelName,
+                        n: problem.name,
+                        p: `problem/${problem.id}`
+                    });
                 }
 
-                const problemCategoryIndex = {
-                    "Algebra": 1,
-                    "Biology": 1000,
-                    "Geometry": 2,
-                    "Number Theory": 3,
-                    "Calculus": 4,
-                    "Probability": 1001,
-                    "Basic Mathematics": 1002,
-                    "Logic": 6,
-                    "Classical Mechanics": 7,
-                    "Electricity and Magnetism": 8,
-                    "Computer Science": 9,
-                    "Quantitative Finance": 10,
-                    "Chemistry": 11,
-                    "Number Theory and Algebra": 3,
-                    "SAT® Math": 1003,
-                };
-
-                const problemDifficultyRange = {
-                    1: 1,
-                    2: 2,
-                    3: 2,
-                    4: 3,
-                    5: 3
-                };
-
-                const problems = [];
-                for (let i = 0; i < this.jsonData.length; ++i) {
-                    const problem = this.jsonData[i];
-                    
-                    // Match category
-                    if (this.filter.category != 0 && problemCategoryIndex[problem.c] != this.filter.category) continue;
-                    if (this.filter.difficulty != 0 && problemDifficultyRange[problem.l] != this.filter.difficulty) continue;
-                    problems.push(problem);
-                }
-                this.filteredProblems = problems;
-                this.maxPages = Math.ceil(this.filteredProblems.length / 15);
-                console.log("Max pages: " + this.maxPages);
-
-                if (resetPage) this.setPage(1);
-                else this.paginate();
+                this.curDisplayedPosts = this.filteredProblems;
             },
 
-            async paginate() {
+            setCategoriesFacet(categories) {
+                this.filterCategoriesActiveTitle = 'Topic';
+                this.filterCategories = [];
+                for (let i = 0; i < categories.length; ++i) {
+                    const category = categories[i],
+                        id = parseInt(category.label, 10),
+                        title = globals.ProblemCategories.find((a) => a.id == id)?.name || "Misc";
+                    this.filterCategories.push({
+                        id: id,
+                        t: title,
+                        a: category.isRefined,
+                        c: category.count
+                    });
 
-                const categoryId = this.filter.category,
-                    level = this.filter.difficulty, // FIXME: dififculty is range of levels
-                    offset = 0; // FIXME: offset
-
-                // Total count of filtered problems
-                if (this.filteredProblemsCount === null) {
-                    let res = await fetch(`/problemspaginatecount/${categoryId}/${level}`);
-                    let data = await res.json();
-
-                    this.filteredProblemsCount = data['count'];
-                    this.maxPages = Math.ceil(this.filteredProblemsCount / 15);
-                }
-
-                let fromIdx = (this.page - 1) * 15,
-                    toIdx = Math.min(fromIdx + 15, this.filteredProblemsCount);
-
-                let fetchProblems = false;
-                if (!this.filteredProblems) {
-                    fetchProblems = true;
-                } else {
-                    for (let i = fromIdx; i < toIdx; ++i) {
-                        if (!this.filteredProblems[i]) {
-                            fetchProblems = true;
-                            break;
-                        }
+                    if (category.isRefined) {
+                        this.filterCategoriesActiveTitle = title;
                     }
                 }
 
-                // Fetch paginated problems
-                if (fetchProblems) {
-                    let res = await fetch(`/problemspaginate/${categoryId}/${level}/${offset}`);
-                    let data = await res.json();
+            },
 
-                    if (!this.filteredProblems) this.filteredProblems = [];
-                    for (let i = fromIdx, j = 0; j < data.length; ++i, ++j) {
+            setCategoriesFacetCb(cb) {
+                this.filterCategoriesCb = cb;
+            },
 
-                        const catId = data[j].c,
-                            catEl = globals.ProblemCategories.find((el) => el.id === catId);
-                        data[j].c = catEl.name;
+            setLevelsFacet(levels) {
+                this.filterLevelsActiveTitle = 'Difficulty';
+                this.filterLevels = [];
+                for (let i = 0; i < levels.length; ++i) {
+                    const level = levels[i],
+                        id = parseInt(level.label, 10),
+                        title = globals.ProblemLevels.find((a) => a.id == id)?.name || "Level 0";
+                    this.filterLevels.push({
+                        id: id,
+                        t: title,
+                        a: level.isRefined,
+                        c: level.count
+                    });
 
-                        this.filteredProblems[i] = data[j];
+                    if (level.isRefined) {
+                        this.filterLevelsActiveTitle = title;
                     }
                 }
 
-                if (!this.filteredProblems) return [];
-                const problems = [];
-                for (let i = fromIdx; i < toIdx; ++i) {
-                    problems.push(this.filteredProblems[i]);
-                }
-
-                this.curDisplayedPosts = problems;
             },
 
-            getPages() {
-                let pages = [],
-                    minPage = this.page - 2,
-                    maxPage = this.page + 2;
+            setLevelsFacetCb(cb) {
+                this.filterLevelsCb = cb;
+            },
 
-                if (minPage < 1) {
-                    maxPage += 1 - minPage;
-                    minPage = 1;
-                }
+            setPagination(curPages, totalHits, totalPages, isFirstPage, isLastPage, pageIdx) {
+                this.pagesCur = curPages;
+                this.isFirstPage = isFirstPage;
+                this.isLastPage = isLastPage;
+                this.pagesTotal = totalPages;
+                this.pagesHits = totalHits;
+                this.pageIdx = pageIdx;
+            },
 
-                if (maxPage > this.maxPages) {
-                    minPage -= maxPage - this.maxPages;
-                    maxPage = this.maxPages;
-                }
+            setPageCb(cb) {
+                this.setPageCb = cb;
+            },
 
-                minPage = Math.max(minPage, 1);
-                maxPage = Math.min(maxPage, this.maxPages);
+            setDiscussionFacet(value) {
+                this.filterProblemsCount = value.offFacetValue.count || 0;
+                this.filterDiscussionCount = value.onFacetValue.count || 0;
+            },
 
-                for (let i = minPage; i <= maxPage; ++i) {
-                    pages.push(i);
-                }
-
-                return pages;
-            }
+            setDiscussionFacetCb(cb) {
+                this.setFilterDiscussionCb = cb;
+            },
         },
         beforeMount: function() {
-            this.getProblems();
         },
         computed: {
             displayedPosts () {
@@ -278,4 +145,6 @@ $(document).ready(() => {
     $(window).click(() => {
         mountedProblems.dropdownFilter = '';
     });
+
+    window['ProblemsApp'] = mountedProblems;
 });

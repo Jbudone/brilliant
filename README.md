@@ -2,15 +2,16 @@
         - Typesense
             - Limit searching (max # searches / minute for user)
             - Prevent Typesense access outside of Dreamhost server?
-            - Paginate
-            - Where clause
             - Reasonable configs (API key/etc. in .env rather than scout.php)
+            - Dig deeper into Scout
+                https://www.youtube.com/watch?v=2Jy_4sL9Iug
+                - "searchableAttributes" ??
+            - Search key security: https://www.algolia.com/doc/guides/building-search-ui/going-further/api-keys-security/vue/
             - InstantSearch.js?   https://github.com/typesense/typesense-instantsearch-adapter  or   https://github.com/algolia/instantsearch.js/
                 Good looking search:
                     http://blog.archive.org/2016/10/24/beta-wayback-machine-now-with-site-search/
                     https://blog.archive.org/2016/10/26/searching-through-everything/
-            - API search request from routes/web.php
-            - Search bar in toolbar (for now)
+
             - Compare Scout driver against Database (instead of Typesense) to see if its just as fast (maybe typesense not necessary)
             - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
 
@@ -121,7 +122,7 @@
         npm run watch
 
         # Startup Typesense on AWS
-        # If you need to startup AWS then you'll need to adjust IP in config/scout.php
+        # If you need to startup AWS then you'll need to adjust IP in config/scout.php & re-populate typesense
         #export TYPESENSE_API_KEY=xyz
         #mkdir /tmp/typesense-data
         #cd typesense

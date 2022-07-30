@@ -61,9 +61,39 @@ import StarterKit from '@tiptap/starter-kit'
 import { Katex as ExtKatex } from './tiptap-katex.js'
 import { Mention as ExtMention } from './tiptap-mention.js'
 
+import InstantSearch from 'vue-instantsearch/vue3/es';
+window['InstantSearch'] = InstantSearch;
+//import InstantSearchApp from './instantsearch.vue';
+import { AisInstantSearch, AisSearchBox, AisHits } from 'vue-instantsearch/vue3/es';
+import { connectMenu, connectPagination, connectToggleRefinement } from 'instantsearch.js/es/connectors';
+window['AisInstantSearch'] = AisInstantSearch;
+window['AisSearchBox'] = AisSearchBox;
+window['AisHits'] = AisHits;
+window['AisConnectMenu'] = connectMenu;
+window['AisConnectPagination'] = connectPagination;
+window['AisConnectToggleRefinement'] = connectToggleRefinement;
+
+import instantsearchjs from "instantsearch.js";
+window['InstantSearchJS'] = instantsearchjs;
+
+import { searchBox, hits, configure, refinementList, pagination } from 'instantsearch.js/es/widgets'
+window['InstantSearchWidgets'] = {
+    searchBox,
+    hits,
+    configure,
+    refinementList,
+    pagination
+};
+
+//window['InstantSearchApp'] = InstantSearchApp;
+import TypesenseInstantSearchAdapter from "typesense-instantsearch-adapter";
+window['TypesenseInstantSearchAdapter'] = TypesenseInstantSearchAdapter;
 
 // load all highlight.js languages
 import lowlight from 'lowlight'
+
+//import 'instantsearch.css/themes/reset.css';
+import 'instantsearch.css/themes/satellite.css';
 
 // load specific languages only
 // import lowlight from 'lowlight/lib/core'
@@ -79,7 +109,9 @@ window['VueComponents'] = {
     TipTapForm,
     Vote,
     Report,
-    Mention
+    Mention,
+
+    InstantSearch
 };
 window['VueHTMLExtensions'] = [
     Document,

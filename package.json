@@ -44,10 +44,15 @@
         "@tiptap/html": "^2.0.0-beta.92",
         "@tiptap/starter-kit": "^2.0.0-beta.88",
         "@tiptap/vue-3": "^2.0.0-beta.48",
+        "css-loader": "^6.7.1",
+        "instantsearch.css": "^7.4.5",
         "katex": "^0.13.13",
         "sass": "^1.37.0",
         "sass-loader": "^12.1.0",
+        "style-loader": "^3.3.1",
         "typesense": "^0.15.0",
+        "typesense-instantsearch-adapter": "^2.4.1",
+        "vue-instantsearch": "^4.4.0",
         "vue-simple-search-dropdown": "^1.0.1"
     }
 }

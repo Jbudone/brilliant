@@ -3,6 +3,7 @@
     @section('pageTitle', 'Front Page')
     @push('scripts')
         <script type="text/javascript" src="{{ asset('problems.js?' . Str::random(40)) }}"></script>
+        <script type="text/javascript" src="{{ asset('instantsearch.js?' . Str::random(40)) }}"></script>
     @endpush
 
     <x-slot name="header">
@@ -13,11 +14,14 @@
 
     <!-- Content -->
     <div class="sm:w-3/5 m-auto mt-6 font-serif">
+
+        <div id="searchbox"></div>
+        <div id="hits" class="hidden"></div>
+
         <div id="problems" class="container ctnt-main">
             <div class="ctnt-sections row">
-                <span class="ctnt-btn active"><a href='#'>Problems</a></span>
-                <span class="ctnt-btn"><a href='#'>Needs Solution</a></span>
-                <span class="ctnt-btn"><a href='#'>Discussions</a></span>
+                <span class="ctnt-btn" v-bind:class="{ active: !filterDiscussion }"><a href='#'  @click.stop.prevent="setDiscussion(false)">Problems (@{{filterProblemsCount}})</a></span>
+                <span class="ctnt-btn" v-bind:class="{ active: filterDiscussion }"><a href='#'  @click.stop.prevent="setDiscussion(true)">Discussions (@{{filterDiscussionCount}})</a></span>
             </div>
             <table class="container mt-6">
                 <thead class="text-left">
@@ -26,12 +30,12 @@
                         <th class="filter-container category">
                             <span class="dropdown" v-bind:class="{ open: (dropdownFilter == 'category') }">
                                 <a href='#' class="filter-btn" @click.stop.prevent="dropdownFilter = (dropdownFilter == 'category') ? '' : 'category'">
-                                    <strong class="pl-4 font-sans font-semibold">Topic</strong>
+                                    <strong class="pl-4 font-sans font-semibold">@{{filterCategoriesActiveTitle}}</strong>
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
                                     <template v-for="(cat,idx) in filterCategories">
-                                        <li><a href='#' class="btn-link filter-link active" @click.prevent="setCategory(idx)">@{{cat}}</a></li>
+                                        <li><a href='#' class="btn-link filter-link active" @click.prevent="setCategory(cat)">@{{cat.t}} (@{{cat.c}})</a></li>
                                     </template>
                                 </ul>
                             </span>
@@ -43,21 +47,19 @@
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a href='#' class="btn-link filter-link">New</a></li>
                                     <li><a href='#' class="btn-link filter-link active">Popular</a></li>
-                                    <li><a href='#' class="btn-link filter-link">Following</a></li>
                                 </ul>
                             </span>
                         </th>
                         <th class="filter-container difficulty">
                             <span class="dropdown" v-bind:class="{ open: (dropdownFilter == 'difficulty') }">
                                 <a href='#' class="filter-btn" @click.stop.prevent="dropdownFilter = (dropdownFilter == 'difficulty') ? '' : 'difficulty'">
-                                    <strong class="pl-4 font-sans font-semibold">Difficulty</strong>
+                                    <strong class="pl-4 font-sans font-semibold">@{{filterLevelsActiveTitle}}</strong>
                                     <span class="arrow"></span>
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <template v-for="(diff,idx) in filterDifficulties">
-                                        <li><a href='#' class="btn-link filter-link active" @click.prevent="setDifficulty(idx)">@{{diff}}</a></li>
+                                    <template v-for="(diff,idx) in filterLevels">
+                                        <li><a href='#' class="btn-link filter-link active" @click.prevent="setLevel(diff)">@{{diff.t}} (@{{diff.c}})</a></li>
                                     </template>
                                 </ul>
                             </span>
@@ -70,17 +72,17 @@
                             <td class="prblmsnp-title"><a v-bind:href='problem.p'>@{{ problem.n }}</a></td>
                             <td class="prblmsnp-category">@{{ problem.c }}</td>
                             <td class="prblmsnp-popularity">Popular</td>
-                            <td class="prblmsnp-difficulty">Level @{{ problem.l }}</td>
+                            <td class="prblmsnp-difficulty">@{{ problem.l }}</td>
                         </tr>
                     </template>
                 </tbody>
             </table>
             <ul class="pagination mt-4 list-none">
                 <li class="page-item">
-                    <a href='#' class="page-link" v-bind:class="{ disabled: (page == 1) }" @click.prevent="setPage(page-1)"> Previous </a>
+                    <a href='#' class="page-link" v-bind:class="{ disabled: isFirstPage }" @click.prevent="setPage(pageIdx-1)"> Previous </a>
                 </li>
-                <li class="page-item page-num" v-for="(pageNumber, index) in getPages()" v-bind:class="{ active: (page == pageNumber) }">
-                    <a href='#' class="page-link" @click.prevent="setPage(pageNumber)"> @{{pageNumber}} </a>
+                <li class="page-item page-num" v-for="(pageNumber, index) in pagesCur" v-bind:class="{ active: (pageIdx == pageNumber) }">
+                    <a href='#' class="page-link" @click.prevent="setPage(pageNumber)"> @{{pageNumber+1}} </a>
                 </li>
                 <li v-if="showPaginationEllipses()" class="page-item">
                     <div id="wave">
@@ -90,7 +92,7 @@
                     </div>
                 </li>
                 <li class="page-item">
-                    <a href='#' class="page-link" v-bind:class="{ disabled: page >= maxPages }" @click.prevent="setPage(page+1)"> Next </a>
+                    <a href='#' class="page-link" v-bind:class="{ disabled: isLastPage }" @click.prevent="setPage(pageIdx+1)"> Next </a>
                 </li>
             </ul>
         </div>

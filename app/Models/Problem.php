@@ -46,6 +46,9 @@ class Problem extends Model implements TypesenseDocument
             'id' => (string)$this->id,
             'created_at' => (integer)Carbon::parse($this->created_at)->timestamp,
             'name' => $this->title,
+            'category' => (int)$this->category_id,
+            'level' => (int)$this->level,
+            'discussion' => (bool)$this->discussion,
             'body' => $this->body
         ];
     }
@@ -54,14 +57,29 @@ class Problem extends Model implements TypesenseDocument
         return [
             'name' => $this->searchableAs(),
             'fields' => [
-            [
-                'name' => 'name',
-                'type' => 'string',
-            ],
-            [
-                'name' => 'created_at',
-                'type' => 'int32',
-            ],
+                [
+                    'name' => 'name',
+                    'type' => 'string',
+                ],
+                [
+                    'name' => 'created_at',
+                    'type' => 'int32',
+                ],
+                [
+                    'name' => 'category',
+                    'type' => 'int32',
+                    'facet' => true
+                ],
+                [
+                    'name' => 'level',
+                    'type' => 'int32',
+                    'facet' => true
+                ],
+                [
+                    'name' => 'discussion',
+                    'type' => 'bool',
+                    'facet' => true
+                ],
             ],
             'default_sorting_field' => 'created_at',
         ];
