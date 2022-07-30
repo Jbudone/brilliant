@@ -1,17 +1,9 @@
     == TODO ==
         - Typesense
-            - Limit searching (max # searches / minute for user)
-            - Prevent Typesense access outside of Dreamhost server?
-            - Reasonable configs (API key/etc. in .env rather than scout.php)
+            - Typesense AWS pricing -- worth it to find another?
             - Dig deeper into Scout
                 https://www.youtube.com/watch?v=2Jy_4sL9Iug
                 - "searchableAttributes" ??
-            - Search key security: https://www.algolia.com/doc/guides/building-search-ui/going-further/api-keys-security/vue/
-            - InstantSearch.js?   https://github.com/typesense/typesense-instantsearch-adapter  or   https://github.com/algolia/instantsearch.js/
-                Good looking search:
-                    http://blog.archive.org/2016/10/24/beta-wayback-machine-now-with-site-search/
-                    https://blog.archive.org/2016/10/26/searching-through-everything/
-
             - Compare Scout driver against Database (instead of Typesense) to see if its just as fast (maybe typesense not necessary)
             - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
 
@@ -19,6 +11,8 @@
         - Cleanup for Archive: Admin, DB schema, interactions, editing/adding, text editor
         - Weekly problems
 
+        - Typesense: consider indexing/searching body; if so how do we display that in search? will it affect performance?
+        - Typesense client api key rate limiting
         - Cache busting include css/js
         - Serve css/js -> public/ folder, SASS, Babylon
         - Production: strip out parts of css/js that aren't needed, tree shaking
@@ -115,6 +109,7 @@
         # Typesense
         TODO: Turn on Typesense service???
         php artisan scout:import App\\Models\\User
+        php artisan typesense:run   # fetch api key (readonly) for client and store in .env
 
 
     == Local Startup ==

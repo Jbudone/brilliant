@@ -135,21 +135,15 @@ return [
     ],
 
     'typesense' => [
-        'api_key'         => 'xyz',
+        'api_key'         => env('TYPESENSE_KEY', ''),
         'nodes'           => [
           [
-            'host'     => '54.176.38.254',
-            'port'     => '8109',
+            'host'     => env('TYPESENSE_HOST', ''),
+            'port'     => env('TYPESENSE_PORT', ''),
             'path'     => '',
             'protocol' => 'http',
           ],
         ],
-        //'nearest_node'    => [
-        //    'host'     => 'localhost',
-        //    'port'     => '8108',
-        //    'path'     => '',
-        //    'protocol' => 'http',
-        //],
         'connection_timeout_seconds'   => 2,
         'healthcheck_interval_seconds' => 30,    
         'num_retries'                  => 3,

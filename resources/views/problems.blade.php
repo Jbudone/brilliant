@@ -2,6 +2,13 @@
 
     @section('pageTitle', 'Front Page')
     @push('scripts')
+        <script type="text/javascript">
+            window['TYPESENSE_CLIENT'] = {
+                'host': "{{ env('TYPESENSE_HOST') }}",
+                'port': "{{ env('TYPESENSE_PORT') }}",
+                'key':  "{{ env('TYPESENSE_CLIENT_KEY') }}",
+            }
+        </script>
         <script type="text/javascript" src="{{ asset('problems.js?' . Str::random(40)) }}"></script>
         <script type="text/javascript" src="{{ asset('instantsearch.js?' . Str::random(40)) }}"></script>
     @endpush

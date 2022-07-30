@@ -6,11 +6,11 @@ $(document).ready(() => {
 
     const typesenseInstantsearchAdapter = new TypesenseInstantSearchAdapter({
         server: {
-            apiKey: "xyz", // Be sure to use an API key that only allows search operations
+            apiKey: TYPESENSE_CLIENT['key'],
             nodes: [
                 {
-                    host: "54.176.38.254",
-                    port: "8109",
+                    host: TYPESENSE_CLIENT['host'],
+                    port: TYPESENSE_CLIENT['port'],
                     protocol: "http",
                 },
             ],
@@ -28,7 +28,7 @@ $(document).ready(() => {
 
     const search = InstantSearchJS({
         searchClient,
-        indexName: 'title',
+        indexName: 'title', // FIXME: This is the name of the collection; change to 'problems'
     });
 
 
