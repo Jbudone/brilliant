@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\Problem;
 use App\Models\Category;
@@ -184,6 +185,7 @@ class UpdateArchive extends Command
         $authorId = UpdateArchive::addUser($author);
 
         $problemDoc = Problem::create([
+            'uid' => $problem['uid'],
             'title' => $problem['title'],
             'body' => $body,
             'category_id' => $problem['category'],
@@ -197,7 +199,7 @@ class UpdateArchive extends Command
         ]);
 
 
-        // Discussion
+        // Comments discussion
         $discussions = $problem['discussions'];
         foreach ($discussions as $discussionIdx => &$discussion) {
             //$discussionReactions = $discussion['reactions'];
@@ -275,7 +277,7 @@ class UpdateArchive extends Command
         echo "$source\n";
 
 
-
+        $uid = $problem['uid'];
         $category = $problem['category'];
         $level = $problem['level'];
         $title = $problem['title'];
@@ -288,6 +290,7 @@ class UpdateArchive extends Command
         $authorId = UpdateArchive::updateUser($author);
 
         $problemDoc = tap(Problem::where("archive_id", $problemId))->update([
+            'uid' => $uid,
             'title' => $title,
             'body' => $body,
             'category_id' => $category,
@@ -301,7 +304,7 @@ class UpdateArchive extends Command
             exit;
         }
 
-        // Discussion
+        // Comment discussion
         $discussions = $problem['discussions'];
         foreach ($discussions as $discussionIdx => &$discussion) {
             $discussionId = $discussion['id'];
@@ -373,6 +376,19 @@ class UpdateArchive extends Command
      */
     public function handle()
     {
+        // Check that we're up to date on migrations first
+        $migrationPath = database_path('migrations/');
+        $migrationFiles = glob("$migrationPath/*.php");
+        foreach ($migrationFiles as &$value) {
+            $migrationId = basename($value, '.php');
+            $hasRun = DB::table('migrations')->where('migration', $migrationId)->exists();
+            if (!$hasRun) {
+                echo "Error: You aren't up to date on migrations;  `php artisan migrate:status`\n";
+                echo "Missing migration: $migrationId\n";
+                return -1;
+            }
+        }
+
         $seed = $this->option('seed');
         $singleBatchIdx = $this->option('batch');
 

@@ -386,6 +386,11 @@ const parseProblem = (id, env) => {
     outProblem.source = filepath;
     //console.log(data);
 
+    // Problem UID
+    const problemUid = parseInt($('[data-solvable]')[0].attributes['data-solvable'].value, 10);
+    Assert(problemUid > 0, `Unexpected Problme UID ${problemUid}: ${filepath}`);
+
+
     const categoryAndLevel = $('.topic-level-info').text();
 
     // Category / Level
@@ -419,11 +424,12 @@ const parseProblem = (id, env) => {
     }
 
     if (verbose) {
-        console.log(id + "   " + categoryName + " " + categoryLevel + " " + problemName + "   " + problemFile);
+        console.log(id + "   " + categoryName + " " + categoryLevel + " " + problemName + " " + problemUid + "  " + problemFile);
     }
 
     outProblem.category = categoryName;
     outProblem.level = categoryLevel;
+    outProblem.uid = problemUid;
 
     // Title
     const titleEl = $('.old-title-display');

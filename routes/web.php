@@ -195,6 +195,7 @@ Route::get('/problem/{problem}', function ($problemId) {
 
         $json = ['problem' => [
             'id' => $p->id,
+            'uid' => $p->uid,
             'title' => $p->title,
             'topic' => $p->topic->name,
             'body' => $p->body,

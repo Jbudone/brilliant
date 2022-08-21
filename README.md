@@ -1,15 +1,21 @@
     == TODO ==
-        - Typesense
-            - Typesense AWS pricing -- worth it to find another?
-            - Dig deeper into Scout
-                https://www.youtube.com/watch?v=2Jy_4sL9Iug
-                - "searchableAttributes" ??
-            - Compare Scout driver against Database (instead of Typesense) to see if its just as fast (maybe typesense not necessary)
-            - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
 
         - Faster startup
         - Cleanup for Archive: Admin, DB schema, interactions, editing/adding, text editor
         - Weekly problems
+            # Search for all: https://web.archive.org/web/*/http://brilliant.org/weekly-problems*
+            # 2018 archive (the rest are stored separately)
+            - Web Archive: https://web.archive.org/web/20210610052908/https://brilliant.org/community/home/weekly-problems/#2017-02-06
+            - https://web.archive.org/web/20210609154329/https://brilliant.org/weekly-problems/2018-12-17/basic/
+                # 2x elements of each difficulty ; find same attribute in html of problem, need to scrape it out to json and map in file
+                - document.querySelectorAll('[data-solvable]')[0].attributes['data-solvable']
+            - Migration
+                - Add 'uid' column
+                - update rather than seed all problems
+                - put online
+                - notes for migration/updating
+            - Archive page
+                - Also make Archive page match current week?
 
         - Typesense: consider indexing/searching body; if so how do we display that in search? will it affect performance?
         - Typesense client api key rate limiting
@@ -39,8 +45,6 @@
            - XSS attack via manual submission?  -- titles/solutions?
         - Throttling posts on success vs. failed  (eg. post -> fail validation -> try to fix -> fail again -> repeat until throttled)
         - AJAX request throttled -> dialog
-        - Search posts (by title)
-        - List discussions, problems, unsolved (check?), hot/popular
         - Email verification
         - Materialize+CSS -> Tailwind
         - Mobile view, responsive
@@ -55,6 +59,12 @@
         - Answer question component
         - "High quality" question  (set by moderators)
         - Override Rules (eg. Password rule)
+        - Typesense
+            - Dig deeper into Scout
+                https://www.youtube.com/watch?v=2Jy_4sL9Iug
+                - "searchableAttributes" ??
+            - Compare Scout driver against Database (instead of Typesense) to see if its just as fast (maybe typesense not necessary)
+            - Queue Driver for Scout https://laravel.com/docs/8.x/queues + enable .env SCOUT_QUEUE
 
 
 
@@ -107,23 +117,14 @@
             RewriteRule ^(.*)$ public/$1 [L]
 
         # Typesense
-        TODO: Turn on Typesense service???
-        php artisan scout:import App\\Models\\User
-        php artisan typesense:run   # fetch api key (readonly) for client and store in .env
+        nohup ./runtypesense &  # update .env with TYPESENSE host (host changes when you restart AWS)
+        php artisan scout:import \\App\\Models\\Problem
+        php artisan typesense:run  # and copy client-key to .env 
 
 
     == Local Startup ==
         php artisan server --host=brilliant.local
         npm run watch
-
-        # Startup Typesense on AWS
-        # If you need to startup AWS then you'll need to adjust IP in config/scout.php & re-populate typesense
-        #export TYPESENSE_API_KEY=xyz
-        #mkdir /tmp/typesense-data
-        #cd typesense
-        #./typesense-server --data-dir=/tmp/typesense-data --api-key=$TYPESENSE_API_KEY --enable-cors
-
-
 
     == Update ==
         scp -R [/local/path/to/brilliant.parsed] [login]:~/brilliant/

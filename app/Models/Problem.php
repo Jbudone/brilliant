@@ -13,7 +13,7 @@ class Problem extends Model implements TypesenseDocument
 {
     use HasFactory, Searchable;
 
-    protected $fillable = ['title', 'category_id', 'level', 'body', 'author_id', 'solution', 'source', 'discussion', 'archive_id', 'votes', 'points'];
+    protected $fillable = ['title', 'uid', 'category_id', 'level', 'body', 'author_id', 'solution', 'source', 'discussion', 'archive_id', 'votes', 'points'];
 
     public function topic()
     {
