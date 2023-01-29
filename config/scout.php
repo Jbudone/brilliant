@@ -141,7 +141,7 @@ return [
             'host'     => env('TYPESENSE_HOST', ''),
             'port'     => env('TYPESENSE_PORT', ''),
             'path'     => '',
-            'protocol' => 'http',
+            'protocol' => 'https',
           ],
         ],
         'connection_timeout_seconds'   => 2,
