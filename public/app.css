@@ -232,6 +232,11 @@ header {
     border-radius: 0 0 4px 4px;
     -webkit-background-clip: padding-box;
     background-clip: padding-box;
+
+    max-height: 282px;
+    overflow: auto;
+    padding: 4px 0 8px;
+    border-color: #015180;
 }
 
 .open>.dropdown-menu {
@@ -965,3 +970,4 @@ ul {
     background-color: #f7f7f9;
     border: 1px solid #e1e1e8;
 }
+

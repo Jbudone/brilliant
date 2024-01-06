@@ -26,6 +26,9 @@
                     <x-nav-link :href="route('randomproblem')">
                         {{ __('Random Problem') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('weeklyproblems')">
+                        {{ __('Problems of the Week') }}
+                    </x-nav-link>
                 </div>
             </div>
 

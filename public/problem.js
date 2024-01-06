@@ -36,13 +36,19 @@ $(document).ready(() => {
                 solutions: {},
                 discussions: [],
                 users: {},
-                
+
                 isHidden: false,
                 solved: 0,
 
                 points: 0,
                 voted: 0,
-                reported: false
+                reported: false,
+
+                // TODO: Is this wrong to keep the potw stuff inside of problem, even if it doesn't necessarily apply?
+                potwCurrent: null,
+                potwList: [],
+                potwDropdownFilter: '',
+                filterPotwListActiveTitle: "Weeks"
             };
         },
         methods: {
@@ -156,6 +162,34 @@ $(document).ready(() => {
                     });
 
                 location.reload();
+            },
+
+            potwSetWeek(week) {
+                this.potwCurrent.week = week;
+                this.potwReload();
+            },
+
+            potwSetLevel(level) {
+                const newLevel = Math.max(1, Math.min(3, level));
+                if (this.potwCurrent.level === newLevel) return;
+
+                this.potwCurrent.num = 0;
+                this.potwCurrent.level = newLevel;
+                this.potwReload();
+            },
+
+            potwIncNum() { this.potwSetNum(this.potwCurrent.num + 1); },
+            potwDecNum() { this.potwSetNum(this.potwCurrent.num - 1); },
+            potwSetNum(num) {
+                const newNum = Math.max(0, Math.min(this.potwCurrent.count - 1, num));
+                if (this.potwCurrent.num === newNum) return;
+
+                this.potwCurrent.num = newNum;
+                this.potwReload();
+            },
+
+            potwReload() {
+                document.location.href = `/weeklyproblems/${this.potwCurrent.week}/${this.potwCurrent.level}/${this.potwCurrent.num}`
             }
         },
         beforeMount: function() {
@@ -332,6 +366,48 @@ $(document).ready(() => {
                 }
             }
 
+            // Problems of the Week stuff
+            const url = window.location.pathname; // "/weeklyproblems/2018-10-29/2/5"
+            const urlParts = url.split('/'); // ["", "weeklyproblems", "2018-10-29", "2", "5"]
+            if (urlParts.length > 2 && urlParts[1] === "weeklyproblems") {
+                this.potwCurrent = {
+                    week: urlParts[2],
+                    level: parseInt(urlParts[3], 10),
+                    num: parseInt(urlParts[4], 10),
+                    count: 0
+                };
+
+                this.potwList = [];
+                for (let i = Global.potwList.length - 1; i >= 0; --i) {
+                    const potwItem = Global.potwList[i];
+
+                    let weekItem = this.potwList.find((l) => l.week === potwItem.week);
+                    if (!weekItem) {
+                        weekItem = {
+                            week: potwItem.week,
+                            weekTitle: "Week of February 6",
+                            levels: []
+                        };
+
+                        const monthTitle = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+                            weekParts = potwItem.week.split('-');
+                        weekItem.weekTitle = `Week of ${monthTitle[weekParts[1] - 1]} ${weekParts[2]} ${weekParts[0]}`;
+                        this.potwList.push(weekItem);
+                    }
+
+                    const weekLevelItem = {
+                        level: potwItem.level,
+                        count: potwItem.count
+                    };
+                    weekItem.levels.push(weekLevelItem);
+
+
+                    if (weekItem.week == this.potwCurrent.week && weekLevelItem.level == this.potwCurrent.level) {
+                        this.potwCurrent.count = weekLevelItem.count;
+                        this.filterPotwListActiveTitle = weekItem.weekTitle;
+                    }
+                }
+            }
             console.log(this.discussions);
             console.log(Global.ProblemJson);
         },
@@ -632,4 +708,8 @@ $(document).ready(() => {
     });
 
     const mountedProblem = ProblemApp.mount('#app');
+
+    $(window).click(() => {
+        mountedProblem.potwDropdownFilter = '';
+    });
 });

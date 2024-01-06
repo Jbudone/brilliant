@@ -12,6 +12,9 @@
                 VoteJson:      @isset($vote)       @json($vote, JSON_PRETTY_PRINT) @else null @endisset ,
                 ReportJson:    @isset($report)     @json($report, JSON_PRETTY_PRINT) @else null @endisset ,
                 AllReportJson: @isset($allReports) @json($allReports, JSON_PRETTY_PRINT) @else null @endisset ,
+
+                p1: @isset($p1) @json($p1, JSON_PRETTY_PRINT) @else null @endisset ,
+                potwList: @isset($weeks) @json($weeks, JSON_PRETTY_PRINT) @else null @endisset ,
             };
         </script>
     @endpush
@@ -23,11 +26,94 @@
     </x-slot>
 
     <!-- Content -->
-    <div class="sm:w-3/5 m-auto mt-6 font-serif">
-        <div id="app" class="ctnt-main prblm-container">
-            <div class="ctnt-sections">
+
+    <div class="sm:w-3/5 m-auto font-serif">
+        <div id="app" class="ctnt-main prblm-container" style="padding: 0px 0px 16px 0px;">
+
+        @isset($weeks)
+        <div id="problemsoftheweek" class="bg-sky-600 p-6 pb-14">
+
+            <h1 class="float-left mr-8 text-2xl font-bold text-white">Problems of the Week</h1>
+            <div class="filter-container difficulty float-left">
+                <span
+                    class="dropdown"
+                    v-bind:class="{
+                        'open bg-white': potwDropdownFilter == 'weeks',
+                        'bg-sky-600 text-white': potwDropdownFilter != 'weeks'
+                    }">
+                    <a href='#' class="" @click.stop.prevent="potwDropdownFilter = (potwDropdownFilter == 'weeks') ? '' : 'weeks'">
+                        <strong class="pl-4 font-sans font-semibold">@{{filterPotwListActiveTitle}}</strong>
+                        <span class="arrow"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <template v-for="(potwItem,idx) in potwList">
+                            <li><a href='#'
+                                    v-bind:class="{ active: potwItem.week == potwCurrent.week }"
+                                    class="btn-link filter-link"
+                                    @click.prevent="potwSetWeek(potwItem.week)">
+                                    @{{potwItem.weekTitle}}
+                            </a></li>
+                        </template>
+                    </ul>
+                </span>
+            </div>
+            <div class="float-right">
+                <div class="text-right">
+                    <template v-for="(level,idx) in ['Basic', 'Intermediate', 'Advanced']">
+                        <a href=""
+                            class="text-white py-1 px-4 inline-block border border-white"
+                            v-bind:class="{
+                                'active bg-white leading-7 text-sky-600 font-bold': potwCurrent.level == (idx + 1),
+                                'hover:bg-sky-800': potwCurrent.level != (idx + 1),
+                                'rounded-l': idx == 0,
+                                'rounded-r': idx == 2
+                            }"
+                            @click.prevent="potwSetLevel(idx + 1)">
+                            @{{level}}
+                        </a>
+                    </template>
+                </div>
+            </div>
+        </div>
+        @endif
+            <div class="ctnt-sections mt-6 ">
                 <div class="px-4">
                 <div class="prblm-header">
+
+                    @isset($weeks)
+                    <div class="float-right pr-8 w-72 flex items-center">
+                        <a href=""
+                            class="fas fa-solid fa-chevron-left"
+                            v-bind:class="{
+                                'inactive opacity-10': potwCurrent.num == 0,
+                                'opacity-70': potwCurrent.num != 0
+                            }"
+                            @click.prevent="potwDecNum()"
+                            style="flex: 0 0 20px;">
+                        </a>
+                        <div class="flex justify-around items-center h-6" style="flex-grow: 1;">
+                        <template v-for="idx in potwCurrent.count">
+                            <a href=""
+                                class="border h-full"
+                                v-bind:class="{ 'active bg-yellow-300 p-1': potwCurrent.num == (idx - 1) }"
+                                @click.prevent="potwSetNum(idx - 1)"
+                                style="flex-grow: 1;">
+                            </a>
+                        </template>
+                        </div>
+                        <a href=""
+                            class="fas fa-solid fa-chevron-right text-right"
+                            v-bind:class="{
+                                'inactive opacity-10': potwCurrent.num == (potwCurrent.count - 1),
+                                'opacity-70': potwCurrent.num != (potwCurrent.count - 1)
+                            }"
+                            @click.prevent="potwIncNum()"
+                            style="flex: 0 0 20px;">
+                        </a>
+                    </div>
+                    @endif
+
+
                     <div class="block text-red-500 text-2xl text-center">
                         <template v-if="isHidden">
                             PROBLEM HAS BEEN HIDDEN
@@ -45,13 +131,15 @@
 
                     @if($source)
                     <template v-if="Global.isDiscussion">
-                        <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
+                        <a href="/brilliantexport/discussions/thread/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
                     </template><template v-else>
-                        <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original -mt-5">original</a>
+                        <a href="/brilliantexport/problems/{{ $source }}/{{ $source }}.html" class="prblm-original">original</a>
                     </template>
+                    <Report class="float-right mr-4" ref="report" :inline="true" :initialreport="this.reported" :id="0" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
                     <br/>
                     @endif
                     </template>
+                    <!--
                     <div class="float-right text-right -mt-6">
                         <Vote ref="vote" :initialvote="this.voted" :initialpoints="this.points" :id="0" v-on:vote="this.vote"></Vote>
                         <Report ref="report" :inline="true" :initialreport="this.reported" :id="0" v-on:report="this.report" v-on:unreport="this.unreport"></Report>
@@ -61,6 +149,7 @@
                         </div>
 @endcan
                     </div>
+                    -->
                     <div class="prblm-topiclevel">
                         <span class="prblm-topic">@{{ this.topic }}</span>
                         <span class="prblm-level">Level @{{ this.level }}</span>
@@ -168,6 +257,7 @@
                     :discussions="this.discussions"
                 ></DiscussionSection>
             </div>
+        <template v-if="Global.potwList"></div></template>
         </div>
     </div>
 </x-app-layout>

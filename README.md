@@ -5,17 +5,11 @@
         - Weekly problems
             # Search for all: https://web.archive.org/web/*/http://brilliant.org/weekly-problems*
             # 2018 archive (the rest are stored separately)
-            - Web Archive: https://web.archive.org/web/20210610052908/https://brilliant.org/community/home/weekly-problems/#2017-02-06
             - https://web.archive.org/web/20210609154329/https://brilliant.org/weekly-problems/2018-12-17/basic/
                 # 2x elements of each difficulty ; find same attribute in html of problem, need to scrape it out to json and map in file
                 - document.querySelectorAll('[data-solvable]')[0].attributes['data-solvable']
-            - Migration
-                - Add 'uid' column
-                - update rather than seed all problems
-                - put online
-                - notes for migration/updating
-            - Archive page
-                - Also make Archive page match current week?
+            - Separate potw from problem as a separate component (similar to Comment, Discussion, etc.) ?
+        - Problems Of The Week Archive: https://web.archive.org/web/20210610052908/https://brilliant.org/community/home/weekly-problems/#2017-02-06
 
         - Typesense: consider indexing/searching body; if so how do we display that in search? will it affect performance?
         - Typesense client api key rate limiting
@@ -118,13 +112,27 @@
 
         # Typesense
         nohup ./runtypesense &  # update .env with TYPESENSE host (host changes when you restart AWS)
-        php artisan scout:import \\App\\Models\\Problem
-        php artisan typesense:run  # and copy client-key to .env 
+        php artisan typesense:run  # will create typesense key, update .env with client key, and import \App\Models\Problem
+                                   # NOTE: You should run this locally since it might be slower from webserver
+
+    == Troubleshooting Typesense ==
+        # does key work?
+        curl -H 'x-typesense-api-key: XXXXXXXXXXXX' https://typesense-brilliant.glitchy.me/collections
+
+        # use admin key to check if it exists in key list
+        curl -H 'X-TYPESENSE-API-KEY: XXXXXXXXXXXX' "https://typesense-brilliant.glitchy.me:443/keys" | jq .
+
+        # manually create a key
+        curl -H 'X-TYPESENSE-API-KEY: XXXXXXXXXXXX' "https://typesense-brilliant.glitchy.me:443/keys" -d '{"description":"Test Manual Key","actions": ["collections:get", "collections:list", "documents:search"], "collections": ["title"]}'
 
 
     == Local Startup ==
-        php artisan server --host=brilliant.local
+        update .env configs for TYPESENSE
+        php artisan serve --host=brilliant.local
         npm run watch
+
+        docker run -p 8108:8108 -v/tmp/data:/data typesense/typesense:0.22.2 --data-dir /data --api-key=XXXXXXXXXXXX --enable-cors --allowed-origins="http://brilliant.local:8000"
+        php artisan typesense:run  # NOTE: first startup will update the TYPESENSE_CLIENT_KEY in .env
 
     == Update ==
         scp -R [/local/path/to/brilliant.parsed] [login]:~/brilliant/
@@ -140,6 +148,11 @@
         # NOTE FRESH INSTALL ONLY BELOW
         rm nohup.out
         nohup php artisan migrate:fresh --seed &
+
+        # OR UPDATE ONLY
+        rm nohup.out
+        php artisan migrate # fulfill outstanding migrations
+        nohup php artisan archive:update &  # update problems from brilliant.parsed
 
 
 

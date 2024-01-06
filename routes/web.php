@@ -6,14 +6,17 @@ use App\Models\Problem;
 use App\Models\User;
 use App\Models\Solve;
 use App\Models\Report;
+use App\Models\ProblemsOfTheWeek;
 
 use App\Http\Controllers\ProblemController;
 use App\Http\Controllers\SolveController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ProblemsOfTheWeekController;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 use Typesense\Client;
+use Carbon\Carbon;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,6 +61,277 @@ Route::get('/allproblems', function () {
     $output = json_encode($problems);
     return $output;
 });
+
+Route::get('/weeklyproblems/{weekId}/{level}/{num}', function ($weekId, $level, $num) {
+
+    $weeks = ProblemsOfTheWeek::get(['week', 'level', 'count']); // FIXME: this is never changing and always going out, lets cache
+
+    $week = ProblemsOfTheWeek::where('week', $weekId)->where('level', $level)->first();
+    $p = Problem::where('problemsoftheweek_id', $week['id'])->get()[$num];
+
+    if (!$p) {
+        throw new ModelNotFoundException();
+    }
+
+    //$p = $p[0];
+    $users[$p->author->id] = ['name' => $p->author->name];
+    $comments = [];
+    foreach ($p->comments as $comment) {
+
+        if (!array_key_exists($comment->author_id, $users)) {
+            $users[$comment->author_id] = ['name' => $comment->author->name];
+        }
+
+        $comments[] = [
+            'id' => $comment->id,
+            'author' => $comment->author_id,
+            'body' => $comment->body,
+            'parent_comment_id' => $comment->parent_comment_id,
+            'date' => $comment->created_at,
+
+            'points' => $comment->points,
+            'votes' => $comment->votes,
+            'coins' => $comment->coins,
+            'hidden' => $comment->hidden
+        ];
+    }
+
+
+    $json;
+    if ($p->discussion) {
+
+        $json = ['problem' => [
+            'id' => $p->id,
+            'title' => $p->title,
+            'body' => $p->body,
+            'author' => $p->author_id,
+            'users' => $users,
+            'comments' => $comments,
+            'source' => $p->source,
+            'discussion' => true,
+            'hidden' => $p->hidden,
+
+            'points' => $p->points,
+            'votes' => $p->votes,
+            'coins' => $p->coins,
+            'stars' => $p->stars,
+        ], 'source' => $p->source,
+        'user' => [
+            'id' => Auth::id(),
+            'canmoderate' => Gate::allows('moderate')
+        ]];
+
+    } else {
+
+        $json = ['problem' => [
+            'id' => $p->id,
+            'uid' => $p->uid,
+            'title' => $p->title,
+            'topic' => $p->topic->name,
+            'body' => $p->body,
+            'level' => $p->level,
+            'author' => $p->author_id,
+            'users' => $users,
+            'comments' => $comments,
+            'source' => $p->source,
+            'discussion' => false,
+            'hidden' => $p->hidden,
+
+            'points' => $p->points,
+            'votes' => $p->votes,
+            'coins' => $p->coins,
+            'stars' => $p->stars,
+        ], 'source' => $p->source,
+        'user' => [
+            'id' => Auth::id(),
+            'canmoderate' => Gate::allows('moderate')
+        ]];
+
+
+        if (Auth::id()) {
+            $solve = Solve::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->first();
+            if ($solve) {
+                $json['solve'] = [
+                    'solution' => $solve->solution,
+                    'correct' => $solve->correct,
+                    'date' => $solve->created_at
+                ];
+            }
+
+            $report = Report::where('problem_id', (int)$problemId)->where('user_id', Auth::id())->select('comment_id')->get();
+            if ($report) {
+                $json['report'] = $report;
+            }
+
+            if (Gate::allows('moderate')) {
+                // Include all reports in problem
+                $allReports = Report::where('problem_id', (int)$problemId)->select('comment_id')->groupBy('comment_id')->get();
+                if ($allReports) {
+                    $json['allReports'] = $allReports;
+                }
+            }
+        }
+    }
+
+
+    $json['weeks'] = $weeks;
+    return view('problem', $json);
+})->name('weeklyproblems_weeklevelnum')
+  ->where('weekId', '(2017|2018)-(0[1-9]|1[0-2])-\d\d')
+  ->where('level', '[1-3]')
+  ->where('num', '[0-4]');
+
+Route::get('/weeklyproblems/{weekId}/{level}', function ($weekId, $level) {
+    return redirect()->route('weeklyproblems_weeklevelnum', ['weekId' => $weekId, 'level' => $level, 'num' => 0]);
+})->name('weeklyproblems_weeklevel');
+
+Route::get('/weeklyproblems/{weekId}', function ($weekId) {
+    return redirect()->route('weeklyproblems_weeklevel', ['weekId' => $weekId, 'level' => 1]);
+})->name('weeklyproblems_week');
+
+Route::get('/weeklyproblems', function () {
+
+
+    function findClosestDate($currentDate, $dates) {
+        $closestDate = null;
+        $minDiff = PHP_INT_MAX;
+
+        foreach ($dates as $date) {
+            $diff = $currentDate->diffInDays(Carbon::parse($date), false);
+            if ($diff >= 0 && $diff < $minDiff) {
+                $minDiff = $diff;
+                $closestDate = $date;
+            }
+        }
+
+        return $closestDate;
+    }
+
+    // List of dates
+    $dates = [
+        "2018-12-17",
+        "2018-12-10",
+        "2018-12-03",
+        "2018-11-26",
+        "2018-11-19",
+        "2018-11-12",
+        "2018-11-05",
+        "2018-10-29",
+        "2018-10-22",
+        "2018-10-15",
+        "2018-10-08",
+        "2018-10-01",
+        "2018-09-24",
+        "2018-09-17",
+        "2018-09-10",
+        "2018-09-03",
+        "2018-08-27",
+        "2018-08-20",
+        "2018-08-13",
+        "2018-08-06",
+        "2018-07-30",
+        "2018-07-23",
+        "2018-07-16",
+        "2018-07-09",
+        "2018-07-02",
+        "2018-06-25",
+        "2018-06-18",
+        "2018-06-11",
+        "2018-06-04",
+        "2018-05-28",
+        "2018-05-21",
+        "2018-05-14",
+        "2018-05-07",
+        "2018-04-30",
+        "2018-04-23",
+        "2018-04-16",
+        "2018-04-09",
+        "2018-04-02",
+        "2018-03-26",
+        "2018-03-19",
+        "2018-03-12",
+        "2018-03-05",
+        "2018-02-26",
+        "2018-02-19",
+        "2018-02-12",
+        "2018-02-05",
+        "2018-01-29",
+        "2018-01-22",
+        "2018-01-15",
+        "2018-01-08",
+        "2018-01-01",
+        "2017-12-18",
+        "2017-12-11",
+        "2017-12-04",
+        "2017-11-27",
+        "2017-11-20",
+        "2017-11-13",
+        "2017-11-06",
+        "2017-10-30",
+        "2017-10-23",
+        "2017-10-16",
+        "2017-10-09",
+        "2017-10-02",
+        "2017-09-25",
+        "2017-09-18",
+        "2017-09-11",
+        "2017-09-04",
+        "2017-08-28",
+        "2017-08-21",
+        "2017-08-14",
+        "2017-08-07",
+        "2017-07-31",
+        "2017-07-24",
+        "2017-07-17",
+        "2017-07-10",
+        "2017-07-03",
+        "2017-06-26",
+        "2017-06-19",
+        "2017-06-12",
+        "2017-06-05",
+        "2017-05-29",
+        "2017-05-22",
+        "2017-05-15",
+        "2017-05-08",
+        "2017-05-01",
+        "2017-04-24",
+        "2017-04-17",
+        "2017-04-10",
+        "2017-04-03",
+        "2017-03-27",
+        "2017-03-20",
+        "2017-03-13",
+        "2017-03-06",
+        "2017-02-27",
+        "2017-02-20",
+        "2017-02-13",
+        "2017-02-06"
+    ];
+
+
+
+    // Attempt to find a best-match week within the potw archive range [2017-02-06, 2018-12-17]
+    $currentDate = Carbon::now();
+    $timeTravelYear = 2017 + ($currentDate->year % 2);
+    $timeTravelDate = Carbon::parse($timeTravelYear . '-' . $currentDate->month . '-' . $currentDate->day);
+    $startDate = Carbon::parse('2017-02-06');
+    $endDate = Carbon::parse('2018-12-17');
+
+
+    if ($currentDate->lt($startDate)) {
+        // If current date is before the start date, use the last date
+        $closestDate = end($dates);
+    } elseif ($currentDate->gt($endDate)) {
+        // If current date is after the end date, loop back to the start
+        $closestDate = findClosestDate($currentDate, $dates);
+    } else {
+        // Find the closest date within the range
+        $closestDate = findClosestDate($currentDate, $dates);
+    }
+
+
+    return redirect()->route('weeklyproblems_week', ['weekId' => "2018-12-17"]);
+})->name('weeklyproblems');
 
 Route::get('/problemspaginatecount/{categoryId}/{level}', function ($categoryId, $level) {
     // FIXME: There's gotta be a cleaner way to do this
