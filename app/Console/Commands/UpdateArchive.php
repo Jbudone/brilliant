@@ -10,6 +10,7 @@ use App\Models\Problem;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\User;
+use App\Models\ProblemsOfTheWeek;
 
 class UpdateArchive extends Command
 {
@@ -38,10 +39,12 @@ class UpdateArchive extends Command
     }
 
     public static $users = [];
+    public static $potw = [];
     public function init()
     {
         ini_set('memory_limit','256M');
         $users = [];
+        $potw = [];
     }
 
     public static function addUser($user) {
@@ -184,8 +187,11 @@ class UpdateArchive extends Command
         $author = $problem['author'];
         $authorId = UpdateArchive::addUser($author);
 
+        $uid = $problem['uid'];
+        $potwId = array_key_exists($uid, UpdateArchive::$potw) ? UpdateArchive::$potw[$uid] : null;
+
         $problemDoc = Problem::create([
-            'uid' => $problem['uid'],
+            'uid' => $uid,
             'title' => $problem['title'],
             'body' => $body,
             'category_id' => $problem['category'],
@@ -195,7 +201,8 @@ class UpdateArchive extends Command
             'source' => $problem['source'],
             'archive_id' => $archiveId,
             'archive_meta' => "", // FIXME: Meta
-            'discussion' => FALSE
+            'discussion' => FALSE,
+            'problemsoftheweek_id' => $potwId
         ]);
 
 
@@ -289,6 +296,9 @@ class UpdateArchive extends Command
 
         $authorId = UpdateArchive::updateUser($author);
 
+        $uid = $problem['uid'];
+        $potwId = array_key_exists($uid, UpdateArchive::$potw) ? UpdateArchive::$potw[$uid] : null;
+
         $problemDoc = tap(Problem::where("archive_id", $problemId))->update([
             'uid' => $uid,
             'title' => $title,
@@ -296,7 +306,8 @@ class UpdateArchive extends Command
             'category_id' => $category,
             'level' => $level,
             'solution' => 0, // FIXME: Transport get solution idx
-            'archive_meta' => $archiveMeta
+            'archive_meta' => $archiveMeta,
+            'problemsoftheweek_id' => $potwId
         ])->first();
 
         if (!$problemDoc) {
@@ -389,9 +400,9 @@ class UpdateArchive extends Command
             }
         }
 
+
         $seed = $this->option('seed');
         $singleBatchIdx = $this->option('batch');
-
         ini_set('memory_limit','256M');
 
         if ($this->option('discussion')) {
@@ -432,9 +443,34 @@ class UpdateArchive extends Command
         } else {
             $this->info("Updating problems");
 
+
+            // Problems of the Week
+            $jsonPOTWStr = file_get_contents("./brilliant.parsed/problemsoftheweek.json");
+            $potwList = json_decode($jsonPOTWStr);
+
+            echo "Deleting existing problems of the week";
+            Problem::whereNotNull('problemsoftheweek_id')->update(['problemsoftheweek_id' => null]);
+            ProblemsOfTheWeek::query()->delete();
+
+            foreach ($potwList as $week => &$weekList) {
+                foreach ($weekList as $level => &$problemList)
+                {
+                    $levelId = 0;
+                    if ($level == 'basic') $levelId = 1;
+                    else if ($level == 'intermediate') $levelId = 2;
+                    else if ($level == 'advanced') $levelId = 3;
+
+                    $this->info("ProblemOfTheWeek: (" . $week .", ". $levelId .")");
+                    $potw = ProblemsOfTheWeek::firstOrCreate(['week' => $week, 'level' => $levelId, 'count' => count($problemList)]);
+                    foreach ($problemList as $problemUid)
+                    {
+                        UpdateArchive::$potw[$problemUid] = $potw->id;
+                    }
+                }
+            }
+
             $jsonMasterStr = file_get_contents("./brilliant.parsed/master.problems.json");
             $jsonMaster = json_decode($jsonMasterStr);
-
             $problemBatchList = $jsonMaster->processed;
 
             if ($seed) {
