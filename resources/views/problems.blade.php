@@ -7,6 +7,7 @@
                 'host': "{{ env('TYPESENSE_HOST') }}",
                 'port': "{{ env('TYPESENSE_PORT') }}",
                 'key':  "{{ env('TYPESENSE_CLIENT_KEY') }}",
+                'protocol':  "{{ env('TYPESENSE_PROTOCOL') }}",
             }
         </script>
         <script type="text/javascript" src="{{ asset('problems.js?' . Str::random(40)) }}"></script>

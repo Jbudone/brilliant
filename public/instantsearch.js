@@ -11,7 +11,7 @@ $(document).ready(() => {
                 {
                     host: TYPESENSE_CLIENT['host'],
                     port: TYPESENSE_CLIENT['port'],
-                    protocol: "https",
+                    protocol: TYPESENSE_CLIENT['protocol']
                 },
             ],
             cacheSearchResultsForSeconds: 2 * 60, // Cache search results from server. Defaults to 2 minutes. Set to 0 to disable caching.
